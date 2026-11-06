@@ -12,3 +12,12 @@ dist/
 
 # Contenido administrado localmente (pagina Nosotros): datos del entorno, no se versionan
 .data/
+
+# Artefactos de despliegue heredados de Planmed (paquetes y salida portable). Rutas exactas en la raiz: no excluyen codigo del proyecto
+/.output-uat-portable/
+/planmed-prod-20261105-13b7afa-r2.tar.gz
+/planmed-prod-20261105-13b7afa.tar.gz
+/planmed-uat-20261019-menu-chat-seo.tar.gz
+/planmed-uat-20261019-r2.tar.gz
+/planmed-uat-20261020-r3.tar.gz
+/planmed-uat-20261103-r4.tar.gz
