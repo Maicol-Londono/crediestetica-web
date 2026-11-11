@@ -21,7 +21,7 @@ class AuthService {
   }
 
   public can(_permission: string): boolean {
-    // Los roles autorizados tienen exactamente los mismos privilegios en el CMS Planmed.
+    // Los roles autorizados tienen exactamente los mismos privilegios en el CMS Crediestética.
     // La autorización real (user.role.id) la aplica el servidor en /api/auth/*.
     return this.isAuthenticated()
   }

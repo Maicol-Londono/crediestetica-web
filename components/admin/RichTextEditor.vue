@@ -1,10 +1,10 @@
 <template>
-  <div class="relative border border-gray-200 rounded-lg bg-gray-50 focus-within:ring-2 focus-within:ring-[#0C2619] focus-within:border-transparent">
+  <div class="relative border border-gray-200 rounded-lg bg-gray-50 focus-within:ring-2 focus-within:ring-[#111111] focus-within:border-transparent">
     <div v-if="editor && !readonly" class="flex flex-wrap gap-1 p-2 border-b border-gray-200 bg-white rounded-t-lg">
       <button v-for="b in buttons" :key="b.label" type="button" :title="b.title" :aria-label="b.title"
         @click="b.run()"
         class="px-2.5 py-1 text-xs font-bold rounded border transition-colors"
-        :class="b.active() ? 'bg-[#0C2619] text-white border-[#0C2619]' : 'bg-white text-gray-700 border-gray-200 hover:border-[#0C2619]'">
+        :class="b.active() ? 'bg-[#111111] text-white border-[#111111]' : 'bg-white text-gray-700 border-gray-200 hover:border-[#111111]'">
         {{ b.label }}
       </button>
     </div>

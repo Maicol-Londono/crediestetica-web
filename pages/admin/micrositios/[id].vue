@@ -3,18 +3,18 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
-        <NuxtLink to="/admin/micrositios" class="text-[11px] font-bold tracking-[0.15em] text-[#848484] hover:text-[#0C2619] uppercase flex items-center gap-2 mb-4 transition-colors">
+        <NuxtLink to="/admin/micrositios" class="text-[11px] font-bold tracking-[0.15em] text-[#848484] hover:text-[#111111] uppercase flex items-center gap-2 mb-4 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Volver a Micrositios
         </NuxtLink>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-1 uppercase">{{ isNew ? 'Nuevo Micrositio' : 'Editar Micrositio' }}</h2>
+        <h2 class="text-3xl font-serif text-[#111111] mb-1 uppercase">{{ isNew ? 'Nuevo Micrositio' : 'Editar Micrositio' }}</h2>
         <p class="text-gray-500 font-light">{{ isNew ? 'Crea el micrositio de un referidor (PRP).' : 'Modifica los datos de este micrositio.' }}</p>
       </div>
       <div class="flex items-center gap-3">
         <button
           @click="submitForm"
           :disabled="isSubmitting || isLoading"
-          class="bg-[#0C2619] hover:bg-[#153a28] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg"
+          class="bg-[#111111] hover:bg-[#333333] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg"
         >
           <span v-if="isSubmitting">Guardando...</span>
           <span v-else>Guardar Cambios</span>
@@ -35,7 +35,7 @@
         </div>
 
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Información del PRP</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Información del PRP</h3>
 
           <div class="space-y-6">
             <div>
@@ -71,19 +71,19 @@
       <!-- Columna Secundaria -->
       <div class="space-y-6">
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Visibilidad</h3>
-          <label class="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#0C2619] transition-colors">
-            <input v-model="form.isActive" type="checkbox" class="w-5 h-5 text-[#D3A76A] focus:ring-[#D3A76A] border-gray-300 rounded" />
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Visibilidad</h3>
+          <label class="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#111111] transition-colors">
+            <input v-model="form.isActive" type="checkbox" class="w-5 h-5 text-[#CBA36B] focus:ring-[#CBA36B] border-gray-300 rounded" />
             <span class="text-sm font-bold text-gray-900">Micrositio activo</span>
           </label>
           <p class="text-[10px] text-gray-500 mt-3">Un micrositio inactivo no está disponible públicamente.</p>
         </div>
 
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Enlace público</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Enlace público</h3>
           <div v-if="previewSlug" class="flex items-center gap-2">
             <span class="flex-grow text-xs text-gray-700 font-mono break-all bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">{{ prpService.publicPath(previewSlug) }}</span>
-            <button type="button" @click="copyLink" class="p-2 text-gray-400 hover:text-[#0C2619] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg shrink-0" title="Copiar enlace">
+            <button type="button" @click="copyLink" class="p-2 text-gray-400 hover:text-[#111111] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg shrink-0" title="Copiar enlace">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
             </button>
           </div>
@@ -105,7 +105,7 @@ import { authService } from '~/services/AuthService'
 const notify = useNotify()
 
 useHead({
-  title: 'Editor de Micrositios | Admin Planmed'
+  title: 'Editor de Micrositios | Admin Crediestética'
 })
 definePageMeta({
   layout: 'admin'
@@ -137,7 +137,7 @@ const form = ref({
 
 function inputClass(error?: string) {
   return [
-    'w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent',
+    'w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent',
     error ? 'border-red-500' : 'border-gray-200'
   ]
 }

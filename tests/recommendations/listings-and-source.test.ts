@@ -101,8 +101,9 @@ describe('páginas de listado (SSR + cliente)', () => {
     // En el resto el aviso encabeza la cadena v-if/v-else-if: si hay error, nada más de la cadena se renderiza.
     assert.match(src('pages/testimonios/antes-y-despues.vue'), /v-if="error"[\s\S]*?v-else-if="loaded && !visibility"/)
     assert.match(src('pages/testimonios/programa-de-referidos.vue'), /v-if="error"[\s\S]*?v-else-if="referral\.content"/)
-    assert.match(src('pages/procedimientos/index.vue'), /v-if="error"[\s\S]*?<div v-else class="grid/)
-    assert.match(src('pages/noticias/index.vue'), /v-if="error"[\s\S]*?<div v-else class="grid/)
+    // Procedimientos y noticias: el error es la primera rama y todo lo demás (incluidos vacío y cuadrícula) cuelga de un <template v-else>.
+    assert.match(src('pages/procedimientos/index.vue'), /v-if="error"[\s\S]*?<template v-else>[\s\S]*?data-testid="procedure-empty"/)
+    assert.match(src('pages/noticias/index.vue'), /v-if="error"[\s\S]*?<template v-else>[\s\S]*?data-testid="news-empty"/)
     assert.match(src('components/recommendations/ProcedureRecommendationIndex.vue'), /v-if="error"[\s\S]*?v-else-if="items\.length \|\| extras\.length"/)
   })
 

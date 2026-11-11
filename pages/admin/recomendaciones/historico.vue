@@ -1,7 +1,7 @@
 <template>
   <div class="pb-24">
     <div class="mb-8">
-      <h2 class="text-3xl font-serif text-[#0C2619] mb-1 uppercase">Recomendaciones</h2>
+      <h2 class="text-3xl font-serif text-[#111111] mb-1 uppercase">Recomendaciones</h2>
       <p class="text-gray-500 font-light">Administra las recomendaciones generales y el contenido de cada procedimiento. Cada elemento se guarda por separado.</p>
     </div>
 
@@ -15,7 +15,7 @@
       <button
         v-for="t in tabs" :key="t.key" type="button" role="tab" :aria-selected="state.tab === t.key" @click="ctl.selectTab(t.key)"
         class="px-5 py-3 text-xs font-bold tracking-widest uppercase border-b-2 -mb-px transition-colors"
-        :class="state.tab === t.key ? 'border-[#0C2619] text-[#0C2619]' : 'border-transparent text-gray-400 hover:text-gray-700'"
+        :class="state.tab === t.key ? 'border-[#111111] text-[#111111]' : 'border-transparent text-gray-400 hover:text-gray-700'"
       >
         {{ t.label }}
       </button>
@@ -37,14 +37,14 @@
           <aside class="bg-white border border-gray-200 rounded-xl shadow-sm p-3 lg:sticky lg:top-4 space-y-3">
             <div class="flex items-center justify-between px-3 pt-2">
               <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Páginas generales</p>
-              <button type="button" @click="ctl.createGeneralPage()" class="text-[10px] font-bold tracking-widest uppercase text-[#0C2619] hover:text-[#D3A76A]">+ Agregar</button>
+              <button type="button" @click="ctl.createGeneralPage()" class="text-[10px] font-bold tracking-widest uppercase text-[#111111] hover:text-[#CBA36B]">+ Agregar</button>
             </div>
             <div v-if="state.errors['create']" class="mx-3"><AdminRecommendationsErrorNotice :error="state.errors['create']" @dismiss="ctl.clearError('create')" /></div>
             <ul class="space-y-1">
               <li v-for="p in classification.general" :key="p.slug">
                 <button
                   type="button" @click="ctl.selectGeneralPage(p.slug)" class="w-full text-left px-3 py-3 rounded-lg transition-colors"
-                  :class="state.generalSlug === p.slug ? 'bg-[#D3A76A] text-[#0C2619]' : 'hover:bg-gray-50 text-gray-700'"
+                  :class="state.generalSlug === p.slug ? 'bg-[#CBA36B] text-[#111111]' : 'hover:bg-gray-50 text-gray-700'"
                 >
                   <span class="block text-sm font-semibold break-words">{{ p.menuLabel || p.title }}</span>
                   <span class="mt-1.5 flex flex-wrap gap-1.5">
@@ -100,7 +100,7 @@
                 <li v-for="p in classification.unassociated" :key="p.slug">
                   <button
                     type="button" @click="ctl.selectUnassociated(p.slug)" class="w-full text-left px-3 py-3 rounded-lg transition-colors"
-                    :class="state.unassociatedSlug === p.slug ? 'bg-[#D3A76A] text-[#0C2619]' : 'hover:bg-gray-50 text-gray-700'"
+                    :class="state.unassociatedSlug === p.slug ? 'bg-[#CBA36B] text-[#111111]' : 'hover:bg-gray-50 text-gray-700'"
                   >
                     <span class="block text-sm font-semibold break-words">{{ p.title }}</span>
                     <span class="mt-1.5 flex flex-wrap gap-1.5">
@@ -119,7 +119,7 @@
             <template v-if="state.unassociatedSlug && procElement && procElement.type === 'page'">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-sm text-gray-500">Página sin procedimiento asociado.</p>
-                <button type="button" @click="ctl.clearUnassociated()" class="text-[11px] font-bold tracking-widest uppercase text-[#0C2619] hover:text-[#D3A76A]">← Volver a procedimientos</button>
+                <button type="button" @click="ctl.clearUnassociated()" class="text-[11px] font-bold tracking-widest uppercase text-[#111111] hover:text-[#CBA36B]">← Volver a procedimientos</button>
               </div>
               <AdminRecommendationsPageEditor
                 v-if="draftOf(procElement.key)" :key="procElement.key"
@@ -136,12 +136,12 @@
             <template v-else-if="procedure">
               <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                 <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">Procedimiento</p>
-                <h3 class="text-2xl font-serif text-[#0C2619] break-words">{{ procedure.name }}</h3>
+                <h3 class="text-2xl font-serif text-[#111111] break-words">{{ procedure.name }}</h3>
                 <div class="mt-5 flex flex-wrap gap-2 border-b border-gray-200" role="tablist">
                   <button
                     v-for="k in kinds" :key="k" type="button" role="tab" :aria-selected="state.kind === k" @click="ctl.selectKind(k)"
                     class="px-4 py-2.5 text-xs font-bold tracking-widest uppercase border-b-2 -mb-px transition-colors"
-                    :class="state.kind === k ? 'border-[#0C2619] text-[#0C2619]' : 'border-transparent text-gray-400 hover:text-gray-700'"
+                    :class="state.kind === k ? 'border-[#111111] text-[#111111]' : 'border-transparent text-gray-400 hover:text-gray-700'"
                   >
                     {{ KIND_LABEL[k] }}
                   </button>
@@ -211,7 +211,7 @@ import {
 } from '~/utils/recommendationsAdmin'
 import type { BadgeTone } from '~/components/admin/recommendations/StatusBadge.vue'
 
-useHead({ title: 'Recomendaciones (heredado) | Admin Planmed' })
+useHead({ title: 'Recomendaciones (heredado) | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 const notify = useNotify()
@@ -238,7 +238,7 @@ const ctl = createAdminController(state, {
       showCancelButton: true,
       confirmButtonText: 'Crear',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#0C2619',
+      confirmButtonColor: '#111111',
       inputValidator: v => (v.trim() ? null : 'Escribe un título')
     })
     return typeof value === 'string' && value.trim() ? value.trim() : null

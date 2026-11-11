@@ -12,7 +12,7 @@
       </div>
       <button
         type="button" @click="$emit('save')" :disabled="!dirty || saving || disabled"
-        class="bg-[#0C2619] hover:bg-[#153a28] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 shadow-lg w-full sm:w-auto"
+        class="bg-[#111111] hover:bg-[#333333] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 shadow-lg w-full sm:w-auto"
       >
         {{ saving ? 'Guardando...' : `Guardar «${shortLabel}»` }}
       </button>

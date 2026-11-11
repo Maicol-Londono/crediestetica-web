@@ -1,6 +1,6 @@
 <template>
   <form class="border border-gray-200 rounded-xl p-5 mb-6 bg-gray-50" novalidate aria-labelledby="lu-create-title" data-testid="line-user-create-form" @submit.prevent="submit">
-    <h4 id="lu-create-title" class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-1">Nuevo colaborador</h4>
+    <h4 id="lu-create-title" class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-1">Nuevo colaborador</h4>
     <p class="text-sm text-gray-500 mb-4">
       Se crea en Wellezy Hub con una contraseña temporal que verás una sola vez al terminar; el colaborador deberá cambiarla en su primer ingreso.
       El salario y el auxilio de transporte quedan en 0 y se actualizan después desde Hub.
@@ -20,12 +20,12 @@
     <div class="grid sm:grid-cols-2 gap-4">
       <div v-for="f in textFields" :key="f.key">
         <label :for="`lu-${f.key}`" class="block text-xs font-semibold text-gray-700 mb-1">{{ f.label }}</label>
-        <input :id="`lu-${f.key}`" v-model="form[f.key]" :type="f.type" :maxlength="f.max" :autocomplete="f.auto" :aria-invalid="errors[f.key] ? 'true' : 'false'" :aria-describedby="errors[f.key] ? `lu-${f.key}-err` : undefined" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#0C2619]" />
+        <input :id="`lu-${f.key}`" v-model="form[f.key]" :type="f.type" :maxlength="f.max" :autocomplete="f.auto" :aria-invalid="errors[f.key] ? 'true' : 'false'" :aria-describedby="errors[f.key] ? `lu-${f.key}-err` : undefined" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#111111]" />
         <p v-if="errors[f.key]" :id="`lu-${f.key}-err`" class="mt-1 text-xs text-red-700">{{ errors[f.key] }}</p>
       </div>
       <div>
         <label for="lu-document_type" class="block text-xs font-semibold text-gray-700 mb-1">Tipo de documento</label>
-        <select id="lu-document_type" v-model="form.document_type" :aria-invalid="errors.document_type ? 'true' : 'false'" :aria-describedby="errors.document_type ? 'lu-document_type-err' : undefined" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#0C2619]">
+        <select id="lu-document_type" v-model="form.document_type" :aria-invalid="errors.document_type ? 'true' : 'false'" :aria-describedby="errors.document_type ? 'lu-document_type-err' : undefined" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#111111]">
           <option value="">Selecciona</option>
           <option v-for="t in LINE_USER_DOCUMENT_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
         </select>
@@ -33,7 +33,7 @@
       </div>
       <div>
         <label for="lu-role" class="block text-xs font-semibold text-gray-700 mb-1">Rol</label>
-        <select id="lu-role" v-model="form.role_id" :aria-invalid="errors.role_id ? 'true' : 'false'" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#0C2619]">
+        <select id="lu-role" v-model="form.role_id" :aria-invalid="errors.role_id ? 'true' : 'false'" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#111111]">
           <option value="">Selecciona un rol</option>
           <option v-for="r in options?.roles ?? []" :key="r.id" :value="String(r.id)">{{ r.name }}</option>
         </select>
@@ -43,7 +43,7 @@
     </div>
 
     <div class="flex gap-3 mt-5">
-      <button type="submit" class="px-5 py-2 rounded-lg bg-[#0C2619] text-white text-sm font-semibold disabled:opacity-50" :disabled="saving || !options || !options.roles.length" data-testid="create-submit">
+      <button type="submit" class="px-5 py-2 rounded-lg bg-[#111111] text-white text-sm font-semibold disabled:opacity-50" :disabled="saving || !options || !options.roles.length" data-testid="create-submit">
         {{ saving ? 'Creando…' : 'Crear colaborador' }}
       </button>
       <button type="button" class="px-5 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 bg-white" :disabled="saving" @click="$emit('cancel')">Cancelar</button>

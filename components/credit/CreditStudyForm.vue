@@ -6,14 +6,14 @@
       <p class="mt-1">Este formulario es solo el diseño: no valida, no guarda ni envía información, y los archivos que se seleccionen no se suben. Los datos que escribas no se registran en ninguna parte. Pendiente: confirmar las opciones de las listas (son provisionales), las reglas de los campos condicionales, las validaciones y conectar el envío.</p>
     </div>
 
-    <div class="bg-white border border-[#e5e2e1] shadow-sm">
-      <h2 id="credit-form-title" class="font-serif text-2xl md:text-3xl font-medium text-[#0C2619] text-center py-6 md:py-8 px-4">Formulario de crédito paciente</h2>
+    <div class="bg-white border border-[#E7DDD1] shadow-sm">
+      <h2 id="credit-form-title" class="font-serif text-2xl md:text-3xl font-medium text-[#111111] text-center py-6 md:py-8 px-4">Formulario de crédito paciente</h2>
 
       <!-- Indicador de paso (móvil) -->
       <p class="sm:hidden px-5 pb-3 text-center text-[11px] font-bold uppercase tracking-widest text-[#9a7a45]" aria-live="polite">Paso {{ current + 1 }} de {{ steps.length }}</p>
 
       <!-- Pasos -->
-      <div role="tablist" aria-label="Pasos del formulario" class="flex overflow-x-auto bg-[#0C2619] text-white [scrollbar-width:thin]" @keydown="onTabKey">
+      <div role="tablist" aria-label="Pasos del formulario" class="flex overflow-x-auto bg-[#111111] text-white [scrollbar-width:thin]" @keydown="onTabKey">
         <button
           v-for="(s, i) in steps"
           :id="`credit-tab-${s.key}`"
@@ -24,8 +24,8 @@
           :aria-selected="current === i ? 'true' : 'false'"
           :aria-controls="`credit-panel-${s.key}`"
           :tabindex="current === i ? 0 : -1"
-          class="flex-1 min-w-[140px] px-3 py-3 text-[11px] font-bold tracking-[0.08em] uppercase text-center leading-tight transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#D3A76A]"
-          :class="current === i ? 'bg-[#D3A76A] text-[#0C2619]' : 'text-white/80 hover:bg-white/10'"
+          class="flex-1 min-w-[140px] px-3 py-3 text-[11px] font-bold tracking-[0.08em] uppercase text-center leading-tight transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#CBA36B]"
+          :class="current === i ? 'bg-[#CBA36B] text-[#111111]' : 'text-white/80 hover:bg-white/10'"
           @click="go(i)"
         >{{ s.label }}</button>
       </div>
@@ -43,7 +43,7 @@
         >
           <div :class="s.split ? 'grid gap-x-12 gap-y-10 lg:grid-cols-2' : 'space-y-10'">
             <div v-for="(b, bi) in s.blocks" :key="bi" :class="b.full ? 'lg:col-span-2' : ''">
-              <h3 v-if="b.title" class="font-serif text-lg md:text-xl uppercase tracking-wide text-[#0C2619] mb-1">{{ b.title }}</h3>
+              <h3 v-if="b.title" class="font-serif text-lg md:text-xl uppercase tracking-wide text-[#111111] mb-1">{{ b.title }}</h3>
               <p v-if="b.note" class="text-xs text-gray-500 mb-4">{{ b.note }}</p>
               <div v-else-if="b.title" class="mb-4"></div>
 
@@ -52,7 +52,7 @@
                   <div v-if="visible(fd)" :class="[fieldClass(b, fd), fd.type === 'checkbox' ? 'self-end' : '']">
                     <!-- Casilla -->
                     <label v-if="fd.type === 'checkbox'" class="flex items-center gap-3 text-sm text-[#4c4546] cursor-pointer min-h-[2.75rem]">
-                      <input v-model="values[fd.id]" type="checkbox" class="w-4 h-4 accent-[#0C2619]" />
+                      <input v-model="values[fd.id]" type="checkbox" class="w-4 h-4 accent-[#111111]" />
                       <span>{{ fd.label }}</span>
                     </label>
 
@@ -66,7 +66,7 @@
                         <option v-for="o in fd.options" :key="o" :value="o">{{ o }}</option>
                       </select>
                       <input v-else-if="fd.type === 'file'" :id="`cf-${fd.id}`" type="file" class="field file-field" :required="fd.required" accept=".pdf,image/png,image/jpeg" />
-                      <input v-else-if="fd.sum" :id="`cf-${fd.id}`" class="field bg-[#fcf9f8] font-semibold" type="text" readonly :value="total(fd.sum)" />
+                      <input v-else-if="fd.sum" :id="`cf-${fd.id}`" class="field bg-[#F7F3EE] font-semibold" type="text" readonly :value="total(fd.sum)" />
                       <input v-else :id="`cf-${fd.id}`" v-model="values[fd.id]" class="field" :type="fd.type ?? 'text'" :inputmode="fd.inputmode" :required="fd.required" :disabled="disabled(fd)" :placeholder="disabled(fd) ? 'n/a' : undefined" autocomplete="off" />
                     </template>
                   </div>
@@ -78,9 +78,9 @@
           <p v-if="s.key === 'conyuge'" class="mt-6 text-xs text-gray-500">Los datos del cónyuge se habilitan cuando el estado civil (paso 1) es casado(a) o unión libre. Regla provisional, por confirmar.</p>
 
           <div class="mt-8 flex items-center justify-between gap-3">
-            <button type="button" class="px-6 py-3 border border-[#0C2619] text-[#0C2619] text-xs font-bold tracking-widest uppercase hover:bg-[#0C2619]/5 disabled:opacity-40" :disabled="i === 0" @click="go(i - 1)">Atrás</button>
-            <button v-if="i < steps.length - 1" type="submit" class="px-8 py-3 bg-[#0C2619] text-white text-xs font-bold tracking-widest uppercase hover:bg-[#153a28]">Siguiente</button>
-            <button v-else type="button" class="px-8 py-3 bg-[#0C2619] text-white text-xs font-bold tracking-widest uppercase hover:bg-[#153a28]" @click="saveClicked = true">Guardar</button>
+            <button type="button" class="px-6 py-3 border border-[#111111] text-[#111111] text-xs font-bold tracking-widest uppercase hover:bg-[#111111]/5 disabled:opacity-40" :disabled="i === 0" @click="go(i - 1)">Atrás</button>
+            <button v-if="i < steps.length - 1" type="submit" class="px-8 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase hover:bg-[#333333]">Siguiente</button>
+            <button v-else type="button" class="px-8 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase hover:bg-[#333333]" @click="saveClicked = true">Guardar</button>
           </div>
           <p v-if="i === steps.length - 1 && saveClicked" role="status" class="mt-4 text-sm font-semibold text-amber-800">Aún no es funcional: no se guardó ni se envió nada.</p>
         </div>
@@ -92,7 +92,7 @@
 <script setup lang="ts">
 // Maquetación del «Formulario de crédito paciente» (Estudio de créditos). SIN funcionalidad: el estado local solo sirve para mostrar/ocultar
 // campos condicionales y sumar totales; no hay validación ni envío. Las opciones de las listas son PROVISIONALES (las referencias solo muestran
-// «Seleccione» o el valor de ejemplo) y deben confirmarse con Planmed.
+// «Seleccione» o el valor de ejemplo) y deben confirmarse con Crediestética.
 import { reactive, ref } from 'vue'
 
 type Cond = { field: string, in: string[] }
@@ -354,7 +354,7 @@ function onTabKey(e: KeyboardEvent) {
 
 <style scoped>
 .field { width: 100%; min-height: 2.75rem; padding: 0 .75rem; background: #fff; border: 1px solid #cfc4c5; border-radius: 2px; font-size: .875rem; color: #1c1b1b; }
-.field:focus { outline: 2px solid #0C2619; outline-offset: 0; border-color: #0C2619; }
+.field:focus { outline: 2px solid #111111; outline-offset: 0; border-color: #111111; }
 .field:disabled { background: #f0eeed; color: #8a8284; cursor: not-allowed; }
 .file-field { padding: .5rem .75rem; }
 </style>

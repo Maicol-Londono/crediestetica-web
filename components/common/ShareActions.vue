@@ -1,5 +1,5 @@
 <template>
-  <div v-if="target" class="flex flex-col gap-2" data-testid="share-actions" :class="[tone === 'dark' ? 'text-white' : 'text-[#0C2619]', align === 'start' ? 'items-start' : 'items-center']">
+  <div v-if="target" class="flex flex-col gap-2" data-testid="share-actions" :class="[tone === 'dark' ? 'text-white' : 'text-[#111111]', align === 'start' ? 'items-start' : 'items-center']">
     <div class="flex flex-wrap items-center gap-3" :class="align === 'start' ? 'justify-start' : 'justify-center'">
       <button
         type="button"
@@ -128,8 +128,8 @@ onBeforeUnmount(() => { if (timer) clearTimeout(timer) })
   transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 .share-btn--dark { border: 1px solid rgb(255 255 255 / 0.45); color: #fff; background: rgb(255 255 255 / 0.08); }
-.share-btn--dark:hover { background: #fff; color: #0C2619; }
-.share-btn--light { border: 1px solid #0C2619; color: #0C2619; background: transparent; }
-.share-btn--light:hover { background: #0C2619; color: #fff; }
-.share-btn:focus-visible { outline: 2px solid #D3A76A; outline-offset: 3px; }
+.share-btn--dark:hover { background: #fff; color: #111111; }
+.share-btn--light { border: 1px solid #111111; color: #111111; background: transparent; }
+.share-btn--light:hover { background: #111111; color: #fff; }
+.share-btn:focus-visible { outline: 2px solid #CBA36B; outline-offset: 3px; }
 </style>

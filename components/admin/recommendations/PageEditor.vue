@@ -4,11 +4,11 @@
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
           <p v-if="eyebrow" class="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">{{ eyebrow }}</p>
-          <h3 class="text-xl font-serif text-[#0C2619] break-words">{{ page.title }}</h3>
+          <h3 class="text-xl font-serif text-[#111111] break-words">{{ page.title }}</h3>
           <p class="text-xs text-gray-400 mt-1">Dirección fija: <code class="bg-gray-100 rounded px-1.5 py-0.5">/recomendaciones/{{ page.slug }}</code> · el slug no cambia al editar.</p>
           <p v-if="page.shortUrl" class="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-2" data-testid="short-url">
             Enlace corto: <code class="bg-gray-100 rounded px-1.5 py-0.5">{{ page.shortUrl }}</code>
-            <button type="button" class="text-[11px] font-bold tracking-widest uppercase text-[#0C2619] hover:text-[#D3A76A]" @click="copyShortUrl">{{ copied ? 'Copiado' : 'Copiar' }}</button>
+            <button type="button" class="text-[11px] font-bold tracking-widest uppercase text-[#111111] hover:text-[#CBA36B]" @click="copyShortUrl">{{ copied ? 'Copiado' : 'Copiar' }}</button>
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -25,11 +25,11 @@
           <span v-if="dirty" class="block text-amber-700 mt-1">Guarda los cambios antes de publicar u ocultar.</span>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <NuxtLink v-if="viewUrl" :to="viewUrl" target="_blank" class="text-[11px] font-bold tracking-widest uppercase text-[#0C2619] hover:text-[#D3A76A]">Ver en la web ↗</NuxtLink>
+          <NuxtLink v-if="viewUrl" :to="viewUrl" target="_blank" class="text-[11px] font-bold tracking-widest uppercase text-[#111111] hover:text-[#CBA36B]">Ver en la web ↗</NuxtLink>
           <button
             type="button" :disabled="dirty || publishing || saving" @click="page.published ? $emit('unpublish') : $emit('publish')"
             class="px-5 py-2.5 rounded-lg border text-xs font-bold tracking-widest uppercase transition-colors disabled:opacity-50"
-            :class="page.published ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-[#0C2619] text-[#0C2619] hover:bg-[#0C2619] hover:text-white'"
+            :class="page.published ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-[#111111] text-[#111111] hover:bg-[#111111] hover:text-white'"
           >
             {{ publishing ? 'Procesando...' : page.published ? 'Ocultar' : 'Publicar' }}
           </button>
@@ -62,7 +62,7 @@
       <div>
         <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Imagen (opcional)</label>
         <div class="flex flex-wrap items-start gap-4">
-          <label class="block w-40 aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#0C2619] bg-gray-50 relative">
+          <label class="block w-40 aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#111111] bg-gray-50 relative">
             <img v-if="draft.image" :src="draft.image" alt="Imagen de la página" class="w-full h-full object-cover" />
             <span v-else class="absolute inset-0 flex items-center justify-center text-xs text-gray-400 text-center px-3">Haz clic para subir</span>
             <input type="file" accept="image/*" class="hidden" @change="onImage" />
@@ -135,5 +135,5 @@ async function onImage(e: Event) {
 
 <style scoped>
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #f9fafb; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 </style>

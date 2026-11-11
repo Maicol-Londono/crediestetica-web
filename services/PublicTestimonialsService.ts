@@ -17,3 +17,6 @@ export class PublicTestimonialsService {
 }
 
 export const publicTestimonialsService = new PublicTestimonialsService()
+
+/** Manejador ÚNICO de useAsyncData('patient-section'): la misma clave se usa en el menú, el submenú y las páginas, y Nuxt exige que compartan el mismo manejador. */
+export const fetchPatientSection = (): Promise<TestimonialsContent> => publicTestimonialsService.getContent()

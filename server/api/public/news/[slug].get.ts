@@ -1,5 +1,5 @@
 // Detalle público de una noticia (GET /api/v1/web/posts/{slug}). Un slug inexistente, no publicado, programado a futuro,
-// de otra línea o legado responde 404: esa decisión la toma Hub, no Planmed.
+// de otra línea o legado responde 404: esa decisión la toma Hub, no esta web.
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export default defineEventHandler(async (event) => {

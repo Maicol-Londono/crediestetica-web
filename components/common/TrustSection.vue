@@ -55,7 +55,7 @@
       <!-- Nota Legal Discreta -->
       <div class="mt-12 md:mt-16 text-center max-w-4xl mx-auto">
         <p class="font-sans text-[10px] md:text-xs text-[#BBB2AA] leading-relaxed italic">
-          {{ 'Nota Legal: Planmed promueve la realización de procedimientos con profesionales que puedan ser verificados en RETHUS y en instituciones habilitadas y verificables en los registros oficiales correspondientes.' }}
+          {{ 'Nota Legal: Crediestética promueve la realización de procedimientos con profesionales que puedan ser verificados en RETHUS y en instituciones habilitadas y verificables en los registros oficiales correspondientes.' }}
         </p>
       </div>
     </div>

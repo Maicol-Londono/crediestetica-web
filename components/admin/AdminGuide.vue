@@ -2,7 +2,7 @@
   <div class="space-y-8">
     <!-- Dónde vive cada cosa -->
     <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-8" aria-labelledby="guide-where">
-      <h3 id="guide-where" class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-2 border-b border-gray-100 pb-4">Dónde se guarda cada cosa</h3>
+      <h3 id="guide-where" class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-2 border-b border-gray-100 pb-4">Dónde se guarda cada cosa</h3>
       <p class="text-sm text-gray-600 leading-relaxed mb-6">
         No todo lo que editas en este panel se guarda en el mismo lugar. Esto importa para saber qué se actualiza en <strong>Wellezy Hub</strong> y qué vive <strong>solo en la web</strong>.
       </p>
@@ -47,7 +47,7 @@
     <!-- Cómo usar cada opción -->
     <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-8" aria-labelledby="guide-how">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4 mb-2">
-        <h3 id="guide-how" class="text-xs font-bold tracking-widest text-[#0C2619] uppercase">Cómo usar cada opción del panel</h3>
+        <h3 id="guide-how" class="text-xs font-bold tracking-widest text-[#111111] uppercase">Cómo usar cada opción del panel</h3>
         <div class="flex gap-2">
           <button type="button" class="btn-sm" @click="toggleAll(true)">Abrir todo</button>
           <button type="button" class="btn-sm" @click="toggleAll(false)">Cerrar todo</button>
@@ -81,7 +81,7 @@
               <a v-for="l in m.hubLinks" :key="l.path" :href="hubUrl(l.path)" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-md text-xs font-semibold hover:bg-blue-100">{{ l.label }} <span aria-hidden="true">↗</span><span class="sr-only">(se abre en otra pestaña)</span></a>
             </div>
             <p v-else-if="m.storage === 'hub' && m.id !== 'configuracion'" class="text-xs text-gray-500">En el Hub este contenido no tiene pantalla propia: se edita solo desde este panel (el Hub guarda el dato).</p>
-            <NuxtLink v-if="m.route && m.route !== '/admin/configuracion'" :to="m.route" class="inline-block text-xs font-bold tracking-widest uppercase text-[#0C2619] underline underline-offset-4">Ir a {{ m.title }}</NuxtLink>
+            <NuxtLink v-if="m.route && m.route !== '/admin/configuracion'" :to="m.route" class="inline-block text-xs font-bold tracking-widest uppercase text-[#111111] underline underline-offset-4">Ir a {{ m.title }}</NuxtLink>
           </div>
         </details>
       </div>
@@ -89,7 +89,7 @@
 
     <!-- Reglas comunes -->
     <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-8" aria-labelledby="guide-rules">
-      <h3 id="guide-rules" class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-4 border-b border-gray-100 pb-4">Reglas que valen para todo el panel</h3>
+      <h3 id="guide-rules" class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-4 border-b border-gray-100 pb-4">Reglas que valen para todo el panel</h3>
       <ul class="grid md:grid-cols-2 gap-x-8 gap-y-3 text-sm text-gray-700 leading-relaxed">
         <li><strong>Guardar:</strong> nada se aplica hasta pulsar el botón de guardar de esa pantalla.</li>
         <li><strong>Errores:</strong> el mensaje sale junto al botón y tus cambios siguen en pantalla para corregir y reintentar.</li>
@@ -109,6 +109,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 import { GUIDE_MODULES, GUIDE_STORAGE, GUIDE_FIXED_PAGES, HUB_BASE_URL, hubUrl } from '~/utils/adminGuide'
+
 
 const open = reactive<Record<string, boolean>>({})
 function toggleAll(value: boolean) {

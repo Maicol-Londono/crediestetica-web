@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-[#fcf9f8] min-h-screen font-sans">
+  <div class="bg-[#F7F3EE] min-h-screen font-sans">
     <div class="max-w-[1200px] mx-auto px-6 pt-6 md:pt-10">
       <CommonPageHero eyebrow="RECOMENDACIONES" :lines="[meta.indexTitle]" :lead="meta.subtitle" :facts="heroFacts" class="!mb-0" />
     </div>
@@ -9,14 +9,14 @@
       <div v-else-if="items.length || extras.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <NuxtLink
           v-for="p in items" :key="p.slug" :to="`/recomendaciones/${kind}/${p.slug}`"
-          class="group bg-white border border-[#e5e2e1] border-t-4 border-t-[#D3A76A] overflow-hidden hover:shadow-xl transition-all duration-300"
+          class="group bg-white border border-[#E7DDD1] border-t-4 border-t-[#CBA36B] overflow-hidden hover:shadow-xl transition-all duration-300"
         >
           <div class="aspect-[16/9] bg-gray-100 overflow-hidden">
             <img v-if="p.image" :src="p.image" :alt="p.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           </div>
           <div class="p-6">
             <h2 class="font-serif text-xl text-black mb-3">{{ meta.itemLabel(p.name) }}</h2>
-            <span class="inline-flex items-center text-[11px] font-bold tracking-[0.15em] uppercase text-[#0C2619]">
+            <span class="inline-flex items-center text-[11px] font-bold tracking-[0.15em] uppercase text-[#111111]">
               Ver recomendaciones
               <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </span>
@@ -24,14 +24,14 @@
         </NuxtLink>
         <NuxtLink
           v-for="x in extras" :key="x.slug" :to="`/recomendaciones/${x.slug}`"
-          class="group bg-white border border-[#e5e2e1] border-t-4 border-t-[#D3A76A] overflow-hidden hover:shadow-xl transition-all duration-300"
+          class="group bg-white border border-[#E7DDD1] border-t-4 border-t-[#CBA36B] overflow-hidden hover:shadow-xl transition-all duration-300"
         >
-          <div class="aspect-[16/9] bg-gradient-to-br from-[#0C2619] to-[#1b5a3f] overflow-hidden">
+          <div class="aspect-[16/9] bg-gradient-to-br from-[#111111] to-[#333333] overflow-hidden">
             <img v-if="x.image" :src="x.image" :alt="x.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           </div>
           <div class="p-6">
             <h2 class="font-serif text-xl text-black mb-3">{{ x.menuLabel }}</h2>
-            <span class="inline-flex items-center text-[11px] font-bold tracking-[0.15em] uppercase text-[#0C2619]">
+            <span class="inline-flex items-center text-[11px] font-bold tracking-[0.15em] uppercase text-[#111111]">
               Ver recomendaciones
               <svg class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </span>
@@ -84,5 +84,5 @@ const heroFacts = computed(() => {
 })
 const loaded = true
 
-useSeoMeta({ title: `${meta.indexTitle} | Planmed`, description: meta.subtitle })
+useSeoMeta({ title: `${meta.indexTitle} | Crediestética`, description: meta.subtitle })
 </script>

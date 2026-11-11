@@ -1,6 +1,6 @@
 // Tasa de interés mensual del simulador, a través de las rutas internas de Nitro. La lectura pública (simulador y formulario de
 // solicitud) sale de /api/public/financing-rate; la administración, de /api/admin/config/financing-rate. La tasa vive en el servidor
-// de Planmed (no en Wellezy Hub ni en el navegador: no se usa localStorage). No existe ningún valor de respaldo: si no se puede leer,
+// del sitio (no en Wellezy Hub ni en el navegador: no se usa localStorage). No existe ningún valor de respaldo: si no se puede leer,
 // se lanza FinancingRateUnavailableError y quien consulta debe mostrar «simulación no disponible».
 
 export type Fetcher = <T>(url: string, options?: Record<string, unknown>) => Promise<T>
@@ -8,7 +8,15 @@ export type Fetcher = <T>(url: string, options?: Record<string, unknown>) => Pro
 export interface PublicFinancingRate { rate: string, updatedAt: string }
 export interface FinancingRateActor { id: number | null, name: string }
 export interface FinancingRateHistoryEntry { rate: string, updatedAt: string, updatedBy: FinancingRateActor, source: 'initial' | 'admin' }
-export interface AdminFinancingRate extends FinancingRateHistoryEntry { history: FinancingRateHistoryEntry[] }
+/** Vista de administración. `configured: false` = aún no hay tasa (campos vacíos): no existe ningún valor por defecto. */
+export interface AdminFinancingRate {
+  configured: boolean
+  rate: string
+  updatedAt: string
+  updatedBy: FinancingRateActor | null
+  source: 'initial' | 'admin' | null
+  history: FinancingRateHistoryEntry[]
+}
 
 export class FinancingRateUnavailableError extends Error {
   constructor(message = 'La simulación no está disponible en este momento.') {
@@ -90,7 +98,7 @@ export class FinancingRateService {
     try { return await this.request<AdminFinancingRate>('/api/admin/config/financing-rate') } catch (e) { throw toSaveError(e) }
   }
 
-  async saveRate(rate: string, expectedUpdatedAt: string): Promise<AdminFinancingRate> {
+  async saveRate(rate: string, expectedUpdatedAt: string | null): Promise<AdminFinancingRate> {
     try {
       const saved = await this.request<AdminFinancingRate>('/api/admin/config/financing-rate', { method: 'PUT', body: { rate, expectedUpdatedAt } })
       this.invalidate()

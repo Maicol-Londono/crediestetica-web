@@ -10,7 +10,7 @@ import { sanitizeRichHtml } from '../../utils/richText.ts'
 // @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { CLINIC_MEDIA_PREFIX, CLINIC_MEDIA_NAME_RE, clinicMediaUrls, clinicsDefault, normalizeClinics, validateClinics, type ClinicsContent } from '../../shared/utils/clinics.ts'
 
-// Persistencia LOCAL de «Clínicas aliadas» (no usa Wellezy Hub): `<NUXT_PLANMED_CONTENT_DIR>/clinics.json` y los archivos subidos en
+// Persistencia LOCAL de «Clínicas aliadas» (no usa Wellezy Hub): `<NUXT_CONTENT_DIR>/clinics.json` y los archivos subidos en
 // `<dir>/clinics-media/`. Helpers de Nitro (createError, aboutContentDir, requireAboutEditor, normalizeClinics, …) son auto-imports.
 
 const FILE = 'clinics.json'

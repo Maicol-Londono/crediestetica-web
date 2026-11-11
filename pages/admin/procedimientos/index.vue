@@ -3,10 +3,10 @@
     <!-- Header de la sección -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-2 uppercase">Procedimientos</h2>
+        <h2 class="text-3xl font-serif text-[#111111] mb-2 uppercase">Procedimientos</h2>
         <p class="text-gray-500 font-light">Gestiona el catálogo de procedimientos médicos. Los datos se guardan en Wellezy Hub.</p>
       </div>
-      <NuxtLink to="/admin/procedimientos/nuevo" class="bg-[#D3A76A] hover:bg-[#c29659] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors inline-flex items-center gap-2">
+      <NuxtLink to="/admin/procedimientos/nuevo" class="bg-[#CBA36B] hover:bg-[#c29659] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors inline-flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
         Nuevo Procedimiento
       </NuxtLink>
@@ -22,17 +22,18 @@
           v-model="searchQuery" 
           type="text" 
           placeholder="Buscar por nombre o categoría..." 
-          class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent transition-all"
+          class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all"
         />
       </div>
     </div>
 
     <!-- Lista -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div v-if="pending" class="p-12 text-center text-gray-500">
+      <div v-if="listState === 'loading'" class="p-12 text-center text-gray-500">
         Cargando procedimientos...
       </div>
-      <div v-else-if="filteredProcedures.length === 0" class="p-12 text-center text-gray-500">
+      <AdminListNotice v-else-if="listState === 'unauthorized' || listState === 'forbidden' || listState === 'error'" :state="listState" @retry="refresh()" />
+      <div v-else-if="listState === 'empty'" class="p-12 text-center text-gray-500">
         No se encontraron procedimientos.
       </div>
       <div v-else class="overflow-x-auto">
@@ -72,7 +73,7 @@
               <td class="p-4 text-center">
                 <button 
                   @click="toggleDestacado(proc)"
-                  :class="proc.destacado ? 'text-[#D3A76A] hover:text-[#b38b55]' : 'text-gray-300 hover:text-gray-400'"
+                  :class="proc.destacado ? 'text-[#CBA36B] hover:text-[#b38b55]' : 'text-gray-300 hover:text-gray-400'"
                   class="transition-colors p-1"
                   title="Marcar/Desmarcar Destacado"
                 >
@@ -81,10 +82,10 @@
               </td>
               <td class="p-4 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <NuxtLink :to="`/admin/procedimientos/${proc.slug}`" class="p-2 text-gray-400 hover:text-[#0C2619] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg" :title="proc.isMaster ? 'Ver (contenido global)' : 'Editar'">
+                  <NuxtLink :to="`/admin/procedimientos/${proc.slug}`" class="p-2 text-gray-400 hover:text-[#111111] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg" :title="proc.isMaster ? 'Ver (contenido global)' : 'Editar'">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                   </NuxtLink>
-                  <button @click="toggleActivo(proc)" :class="proc.activo ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-green-700 hover:bg-green-50'" class="p-2 text-gray-400 transition-colors bg-gray-50 rounded-lg" :title="proc.activo ? (proc.isMaster ? 'Deshabilitar en Planmed' : 'Desactivar') : (proc.isMaster ? 'Habilitar en Planmed' : 'Activar')">
+                  <button @click="toggleActivo(proc)" :class="proc.activo ? 'hover:text-red-600 hover:bg-red-50' : 'hover:text-green-700 hover:bg-green-50'" class="p-2 text-gray-400 transition-colors bg-gray-50 rounded-lg" :title="proc.activo ? (proc.isMaster ? 'Deshabilitar en Crediestética' : 'Desactivar') : (proc.isMaster ? 'Habilitar en Crediestética' : 'Activar')">
                     <svg v-if="proc.activo" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                   </button>
@@ -95,7 +96,7 @@
         </table>
       </div>
 
-      <AdminPagination v-if="!pending" v-model:page="page" v-model:per-page="perPage" :last-page="lastPage" :total="filteredProcedures.length" label="procedimientos" />
+      <AdminPagination v-if="listState === 'list' || listState === 'empty'" v-model:page="page" v-model:per-page="perPage" :last-page="lastPage" :total="filteredProcedures.length" label="procedimientos" />
     </div>
 
   </div>
@@ -107,9 +108,10 @@ import { ref, computed, watch } from 'vue'
 import { useHead, useAsyncData, refreshNuxtData } from '#imports'
 import { procedureService } from '~/services/ProcedureService'
 import type { Procedure } from '~/types/procedure'
+import { adminListState } from '#shared/utils/adminListState'
 
 useHead({
-  title: 'Procedimientos | Admin Planmed'
+  title: 'Procedimientos | Admin Crediestética'
 })
 definePageMeta({
   layout: 'admin'
@@ -117,8 +119,9 @@ definePageMeta({
 
 const searchQuery = ref('')
 
-const { data: procedures, pending } = await useAsyncData('admin-procedures-list', () => procedureService.getProcedures(), { default: () => [] })
-onMounted(async () => { procedures.value = await procedureService.getProcedures() })
+const { data: procedures, pending, error, refresh } = await useAsyncData('admin-procedures-list', () => procedureService.getProcedures(), { default: () => [] })
+// Se vuelve a consultar al montar (la carga inicial puede venir vacía del servidor); refresh() no lanza: el error queda en `error`.
+onMounted(() => { refresh() })
 
 const filteredProcedures = computed(() => {
   if (!procedures.value) return []
@@ -130,6 +133,7 @@ const page = ref(1)
 const perPage = ref(10)
 const lastPage = computed(() => Math.max(1, Math.ceil(filteredProcedures.value.length / perPage.value)))
 const pagedProcedures = computed(() => filteredProcedures.value.slice((page.value - 1) * perPage.value, page.value * perPage.value))
+const listState = computed(() => adminListState({ loading: pending.value, error: error.value, count: filteredProcedures.value.length }))
 watch([searchQuery, perPage], () => { page.value = 1 })
 watch(lastPage, (n) => { if (page.value > n) page.value = n })
 

@@ -1,36 +1,51 @@
 <template>
-  <section v-if="clinics.length" aria-label="Clínicas aliadas" class="mt-10 space-y-14 md:space-y-20">
-    <article v-for="c in clinics" :id="c.id" :key="c.id" class="bg-white border border-[#e5e2e1] scroll-mt-28">
+  <!-- Error de lectura: aviso con reintento (no «sin clínicas»). Lista vacía válida: mensaje de ausencia de contenido. -->
+  <CommonHubUnavailable v-if="error" :retrying="status === 'pending'" class="mt-10" @retry="refresh()" />
+  <p
+    v-else-if="!clinics.length"
+    data-testid="clinics-empty"
+    class="mt-10 text-center text-gray-500 font-light py-16 border border-dashed border-[#BBB2AA] rounded-xl bg-white"
+  >
+    Pronto compartiremos aquí nuestras clínicas aliadas.
+  </p>
+  <section v-else aria-label="Clínicas aliadas" class="mt-10 space-y-14 md:space-y-20">
+    <article v-for="c in clinics" :id="c.id" :key="c.id" class="bg-white border border-[#E7DDD1] rounded-[2rem] shadow-sm overflow-hidden scroll-mt-28">
       <div class="grid md:grid-cols-5">
-        <div class="md:col-span-2 bg-[#0C2619]">
+        <div class="md:col-span-2 bg-[#111111]">
           <img :src="c.image" :alt="`Imagen de ${c.name}`" loading="lazy" class="w-full h-full min-h-[240px] max-h-[420px] md:max-h-none object-cover aspect-[4/3] md:aspect-auto" />
         </div>
         <div class="md:col-span-3 p-6 md:p-10">
-          <span class="block w-10 h-[2px] bg-[#D3A76A] mb-5" aria-hidden="true"></span>
-          <h2 class="font-serif text-2xl md:text-3xl font-medium text-[#0C2619] break-words">{{ c.name }}</h2>
+          <span class="block w-10 h-[2px] bg-[#CBA36B] mb-5" aria-hidden="true"></span>
+          <h2 class="font-serif text-2xl md:text-3xl text-[#111111] break-words">{{ c.name }}</h2>
           <CommonRichContent :html="c.description" class="mt-4 text-gray-600 font-light text-base md:text-lg leading-relaxed" />
+          <dl v-if="c.website || c.phone || c.email || c.address" class="mt-6 space-y-2 text-sm text-gray-700" :data-testid="`clinic-contact-${c.id}`">
+            <div v-if="c.address"><dt class="sr-only">Dirección</dt><dd class="break-words">{{ c.address }}</dd></div>
+            <div v-if="c.phone"><dt class="sr-only">Teléfono</dt><dd><a :href="`tel:${c.phone.replace(/[^\d+]/g, '')}`" class="underline underline-offset-2 hover:text-[#111111]">{{ c.phone }}</a></dd></div>
+            <div v-if="c.email"><dt class="sr-only">Correo electrónico</dt><dd><a :href="`mailto:${c.email}`" class="underline underline-offset-2 hover:text-[#111111] break-all">{{ c.email }}</a></dd></div>
+            <div v-if="c.website"><dt class="sr-only">Sitio web</dt><dd><a :href="c.website" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-[#111111] break-all">{{ c.website }}<span class="sr-only"> (se abre en una pestaña nueva)</span></a></dd></div>
+          </dl>
         </div>
       </div>
 
-      <div v-if="c.gallery.length" class="border-t border-[#e5e2e1] p-6 md:p-10">
-        <h3 class="text-[11px] font-bold tracking-[0.15em] uppercase text-[#9a7a45] mb-4">Galería</h3>
+      <div v-if="c.gallery.length" class="border-t border-[#E7DDD1] p-6 md:p-10">
+        <h3 class="text-[11px] font-bold tracking-[0.15em] uppercase text-[#755A26] mb-4">Galería</h3>
         <ul class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <li v-for="(g, gi) in c.gallery" :key="g">
-            <button type="button" class="block w-full aspect-[4/3] overflow-hidden bg-[#fcf9f8] focus-visible:outline-2 focus-visible:outline-[#0C2619]" :aria-label="`Ampliar imagen ${gi + 1} de ${c.gallery.length} de ${c.name}`" @click="open(c.id, gi, $event)">
+            <button type="button" class="block w-full aspect-[4/3] overflow-hidden rounded-xl bg-[#F7F3EE] focus-visible:outline-2 focus-visible:outline-[#CBA36B]" :aria-label="`Ampliar imagen ${gi + 1} de ${c.gallery.length} de ${c.name}`" @click="open(c.id, gi, $event)">
               <img :src="g" :alt="`${c.name}: imagen ${gi + 1}`" loading="lazy" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
             </button>
           </li>
         </ul>
       </div>
 
-      <div v-if="c.documents.length" class="border-t border-[#e5e2e1] p-6 md:p-10 bg-[#fcf9f8]">
-        <h3 class="text-[11px] font-bold tracking-[0.15em] uppercase text-[#9a7a45] mb-4">Documentos y certificados</h3>
+      <div v-if="c.documents.length" class="border-t border-[#E7DDD1] p-6 md:p-10 bg-[#F7F3EE]">
+        <h3 class="text-[11px] font-bold tracking-[0.15em] uppercase text-[#755A26] mb-4">Documentos y certificados</h3>
         <ul class="grid gap-4 md:grid-cols-2">
-          <li v-for="d in c.documents" :key="d.id" class="bg-white border border-[#e5e2e1] border-l-[3px] border-l-[#D3A76A] p-4">
-            <p class="font-semibold text-[#0C2619] break-words">{{ d.title }}</p>
+          <li v-for="d in c.documents" :key="d.id" class="bg-white border border-[#E7DDD1] rounded-xl p-4">
+            <p class="font-semibold text-[#111111] break-words">{{ d.title }}</p>
             <ul class="mt-2 space-y-1">
               <li v-for="f in d.files" :key="f.url">
-                <a :href="f.url" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-600 underline underline-offset-2 hover:text-[#0C2619] break-all">{{ f.name || 'Ver archivo' }}<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
+                <a :href="f.url" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-600 underline underline-offset-2 hover:text-[#111111] break-all">{{ f.name || 'Ver archivo' }}<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
               </li>
             </ul>
           </li>
@@ -62,12 +77,13 @@
 </template>
 
 <script setup lang="ts">
-// Clínicas aliadas administradas desde /admin/paginas/clinicas-aliadas (GET /api/public/clinics). Sin clínicas no se muestra nada.
+// Clínicas aliadas administradas desde /admin/paginas/clinicas-aliadas (GET /api/public/clinics). Sin clínicas se muestra un mensaje; un error de lectura, el aviso con reintento.
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useFetch } from '#imports'
 import { clinicsDefault, type ClinicsContent } from '#shared/utils/clinics'
 
-const { data } = await useFetch<ClinicsContent>('/api/public/clinics', { key: 'clinics-public', default: () => clinicsDefault() })
+const { data, error, refresh, status } = await useFetch<ClinicsContent>('/api/public/clinics', { key: 'clinics-public', default: () => clinicsDefault() })
+useServiceUnavailable(error)
 const clinics = computed(() => data.value?.clinics ?? [])
 
 // Visor: una sola ventana para todas las clínicas; `active` identifica la clínica y la imagen abiertas.

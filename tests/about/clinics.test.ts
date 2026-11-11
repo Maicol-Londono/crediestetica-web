@@ -2,7 +2,7 @@
 // «Clínicas aliadas»: validación, persistencia local, subida de archivos, limpieza y control de acceso.
 import { test, describe, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -26,7 +26,7 @@ before(async () => {
   g.readBody = async e => e.body
   g.getRouterParam = (e, n) => e.params[n]
   g.setHeader = () => {}
-  g.useRuntimeConfig = () => ({ planmedContentDir: dir })
+  g.useRuntimeConfig = () => ({ contentDir: dir })
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
   g.authError = (statusCode, message) => g.createError({ statusCode, message, data: { message } })
   g.assertSameOrigin = () => {}
@@ -138,5 +138,55 @@ describe('acceso y persistencia', () => {
     assert.equal(kept.value.clinics.length, 1)
     const cleared = await run(put, ev({ clinics: [], updatedAt: kept.value.updatedAt }))
     assert.equal(cleared.value.clinics.length, 0)
+  })
+})
+
+// D9.4: visibilidad, orden, contacto, aislamiento y fuente única del Home (mocks de Nitro sobre un directorio temporal: no es persistencia real en Hub).
+describe('D9.4 — visibilidad, orden, contacto y fuente del Home', () => {
+  const readSrc = rel => readFileSync(join(ROOT, rel), 'utf8')
+
+  test('la vista pública excluye las clínicas ocultas y conserva el orden configurado', async () => {
+    const img = await up(PNG, 'image')
+    const mk = (id, over = {}) => clinic({ id, name: `Clínica ${id}`, image: img, ...over })
+    const saved = await put(ev({ clinics: [mk('b'), mk('a', { active: false }), mk('c')], updatedAt: (await get(GET())).updatedAt }))
+    assert.deepEqual(saved.clinics.map(c => c.id), ['b', 'a', 'c'])
+    const { value } = await run(pub, GET())
+    assert.deepEqual(value.clinics.map(c => c.id), ['b', 'c'])
+    const admin = await get(GET())
+    assert.equal(admin.clinics.length, 3)
+  })
+
+  test('una clínica antigua sin el campo active se considera visible', () => {
+    const n = C.normalizeClinics({ clinics: [{ id: 'x', name: 'X' }] })
+    assert.equal(n.clinics[0].active, true)
+    assert.equal(C.clinicsPublicView(n).clinics.length, 1)
+  })
+
+  test('contacto opcional: https, teléfono y correo válidos; vacío = no se muestra', () => {
+    const base = { id: 'x', name: 'X', description: '<p>d</p>', image: '/api/public/clinics/media/img-abcdef12.png' }
+    const errs = o => C.validateClinics(C.normalizeClinics({ clinics: [{ ...base, ...o }] }))
+    assert.deepEqual(errs({}), {})
+    assert.ok(errs({ website: 'http://x.co' })['clinics.0.website'])
+    assert.ok(errs({ phone: 'abc' })['clinics.0.phone'])
+    assert.ok(errs({ email: 'no-es-correo' })['clinics.0.email'])
+    assert.deepEqual(errs({ website: 'https://x.co', phone: '+57 300 123 4567', email: 'a@b.co' }), {})
+  })
+
+  test('Home y /clinicas-aliadas usan el mismo endpoint y la misma clave de caché; sin datos quemados', () => {
+    const home = readSrc('components/home/ClinicsSection.vue')
+    const list = readSrc('components/site/ClinicsList.vue')
+    for (const s of [home, list]) {
+      assert.match(s, /useFetch[^\n]*'\/api\/public\/clinics', \{ key: 'clinics-public'/)
+      assert.doesNotMatch(s, /from '~\/data\/clinics'|\.logo\b|Medell|Barranquilla|Planmed/)
+    }
+    assert.match(home, /<section v-if="managed\.length"/) // sin clínicas activas no hay sección ni tarjetas vacías
+    assert.equal(existsSync(join(ROOT, 'data/clinics.ts')), false)
+  })
+
+  test('aislamiento: el contenido se guarda en el directorio propio de Crediestética, nunca en el de Planmed ni en Hub', () => {
+    const store = readSrc('server/utils/aboutStore.ts')
+    assert.match(store, /crediestetica-content/)
+    assert.doesNotMatch(store, /planmed-content/)
+    assert.doesNotMatch(readSrc('server/utils/clinics.ts'), /wellezyRequest|wellezyPublicGet|X-Tenant-Domain/)
   })
 })

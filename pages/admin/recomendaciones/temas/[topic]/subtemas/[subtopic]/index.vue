@@ -16,7 +16,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">Subtema · Tema: {{ sub.topic?.title }}</p>
-            <h2 class="text-2xl font-serif text-[#0C2619] break-words">{{ sub.title }}</h2>
+            <h2 class="text-2xl font-serif text-[#111111] break-words">{{ sub.title }}</h2>
             <p class="mt-1 text-xs text-gray-500">Texto del menú: <strong class="break-words">{{ sub.menu_label }}</strong> · Dirección <code class="bg-gray-100 rounded px-1.5 py-0.5 break-all">/recomendaciones/{{ sub.topic?.slug }}/{{ sub.slug }}</code></p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
@@ -58,7 +58,7 @@
           <!-- Introducción: se guarda de forma independiente de las secciones -->
           <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5" data-testid="intro">
             <div>
-              <h3 class="text-sm font-bold tracking-widest uppercase text-[#0C2619]">Introducción</h3>
+              <h3 class="text-sm font-bold tracking-widest uppercase text-[#111111]">Introducción</h3>
               <p class="mt-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3" data-testid="intro-note">Puedes agregar contenido directamente en la introducción. Sin embargo, para facilitar la edición, el ordenamiento y el mantenimiento, te recomendamos organizar la información en secciones independientes.</p>
             </div>
 
@@ -82,7 +82,7 @@
             <div class="border-t border-gray-100 pt-5">
               <label class="label">Imagen de la introducción (opcional)</label>
               <div class="flex flex-wrap items-start gap-4">
-                <label class="block w-40 aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#0C2619] bg-gray-50 relative">
+                <label class="block w-40 aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#111111] bg-gray-50 relative">
                   <img v-if="sub.intro.image_url" :src="sub.intro.image_url" alt="Imagen de la introducción" class="w-full h-full object-cover">
                   <span v-else class="absolute inset-0 flex items-center justify-center text-xs text-gray-400 text-center px-3">Haz clic para subir</span>
                   <input type="file" accept="image/*" class="hidden" :disabled="imageAction.busy.value" @change="onIntroImage">
@@ -97,7 +97,7 @@
 
         <!-- Enlace corto (de Hub; nunca se construye aquí) -->
         <aside class="bg-white border border-gray-200 rounded-xl shadow-sm p-5 space-y-3 lg:sticky lg:top-4" data-testid="short-link">
-          <h3 class="text-sm font-bold tracking-widest uppercase text-[#0C2619]">Enlace corto del subtema</h3>
+          <h3 class="text-sm font-bold tracking-widest uppercase text-[#111111]">Enlace corto del subtema</h3>
           <template v-if="shortLink && shortLink.active && shortLink.url">
             <code class="block break-all rounded bg-gray-100 px-2 py-1.5 text-xs" data-testid="short-url">{{ shortLink.url }}</code>
             <button type="button" class="btn w-full" data-testid="copy-short-link" @click="copyShortLink">{{ copied ? 'Copiado' : 'Copiar enlace' }}</button>
@@ -129,7 +129,7 @@
               <button type="button" class="icon-btn" aria-label="Subir sección" :disabled="i === 0 || sectionAction.busy.value" @click="move(i, -1)">↑</button>
               <button type="button" class="icon-btn" aria-label="Bajar sección" :disabled="i === sections.length - 1 || sectionAction.busy.value" @click="move(i, 1)">↓</button>
             </div>
-            <NuxtLink :to="`${subtopicUrl}/secciones/${s.id}`" class="min-w-0 break-words font-semibold text-[#0C2619] hover:text-[#D3A76A]">{{ s.title }}</NuxtLink>
+            <NuxtLink :to="`${subtopicUrl}/secciones/${s.id}`" class="min-w-0 break-words font-semibold text-[#111111] hover:text-[#CBA36B]">{{ s.title }}</NuxtLink>
             <span class="min-w-0 break-words text-sm text-gray-600">{{ s.type_label }}</span>
             <span class="text-xs text-gray-500">{{ summary(s) }}</span>
             <span><AdminRecommendationsStatusBadge :label="s.visible ? 'Visible' : 'Oculta'" :tone="s.visible ? 'green' : 'gray'" /></span>
@@ -153,7 +153,7 @@ import { recommendationTreeAdmin as api } from '~/providers/HubRecommendationTre
 import { fileToOptimizedDataUrl } from '~/utils/imageFile'
 import type { TreeSection, TreeShortLink, TreeSubtopic } from '~/types/recommendationTree'
 
-useHead({ title: 'Subtema de recomendaciones | Admin Planmed' })
+useHead({ title: 'Subtema de recomendaciones | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 const GROUPS = { general: 'General', cuidados: 'Cuidados', revision: 'Revisión' } as const
@@ -360,15 +360,15 @@ onMounted(load)
 <style scoped>
 .label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #374151; margin-bottom: .4rem; }
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #f9fafb; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .field[aria-invalid="true"] { border-color: #dc2626; }
 .err { margin-top: .35rem; font-size: .75rem; color: #b91c1c; }
 .hint { font-size: .65rem; color: #6b7280; }
-.btn { background: #0C2619; color: #fff; padding: .75rem 1.5rem; border-radius: .5rem; font-weight: 700; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; text-align: center; }
-.btn:hover:not(:disabled) { background: #153a28; }
+.btn { background: #111111; color: #fff; padding: .75rem 1.5rem; border-radius: .5rem; font-weight: 700; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; text-align: center; }
+.btn:hover:not(:disabled) { background: #333333; }
 .btn:disabled { opacity: .5; }
-.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0C2619; }
-.link:hover:not(:disabled) { color: #D3A76A; }
+.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #111111; }
+.link:hover:not(:disabled) { color: #CBA36B; }
 .link:disabled { opacity: .5; }
 .icon-btn { width: 1.6rem; height: 1.6rem; border: 1px solid #e5e7eb; border-radius: .4rem; font-size: .8rem; color: #374151; }
 .icon-btn:hover:not(:disabled) { background: #f3f4f6; }

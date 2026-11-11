@@ -1,5 +1,5 @@
 // Bloques de contenido apilables por columna (texto, imagen, video de YouTube, post de Instagram) de las secciones de noticias y de procedimientos.
-// Módulo PURO: lo usan los mapeos de Nitro, los componentes y las pruebas. Planmed NO confía en la respuesta remota: re-valida cada bloque público.
+// Módulo PURO: lo usan los mapeos de Nitro, los componentes y las pruebas. Crediestética NO confía en la respuesta remota: re-valida cada bloque público.
 // Ruta relativa con extensión: las pruebas de Node (sin alias de Nuxt) la resuelven; el bundler también.
 // @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { parseEmbedUrl } from './embedUrl.ts'

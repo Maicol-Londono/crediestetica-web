@@ -1,10 +1,10 @@
 <template>
   <!-- Detalle de la noticia con el mismo lenguaje visual que Recomendaciones y Procedimientos: cabecera oscura, tarjetas blancas superpuestas y cierre oscuro. -->
-  <div v-if="article" class="bg-[#fcf9f8] min-h-screen font-sans selection:bg-[#0C2619] selection:text-white">
+  <div v-if="article" class="bg-[#F7F3EE] min-h-screen font-sans selection:bg-[#111111] selection:text-white">
 
     <!-- CABECERA -->
-    <header class="relative overflow-hidden bg-gradient-to-br from-[#0C2619] via-[#12392a] to-[#1b5a3f] text-white pt-28 md:pt-36 pb-28 md:pb-36">
-      <div class="absolute -top-24 -right-24 w-[420px] h-[420px] rounded-full bg-[#D3A76A]/15 blur-3xl"></div>
+    <header class="relative overflow-hidden bg-gradient-to-br from-[#111111] via-[#1b1815] to-[#2b2620] text-white pt-14 md:pt-20 pb-28 md:pb-36">
+      <div class="absolute -top-24 -right-24 w-[420px] h-[420px] rounded-full bg-[#CBA36B]/15 blur-3xl"></div>
       <div class="absolute -bottom-32 -left-20 w-[360px] h-[360px] rounded-full bg-white/5 blur-2xl"></div>
       <svg class="absolute inset-0 w-full h-full opacity-[0.05]" aria-hidden="true"><defs><pattern id="news-dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="#fff" /></pattern></defs><rect width="100%" height="100%" fill="url(#news-dots)" /></svg>
 
@@ -13,7 +13,7 @@
         <CommonDetailBack to="/noticias" label="Volver a noticias" />
 
         <div class="text-center">
-          <p v-if="article.publishedAt" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D3A76A]/20 text-[#D3A76A] text-[11px] font-bold tracking-[0.2em] uppercase mb-6">
+          <p v-if="article.publishedAt" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#CBA36B]/20 text-[#CBA36B] text-[11px] font-bold tracking-[0.2em] uppercase mb-6">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <time :datetime="article.publishedAt">{{ publishedLabel }}</time>
           </p>
@@ -30,7 +30,7 @@
     <main class="relative max-w-[900px] mx-auto px-4 md:px-6 -mt-16 md:-mt-20 pb-24 space-y-8">
 
       <!-- Imagen destacada + contenido editorial -->
-      <article class="bg-white border border-[#e5e2e1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12">
+      <article class="bg-white border border-[#E7DDD1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12">
         <div v-if="article.coverImage" class="relative w-full aspect-video bg-gray-100 rounded-xl overflow-hidden shadow-lg mb-8 md:mb-10">
           <img :src="article.coverImage" :alt="article.title" class="w-full h-full object-cover" />
         </div>
@@ -45,21 +45,21 @@
 
       <!-- EMBEDS CONDICIONALES -->
       <!-- Temporalmente renderizamos componentes dedicados si el JSON trae las URLs -->
-      <section v-if="article.youtubeUrl" class="bg-white border border-[#e5e2e1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12">
+      <section v-if="article.youtubeUrl" class="bg-white border border-[#E7DDD1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12">
         <NewsYouTubeEmbed :url="article.youtubeUrl" class="!my-0" />
       </section>
-      <section v-if="article.instagramUrl" class="bg-white border border-[#e5e2e1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12">
+      <section v-if="article.instagramUrl" class="bg-white border border-[#E7DDD1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12">
         <NewsInstagramEmbed :url="article.instagramUrl" class="!my-0" />
       </section>
 
       <!-- LLAMADO A LA ACCIÓN -->
-      <aside class="relative overflow-hidden rounded-2xl bg-[#0C2619] text-white p-8 md:p-12 text-center">
-        <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#D3A76A]/20 blur-3xl"></div>
-        <p class="relative text-[11px] font-bold tracking-[0.2em] text-[#D3A76A] uppercase mb-3">En Planmed te acompañamos</p>
-        <h2 class="relative font-serif text-2xl md:text-3xl mb-4">Tu seguridad es lo más importante en cada etapa</h2>
-        <p class="relative text-white/70 font-light max-w-xl mx-auto mb-8">Operarte con confianza es posible. Conoce cómo financiar tu cirugía con el respaldo de la entidad especializada en cirugía plástica.</p>
+      <aside class="relative overflow-hidden rounded-2xl bg-[#111111] text-white p-8 md:p-12 text-center">
+        <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#CBA36B]/20 blur-3xl"></div>
+        <p class="relative text-[11px] font-bold tracking-[0.2em] text-[#CBA36B] uppercase mb-3">En Crediestética te acompañamos</p>
+        <h2 class="relative font-serif text-2xl md:text-3xl mb-4">Infórmate y resuelve tus dudas</h2>
+        <p class="relative text-white/70 font-light max-w-xl mx-auto mb-8">Antes de tomar una decisión sobre tu procedimiento, conoce cómo funciona la financiación y resuelve tus dudas.</p>
         <div class="relative flex flex-wrap justify-center gap-3">
-          <NuxtLink to="/financiacion#calculadora" class="px-7 py-3 text-[11px] font-bold tracking-[0.15em] uppercase bg-[#D3A76A] text-[#0C2619] hover:bg-white transition-colors cursor-pointer">Simular financiación</NuxtLink>
+          <NuxtLink to="/financiacion#calculadora" class="px-7 py-3 text-[11px] font-bold tracking-[0.15em] uppercase bg-[#CBA36B] text-[#111111] hover:bg-white transition-colors cursor-pointer">Simular financiación</NuxtLink>
           <NuxtLink to="/noticias" class="px-7 py-3 text-[11px] font-bold tracking-[0.15em] uppercase border border-white/40 hover:bg-white/10 transition-colors cursor-pointer">Más noticias</NuxtLink>
         </div>
       </aside>
@@ -103,7 +103,7 @@ const subtitle = richHtmlToText(article.value.excerpt)
 
 // SEO
 useSeoMeta({
-  title: article.value.seo?.metaTitle || (article.value.title + ' | Planmed Noticias'),
+  title: article.value.seo?.metaTitle || (article.value.title + ' | Crediestética Noticias'),
   description: article.value.seo?.metaDescription || richHtmlToText(article.value.excerpt),
   ogTitle: article.value.title,
   ogDescription: article.value.seo?.metaDescription || richHtmlToText(article.value.excerpt),

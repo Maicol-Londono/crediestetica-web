@@ -18,10 +18,10 @@ const NEW_TOKEN = 'tk-nuevo-tras-cambio'
 const TEMP = 'Tmp#Pass-2027x'
 const NEW_PASS = 'Definitiva#2027'
 
-const base = { id: 7, name: 'Marta Ruiz', email: 'marta@x.test', role: { id: 22, name: 'Asesora financiera' }, is_area_leader: false, company: { slug: 'planmed' }, line: { slug: 'planmed' }, permissions: ['prp_referrers.ver'] }
+const base = { id: 7, name: 'Marta Ruiz', email: 'marta@x.test', role: { id: 22, name: 'Asesora financiera' }, is_area_leader: false, company: { slug: 'legalmed' }, line: { slug: 'crediestetica' }, permissions: ['prp_referrers.ver'] }
 const PENDING = { ...base, must_change_password: true }
 const DONE = { ...base, must_change_password: false }
-const OTRA_LINEA = { ...base, line: { slug: 'crediestetica' }, must_change_password: false }
+const OTRA_LINEA = { ...base, line: { slug: 'otra-linea' }, must_change_password: false }
 
 const state = { session: {}, hub: {}, calls: [], logs: [] }
 let login, me, passwordPost, gate, W
@@ -44,7 +44,7 @@ before(async () => {
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
   g.authError = (statusCode, message) => g.createError({ statusCode, message, data: { message } })
   g.canManageFinancingRate = () => false
-  g.useRuntimeConfig = () => ({ planmedAdminRoleIds: '', wellezyApiBaseUrl: 'http://hub.test/api', sessionPassword: 'x'.repeat(40), wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed' })
+  g.useRuntimeConfig = () => ({ adminRoleIds: '', wellezyApiBaseUrl: 'http://hub.test/api', sessionPassword: 'x'.repeat(40), wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica' })
   g.useSession = async () => ({
     get data() { return state.session },
     update: async (d) => { state.session = { ...state.session, ...d } },
@@ -126,7 +126,7 @@ describe('inicio de sesión con contraseña temporal', () => {
 })
 
 describe('bloqueo mientras el cambio es obligatorio', () => {
-  const adminEvent = (path, cookies = { 'planmed-admin': 'sellada' }) => ({ method: 'GET', url: path, cookies, headers: {} })
+  const adminEvent = (path, cookies = { 'crediestetica-admin': 'sellada' }) => ({ method: 'GET', url: path, cookies, headers: {} })
 
   test('servidor: toda ruta /api/admin/** responde 403 password_change_required (también las de contenido local)', async () => {
     for (const path of ['/api/admin/news', '/api/admin/about', '/api/admin/pages/clinicas-aliadas', '/api/admin/config/line-users', '/api/admin/config/financing-rate', '/api/admin/prp?x=1']) {
@@ -212,7 +212,7 @@ describe('POST /api/auth/password', () => {
     assert.equal(state.session.user.mustChangePassword, false)
     assert.equal(value.user.mustChangePassword, false)
     // Acceso normal tras el cambio: el servidor ya no bloquea /api/admin/**.
-    assert.ok(!(await run(adminMiddleware, { method: 'GET', url: '/api/admin/news', cookies: { 'planmed-admin': 's' }, headers: {} })).error)
+    assert.ok(!(await run(adminMiddleware, { method: 'GET', url: '/api/admin/news', cookies: { 'crediestetica-admin': 's' }, headers: {} })).error)
   })
 
   test('la respuesta no contiene contraseñas ni tokens, y ninguna contraseña llega a los logs', async () => {
@@ -282,6 +282,12 @@ describe('pantalla de cambio (cliente)', () => {
     assert.match(provider, /'\/api\/auth\/password'/)
     assert.match(provider, /current_password: currentPassword, password, password_confirmation: confirmation/)
     assert.match(page, /Wellezy Hub/)
+  })
+
+  test('cada campo tiene botón para ver/ocultar la contraseña y se restablece al limpiar el formulario', () => {
+    assert.match(page, /:type="visible\[f\.key\] \? 'text' : 'password'"/)
+    assert.match(page, /Mostrar contraseña/)
+    assert.match(page, /for \(const k of Object\.keys\(visible\)\) visible\[k\] = false/)
   })
 
   test('tras el éxito entra al panel; si no se pudo renovar la sesión va al login; 401 vuelve al login; 422 muestra errores por campo', () => {

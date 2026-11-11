@@ -1,9 +1,9 @@
 import type { H3Event } from 'h3'
 
-// Páginas independientes de recomendaciones de Planmed: la fuente de verdad es Wellezy Hub (tabla `recommendation_pages`).
+// Páginas independientes de recomendaciones de la línea: la fuente de verdad es Wellezy Hub (tabla `recommendation_pages`).
 //  - Público: GET /api/v1/web/recommendation-pages[/{slug}] (tenant por X-Tenant-Linea, sale de la configuración del servidor).
 //  - Admin:   /api/cms/recommendation-pages con el Bearer de la sesión (nunca llega al navegador).
-// Este módulo traduce entre el modelo de Planmed (RecommendationPage) y el contrato del Hub, y NUNCA reenvía company_id,
+// Este módulo traduce entre el modelo de la web (RecommendationPage) y el contrato del Hub, y NUNCA reenvía company_id,
 // linea_id ni is_custom: Hub deriva la empresa/línea del token y decide qué páginas son base.
 
 const MSG_NOT_FOUND = 'La página no existe.'

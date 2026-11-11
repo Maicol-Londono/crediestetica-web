@@ -2,10 +2,10 @@
   <div>
     <div class="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
       <div>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-2 uppercase">Página Nosotros</h2>
-        <p class="text-gray-500 font-light">Contenido de la página pública «Nosotros». Se guarda en el servidor de la web de Planmed.</p>
+        <h2 class="text-3xl font-serif text-[#111111] mb-2 uppercase">Página Nosotros</h2>
+        <p class="text-gray-500 font-light">Contenido de la página pública «Nosotros». Se guarda en el servidor de la web de Crediestética.</p>
       </div>
-      <NuxtLink to="/nosotros" target="_blank" class="text-xs font-bold tracking-widest uppercase text-[#0C2619] underline underline-offset-4">Ver página pública</NuxtLink>
+      <NuxtLink to="/nosotros" target="_blank" class="text-xs font-bold tracking-widest uppercase text-[#111111] underline underline-offset-4">Ver página pública</NuxtLink>
     </div>
 
     <div v-if="loading" class="bg-white border border-gray-200 rounded-xl p-8 text-gray-500">Cargando contenido…</div>
@@ -45,7 +45,7 @@
               <img v-if="form.hero.image" :src="form.hero.image" :alt="form.hero.imageAlt" class="w-full h-full object-cover" />
             </div>
             <input ref="imageInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onImage" />
-            <button type="button" class="mt-3 px-4 py-3 bg-[#0C2619] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#143c28] disabled:opacity-60" :disabled="processingImage" @click="imageInput?.click()">
+            <button type="button" class="mt-3 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#143c28] disabled:opacity-60" :disabled="processingImage" @click="imageInput?.click()">
               {{ processingImage ? 'Procesando…' : 'Cambiar imagen' }}
             </button>
             <p class="hint">JPG, PNG o WebP, máximo 5 MB. Se optimiza automáticamente. Recomendado: formato horizontal.</p>
@@ -82,7 +82,8 @@
         <label class="lbl" for="video-url">Enlace de YouTube</label>
         <input id="video-url" v-model="form.video.url" class="inp" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" :aria-invalid="!!err('video.url')" />
         <p v-if="err('video.url')" class="msg">{{ err('video.url') }}</p>
-        <p v-else-if="!videoId" class="msg">El enlace no es un video de YouTube válido.</p>
+        <p v-else-if="form.video.url && !videoId" class="msg">El enlace no es un video de YouTube válido.</p>
+        <p v-else-if="!form.video.url" class="hint">Opcional. Sin enlace, la sección de video no se muestra en la página pública.</p>
         <div v-if="videoId" class="mt-4 max-w-md aspect-video relative overflow-hidden rounded-lg border border-gray-200 bg-black">
           <iframe :src="aboutYoutubeEmbedUrl(videoId)" class="absolute inset-0 w-full h-full" title="Vista previa del video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         </div>
@@ -91,8 +92,8 @@
       <!-- FAQs -->
       <section class="card">
         <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase">Preguntas frecuentes</h3>
-          <button type="button" class="px-4 py-2 border border-[#0C2619] text-[#0C2619] text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#0C2619]/5 disabled:opacity-50" :disabled="form.faqs.length >= ABOUT_LIMITS.faqs" @click="addFaq">Agregar pregunta</button>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase">Preguntas frecuentes</h3>
+          <button type="button" class="px-4 py-2 border border-[#111111] text-[#111111] text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#111111]/5 disabled:opacity-50" :disabled="form.faqs.length >= ABOUT_LIMITS.faqs" @click="addFaq">Agregar pregunta</button>
         </div>
         <p v-if="!form.faqs.length" class="text-sm text-gray-500">No hay preguntas. La sección no se mostrará en la página pública.</p>
         <ol class="space-y-5">
@@ -154,7 +155,7 @@
           <span v-else-if="savedAt" class="text-emerald-700">Guardado a las {{ savedAt }}. Ya es visible en la página pública.</span>
           <span v-else class="text-gray-400">Sin cambios.</span>
         </p>
-        <button type="submit" :disabled="!dirty || saving" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 shadow-lg">
+        <button type="submit" :disabled="!dirty || saving" class="bg-[#111111] hover:bg-[#333333] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 shadow-lg">
           {{ saving ? 'Guardando…' : 'Guardar cambios' }}
         </button>
       </div>
@@ -171,7 +172,7 @@ import {
   type AboutContent, type AboutErrors, type AboutSocialNetwork
 } from '#shared/utils/aboutContent'
 
-useHead({ title: 'Nosotros | Admin Planmed' })
+useHead({ title: 'Nosotros | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 const notify = useNotify()
@@ -315,10 +316,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 
 <style scoped>
 .card { background: #fff; border: 1px solid #e5e7eb; border-radius: .75rem; box-shadow: 0 1px 2px rgb(0 0 0 / .05); padding: 2rem; }
-.card-title { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #0C2619; border-bottom: 1px solid #f3f4f6; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.card-title { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #111111; border-bottom: 1px solid #f3f4f6; padding-bottom: 1rem; margin-bottom: 1.5rem; }
 .lbl { display: block; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #6b7280; margin-bottom: .5rem; }
 .inp { width: 100%; padding: .5rem .75rem; background: #fff; border: 1px solid #e5e7eb; border-radius: .375rem; font-size: .875rem; }
-.inp:focus { outline: none; box-shadow: 0 0 0 1px #0C2619; }
+.inp:focus { outline: none; box-shadow: 0 0 0 1px #111111; }
 .inp[aria-invalid='true'] { border-color: #dc2626; }
 .msg { margin-top: .375rem; font-size: .75rem; color: #b91c1c; }
 .hint { margin-top: .5rem; font-size: 10px; color: #6b7280; }

@@ -1,15 +1,20 @@
 import type { PublicNewsProvider } from './PublicNewsProvider'
-import type { NewsArticle } from '~/types/news'
+import type { NewsArticle, NewsPage } from '~/types/news'
 import { useRequestFetch } from '#imports'
 
 // Habla únicamente con las rutas internas de Nitro (/api/public/news*). Nitro consulta a Wellezy Hub con el tenant de la
-// configuración de Planmed; este código no conoce la URL de Hub ni el tenant. Funciona igual en SSR y en el navegador
+// configuración del servidor; este código no conoce la URL de Hub ni el tenant. Funciona igual en SSR y en el navegador
 // (no depende de localStorage), así que una URL directa /noticias/{slug} resuelve igual que la navegación interna.
 
 export class HubPublicNewsProvider implements PublicNewsProvider {
   async getNews(): Promise<NewsArticle[]> {
     const request = useRequestFetch()
     return await request<NewsArticle[]>('/api/public/news')
+  }
+
+  async getNewsPage(page: number, perPage?: number): Promise<NewsPage> {
+    const request = useRequestFetch()
+    return await request<NewsPage>('/api/public/news-page', { query: { page, ...(perPage ? { per_page: perPage } : {}) } })
   }
 
   async getNewsBySlug(slug: string): Promise<NewsArticle | null> {

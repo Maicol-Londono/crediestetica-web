@@ -1,7 +1,7 @@
 import Swal from 'sweetalert2'
 
 const base = Swal.mixin({
-  confirmButtonColor: '#0C2619',
+  confirmButtonColor: '#111111',
   cancelButtonColor: '#6b7280',
   buttonsStyling: true,
   customClass: {

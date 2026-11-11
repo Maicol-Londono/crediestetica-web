@@ -55,5 +55,5 @@ if (!view.value) {
   throw createError({ statusCode: 404, statusMessage: 'Página no encontrada', fatal: true })
 }
 
-useSeoMeta({ title: `${view.value.title} | Planmed`, description: meta.subtitle })
+useSeoMeta({ title: `${view.value.title} | Crediestética`, description: meta.subtitle })
 </script>

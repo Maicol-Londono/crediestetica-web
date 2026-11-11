@@ -2,10 +2,10 @@ import type { H3Event } from 'h3'
 // @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions (las pruebas de Node no usan los alias de Nuxt).
 import { countBlocks, fromPublicBlock, publicBlocksOf, type ColumnLayout, type PublicBlock, type PublicBlocks } from '../../shared/utils/contentBlocks.ts'
 
-// Procedimientos de Planmed: la fuente de verdad es Wellezy Hub (tabla `cirugias` + `cirugia_linea`).
+// Procedimientos de la línea: la fuente de verdad es Wellezy Hub (tabla `cirugias` + `cirugia_linea`).
 //  - Público: GET /api/v1/web/cirugias[/{slug}] (tenant por X-Tenant-Linea, sale de la configuración del servidor).
 //  - Admin:   /api/cms/procedures con el Bearer de la sesión (nunca llega al navegador).
-// Este módulo traduce entre el modelo de Planmed (Procedure) y el contrato del Hub, y NUNCA reenvía company_id ni
+// Este módulo traduce entre el modelo de la web (Procedure) y el contrato del Hub, y NUNCA reenvía company_id ni
 // linea_id: Hub los deriva del token del usuario autenticado.
 
 const MSG_NOT_FOUND = 'El procedimiento no existe.'
@@ -19,7 +19,7 @@ export interface ProcedureDto {
   whatIsIt: string
   image: string
   galeria: string[]
-  /** Solo detalle público: secciones de la línea de Planmed, debajo del contenido del procedimiento. */
+  /** Solo detalle público: secciones de la línea configurada, debajo del contenido del procedimiento. */
   secciones?: Array<{ orden: number, title: string | null, content: string, layout: 'media_left' | 'media_right', image: { url: string } | null, columnLayout: ColumnLayout, blocks: PublicBlocks }>
   destacado: boolean
   activo?: boolean
@@ -45,7 +45,7 @@ const orNull = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v.tri
 
 const SOURCES = ['pagina', 'pagina_oculta', 'historico', 'ninguna']
 
-/** `recomendaciones` del Hub → modelo de Planmed. Un valor desconocido o ausente se omite (Planmed cae al comportamiento previo). */
+/** `recomendaciones` del Hub → modelo de la web. Un valor desconocido o ausente se omite (la web cae al comportamiento previo). */
 export function fromRecommendationSources(raw: any): ProcedureDto['recomendaciones'] {
   if (!raw || typeof raw !== 'object') return undefined
   const out: NonNullable<ProcedureDto['recomendaciones']> = {}

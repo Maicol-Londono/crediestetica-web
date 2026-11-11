@@ -2,10 +2,10 @@ import type { H3Event } from 'h3'
 // @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions (las pruebas de Node no usan los alias de Nuxt).
 import { countBlocks, fromPublicBlock, publicBlocksOf, type ColumnLayout, type PublicBlock, type PublicBlocks } from '../../shared/utils/contentBlocks.ts'
 
-// Noticias de Planmed: la fuente de verdad es Wellezy Hub.
+// Noticias de la línea: la fuente de verdad es Wellezy Hub.
 //  - Público: GET /api/v1/web/posts (tenant por X-Tenant-Linea, sale de la configuración del servidor).
 //  - Admin:   /api/cms/posts con el Bearer de la sesión (nunca llega al navegador).
-// Este módulo traduce entre el modelo de Planmed (NewsArticle) y el contrato del Hub, y NUNCA reenvía
+// Este módulo traduce entre el modelo de la web (NewsArticle) y el contrato del Hub, y NUNCA reenvía
 // company_id, linea_id, author_name ni status: Hub los deriva del token / usuario autenticado.
 
 const MSG_UNAVAILABLE = 'No fue posible conectar con Wellezy Hub. Intenta nuevamente.'

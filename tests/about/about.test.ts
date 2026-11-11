@@ -24,7 +24,7 @@ before(async () => {
   g.readBody = async e => e.body
   g.getRouterParam = (e, n) => e.params[n]
   g.setHeader = () => {}
-  g.useRuntimeConfig = () => ({ planmedContentDir: dir })
+  g.useRuntimeConfig = () => ({ contentDir: dir })
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
   g.authError = (statusCode, message) => g.createError({ statusCode, message, data: { message } })
   g.wellezyMe = async () => ({ ...state.me, data: state.me.status === 200 ? { user: { id: 1 } } : undefined })
@@ -46,27 +46,35 @@ before(async () => {
 })
 after(() => rmSync(dir, { recursive: true, force: true }))
 
-const fresh = () => structuredClone(C.aboutDefaultContent())
+// Contenido de PRUEBA completo (ficticio): el contenido inicial real es neutro/vacío y no hereda nada de otra marca.
+const SAMPLE = {
+  hero: { title: 'TITULO DE PRUEBA', image: '/images/web/ejemplo-portada.jpg', imageAlt: 'Imagen de prueba' },
+  institutional: { title: 'TITULO INSTITUCIONAL DE PRUEBA', legal: 'Texto legal de prueba.', paragraphs: ['Párrafo uno de prueba.', 'Párrafo dos de prueba.', 'Párrafo tres de prueba.'] },
+  video: { url: 'https://www.youtube.com/watch?v=zsNBJjsvjMg' },
+  faqs: [1, 2, 3, 4, 5].map(n => ({ id: `faq-${n}`, question: `Pregunta ${n}`, answer: `Respuesta ${n}`, active: true })),
+  contact: { address: 'Calle de prueba 1', building: 'Edificio de prueba', city: 'Ciudad', region: 'Departamento', phone: '+57 300 0000000', email: 'prueba@example.test', schedule: '', socials: { instagram: '', facebook: '', tiktok: '' }, map: { enabled: false } },
+  updatedAt: ''
+}
+const fresh = () => structuredClone(SAMPLE)
 
-describe('contenido inicial', () => {
-  test('conserva las cinco preguntas, los tres párrafos y el video institucional', () => {
+describe('contenido inicial (neutro)', () => {
+  test('no hereda nada: textos, imagen, video, preguntas, contacto y redes quedan vacíos', () => {
     const c = C.aboutDefaultContent()
-    assert.equal(c.faqs.length, 5)
-    assert.equal(c.institutional.paragraphs.length, 3)
-    assert.equal(C.aboutYoutubeId(c.video.url), 'zsNBJjsvjMg')
-    assert.equal(c.hero.title, 'NUESTRO EQUIPO')
-    assert.deepEqual(C.validateAboutContent(c), {})
+    assert.equal(c.faqs.length, 0)
+    assert.deepEqual(c.institutional.paragraphs, ['', '', ''])
+    assert.equal(c.hero.title, ''); assert.equal(c.hero.image, ''); assert.equal(c.hero.imageAlt, '')
+    assert.equal(c.institutional.title, ''); assert.equal(c.institutional.legal, '')
+    assert.equal(c.video.url, '')
+    assert.deepEqual(Object.values(c.contact.socials), ['', '', ''])
+    for (const k of ['address', 'building', 'city', 'region', 'phone', 'email', 'schedule']) assert.equal(c.contact[k], '', k)
+    assert.equal(c.contact.map.enabled, false)
+    assert.equal(C.aboutIsEmpty(c), true)
+    assert.equal(C.aboutIsEmpty(structuredClone(SAMPLE)), false)
   })
-  test('contacto: solo datos verificados (sin horario ni mapa inventados)', () => {
-    const k = C.aboutDefaultContent().contact
-    assert.equal(k.phone, '+57 318 8043382')
-    assert.equal(k.email, 'pqrs.institucional@gmail.com')
-    assert.equal(k.schedule, '')
-    assert.equal(k.map.enabled, false)
+  test('ningún dato de Planmed en el contenido inicial', () => {
+    assert.ok(!/planmed|plan m[eé]dico|318 8043382|financia_cirugia|financiacioncirugia|zsNBJjsvjMg/i.test(JSON.stringify(C.aboutDefaultContent())))
   })
-  test('la imagen de portada existe en public/', () => {
-    assert.ok(existsSync(join(ROOT, 'public', C.aboutDefaultContent().hero.image)))
-  })
+  test('la muestra de pruebas es válida', () => assert.deepEqual(C.validateAboutContent(fresh()), {}))
 })
 
 describe('validación', () => {
@@ -107,8 +115,11 @@ describe('validación', () => {
 })
 
 describe('persistencia y acceso', () => {
-  test('sin archivo guardado el público recibe el contenido inicial', async () => {
-    assert.equal((await pub(GET())).faqs.length, 5)
+  test('sin archivo guardado el público recibe el contenido neutro (vacío) y no se crea archivo', async () => {
+    const p = await pub(GET())
+    assert.equal(p.faqs.length, 0)
+    assert.equal(C.aboutIsEmpty(p), true)
+    assert.ok(!existsSync(join(dir, 'about.json')))
   })
 
   test('sin sesión => 401 y nada se escribe', async () => {
@@ -171,7 +182,7 @@ describe('persistencia y acceso', () => {
     const cur = await adminGet(GET())
     const body = structuredClone(cur)
     body.institutional.legal = '<p>Texto <strong>legal</strong></p><script>alert(1)</script><img src=x onerror=alert(1)>'
-    body.institutional.paragraphs[0] = '<h2>Título</h2><ul><li>Uno</li></ul><p><a href="javascript:alert(1)">mal</a> <a href="https://planmed.com">bien</a></p>'
+    body.institutional.paragraphs[0] = '<h2>Título</h2><ul><li>Uno</li></ul><p><a href="javascript:alert(1)">mal</a> <a href="https://ejemplo.test">bien</a></p>'
     body.faqs[0].answer = '<p>Respuesta <em>en cursiva</em></p><iframe src="https://evil.example"></iframe>'
     body.contact.schedule = 'Lunes a viernes'
     const { value, error } = await run(put, ev(body))
@@ -179,7 +190,7 @@ describe('persistencia y acceso', () => {
     assert.equal(value.institutional.legal, '<p>Texto <strong>legal</strong></p>')
     assert.ok(value.institutional.paragraphs[0].includes('<h2>Título</h2><ul><li>Uno</li></ul>'))
     assert.ok(!value.institutional.paragraphs[0].includes('javascript:'))
-    assert.ok(value.institutional.paragraphs[0].includes('href="https://planmed.com"'))
+    assert.ok(value.institutional.paragraphs[0].includes('href="https://ejemplo.test"'))
     assert.equal(value.faqs[0].answer, '<p>Respuesta <em>en cursiva</em></p>')
     assert.equal(value.contact.schedule, '<p>Lunes a viernes</p>') // texto plano heredado => párrafo
   })
@@ -217,9 +228,9 @@ describe('persistencia y acceso', () => {
     assert.equal(error.statusCode, 422)
   })
 
-  test('archivo dañado: el público cae al contenido inicial y el guardado no lo sobrescribe a ciegas', async () => {
+  test('archivo dañado: el público cae al contenido neutro y el guardado no lo sobrescribe a ciegas', async () => {
     writeFileSync(join(dir, 'about.json'), '{no es json')
-    assert.equal((await pub(GET())).faqs.length, 5)
+    assert.equal((await pub(GET())).faqs.length, 0)
     const { error } = await run(put, ev(fresh()))
     assert.equal(error.statusCode, 500)
     assert.equal(readFileSync(join(dir, 'about.json'), 'utf8'), '{no es json')

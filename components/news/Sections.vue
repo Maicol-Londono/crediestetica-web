@@ -3,10 +3,10 @@
   <div v-if="visibleSections.length" class="space-y-8" data-testid="news-sections">
     <section
       v-for="(s, i) in visibleSections" :key="`${s.orden}-${i}`"
-      class="bg-white border border-[#e5e2e1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12"
+      class="bg-white border border-[#E7DDD1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12"
       data-testid="news-section" :data-layout="s.layout"
     >
-      <h2 v-if="s.title" class="reco-title font-serif text-2xl md:text-[1.75rem] font-medium leading-tight text-[#0C2619] mb-6 break-words">{{ s.title }}</h2>
+      <h2 v-if="s.title" class="reco-title font-serif text-2xl md:text-[1.75rem] font-medium leading-tight text-[#111111] mb-6 break-words">{{ s.title }}</h2>
 
       <!-- Dos columnas desde md (izquierda → derecha); en móvil se apilan en el mismo orden de lectura. Cada columna apila sus bloques. -->
       <div v-if="s.layout === 'two_columns'" class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 md:items-start">

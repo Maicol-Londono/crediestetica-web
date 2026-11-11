@@ -19,7 +19,6 @@ export function useSimulator() {
   
   const months = ref(24)
   const procedure = ref('')
-  const city = ref('Medellín')
   
   const currentQuote = ref<QuotationResult | null>(null)
   const isLoading = ref(false)
@@ -27,8 +26,13 @@ export function useSimulator() {
   const quoteError = ref<string | null>(null)
   let abortController: AbortController | null = null
 
-  const { data: availableProcedures } = useAsyncData('procedures', () => publicProcedureService.getProcedures(), {
+  const { data: availableProcedures, execute: loadProcedures } = useAsyncData('procedures', () => publicProcedureService.getProcedures(), {
     default: () => [] as Procedure[]
+  })
+  // El simulador se monta solo en el navegador (<ClientOnly>): en una carga directa de la página, useAsyncData puede quedar en «success»
+  // con la lista vacía sin haber consultado nada. Si al montar no hay procedimientos, se consulta explícitamente (lectura pública).
+  onMounted(() => {
+    if (!availableProcedures.value?.length) loadProcedures().catch(() => {})
   })
   
   watch(availableProcedures, (newProcs) => {
@@ -75,6 +79,8 @@ export function useSimulator() {
 
   const submitSimulation = async () => {
     if (amount.value < MIN_AMOUNT) return;
+    // Fuera del rango del simulador no se cotiza (el monto se corrige al salir del campo).
+    if (amount.value > MAX_AMOUNT) return;
 
     if (abortController) {
       abortController.abort();
@@ -95,8 +101,7 @@ export function useSimulator() {
         intent: {
           item_name: procedure.value,
           financial_amount: amount.value,
-          financial_installments: months.value,
-          target_location: city.value
+          financial_installments: months.value
         }
       });
     } catch (e: any) {
@@ -117,7 +122,6 @@ export function useSimulator() {
     amount,
     months,
     procedure,
-    city,
     currentQuote,
     isLoading,
     quoteError,

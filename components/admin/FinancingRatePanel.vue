@@ -2,7 +2,7 @@
   <section class="space-y-6" aria-labelledby="rate-title">
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 md:p-8">
       <div class="border-b border-gray-100 pb-4 mb-6">
-        <h3 id="rate-title" class="text-xs font-bold tracking-widest text-[#0C2619] uppercase">Tasa de usura mensual</h3>
+        <h3 id="rate-title" class="text-xs font-bold tracking-widest text-[#111111] uppercase">Tasa de usura mensual</h3>
         <p class="text-sm text-gray-500 mt-1">Tasa de interés mensual que usa el simulador de financiación y el formulario de solicitud para calcular la cuota. Se aplica tal como la escribas, con hasta cuatro decimales.</p>
       </div>
 
@@ -16,17 +16,22 @@
 
       <template v-else-if="current">
         <div class="grid gap-6 md:grid-cols-2">
-          <div data-testid="rate-current">
+          <div v-if="current.configured" data-testid="rate-current">
             <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Tasa vigente</p>
-            <p class="mt-1 text-4xl font-serif text-[#0C2619]">{{ current.rate }} <span class="text-base font-sans text-gray-500">% mensual</span></p>
+            <p class="mt-1 text-4xl font-serif text-[#111111]">{{ current.rate }} <span class="text-base font-sans text-gray-500">% mensual</span></p>
             <p class="mt-2 text-xs text-gray-500">
               Última actualización: <strong class="text-gray-700">{{ formatDate(current.updatedAt) }}</strong>
-              · <strong class="text-gray-700">{{ current.updatedBy.name }}</strong>
+              · <strong class="text-gray-700">{{ current.updatedBy?.name }}</strong>
             </p>
+          </div>
+          <div v-else data-testid="rate-not-configured" role="status">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Tasa vigente</p>
+            <p class="mt-1 text-xl font-semibold text-amber-700">Tasa no configurada</p>
+            <p class="mt-2 text-xs text-gray-500">Mientras no se configure una tasa, el simulador y las cotizaciones permanecen no disponibles. Ingresa la tasa real vigente para habilitarlos.</p>
           </div>
 
           <form novalidate class="space-y-3" @submit.prevent="requestSave">
-            <label for="rate-input" class="block text-[11px] font-bold uppercase tracking-wider text-gray-600">Nueva tasa mensual (%)</label>
+            <label for="rate-input" class="block text-[11px] font-bold uppercase tracking-wider text-gray-600">{{ current.configured ? 'Nueva tasa mensual (%)' : 'Tasa mensual (%)' }}</label>
             <div class="flex gap-3">
               <input
                 id="rate-input"
@@ -38,11 +43,11 @@
                 :aria-invalid="fieldError ? 'true' : 'false'"
                 aria-describedby="rate-help rate-error"
                 :disabled="saving"
-                class="flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#0C2619]"
+                class="flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#111111]"
                 :class="fieldError ? 'border-red-400' : 'border-gray-200'"
                 @input="fieldError = ''"
               />
-              <button type="submit" :disabled="saving || !canSubmit" class="px-5 py-2 bg-[#0C2619] text-white text-xs font-bold tracking-widest uppercase rounded-md hover:bg-[#153a28] disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="submit" :disabled="saving || !canSubmit" class="px-5 py-2 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-md hover:bg-[#333333] disabled:opacity-50 disabled:cursor-not-allowed">
                 {{ saving ? 'Guardando…' : 'Guardar' }}
               </button>
             </div>
@@ -52,7 +57,7 @@
           </form>
         </div>
 
-        <div class="mt-8">
+        <div v-if="current.history.length" class="mt-8">
           <h4 class="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">Historial de cambios</h4>
           <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
@@ -122,16 +127,18 @@ async function requestSave() {
     fieldError.value = parsed.message
     return
   }
-  if (parsed.text === current.value.rate) {
+  if (current.value.configured && parsed.text === current.value.rate) {
     fieldError.value = `La tasa vigente ya es ${current.value.rate} %.`
     return
   }
-  const ok = await notify.confirm('¿Cambiar la tasa de usura mensual?', `El simulador pasará de ${current.value.rate} % a ${parsed.text} % mensual para las nuevas cotizaciones.`, 'Sí, guardar')
+  const ok = current.value.configured
+    ? await notify.confirm('¿Cambiar la tasa de usura mensual?', `El simulador pasará de ${current.value.rate} % a ${parsed.text} % mensual para las nuevas cotizaciones.`, 'Sí, guardar')
+    : await notify.confirm('¿Configurar la tasa de usura mensual?', `El simulador quedará habilitado con ${parsed.text} % mensual para las nuevas cotizaciones.`, 'Sí, guardar')
   if (!ok) return
 
   saving.value = true
   try {
-    current.value = await rateService.saveRate(draft.value, current.value.updatedAt)
+    current.value = await rateService.saveRate(draft.value, current.value.configured ? current.value.updatedAt : null)
     draft.value = ''
     fieldError.value = ''
     status.value = `Tasa actualizada a ${current.value.rate} % mensual.`

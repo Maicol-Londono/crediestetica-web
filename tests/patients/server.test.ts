@@ -214,7 +214,7 @@ describe('sin persistencia local', () => {
   test('las páginas públicas y el menú leen por el servicio público (SSR con useAsyncData), no por el de administración', () => {
     for (const f of ['pages/testimonios/index.vue', 'pages/testimonios/antes-y-despues.vue', 'pages/testimonios/programa-de-referidos.vue', 'components/testimonials/TestimonialsNav.vue', 'components/layout/Navbar.vue']) {
       const c = code(f)
-      assert.ok(c.includes('publicTestimonialsService'), `${f} no usa el servicio público`)
+      assert.ok(c.includes('publicTestimonialsService') || /import \{ fetchPatientSection \} from '~\/services\/PublicTestimonialsService'/.test(c), `${f} no usa el servicio público`)
       assert.equal(/\btestimonialsService\b/.test(c), false, `${f} usa el servicio de administración`)
     }
     for (const f of ['pages/testimonios/index.vue', 'pages/testimonios/antes-y-despues.vue', 'pages/testimonios/programa-de-referidos.vue']) assert.ok(code(f).includes('useAsyncData'), `${f} no usa useAsyncData`)

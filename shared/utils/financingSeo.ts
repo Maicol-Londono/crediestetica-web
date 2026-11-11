@@ -4,9 +4,9 @@
 // condiciones, teléfonos, direcciones ni valoraciones: nada que no esté respaldado por el contenido existente.
 
 export const FINANCING_TITLE = 'Financiación de cirugías plásticas'
-export const FINANCING_SEO_TITLE = `${FINANCING_TITLE} | Planmed`
-export const FINANCING_DESCRIPTION = 'Así funciona la financiación de cirugías plásticas con Planmed: asesoría, estudio, pre aprobación y desembolso, documentos requeridos y simulador de cuota.'
-export const FINANCING_SUBTITLE = 'Conoce cómo financiar tu cirugía plástica con Planmed y encuentra el plan que se adapta a ti.'
+export const FINANCING_SEO_TITLE = `${FINANCING_TITLE} | Crediestética`
+export const FINANCING_DESCRIPTION = 'Así funciona la financiación de cirugías plásticas con Crediestética: asesoría, estudio, pre aprobación y desembolso, documentos requeridos y simulador de cuota.'
+export const FINANCING_SUBTITLE = 'Conoce cómo financiar tu cirugía plástica con Crediestética y encuentra el plan que se adapta a ti.'
 export const FINANCING_PATH = '/financiacion'
 
 const plain = (v: unknown) => (typeof v === 'string' ? v.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '')
@@ -21,7 +21,7 @@ export function financingStructuredData(origin: string, faqs: Array<{ question: 
     .map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } }))
 
   const graph: Record<string, unknown>[] = [
-    { '@type': 'WebPage', '@id': `${url}#webpage`, url, name: FINANCING_SEO_TITLE, description: FINANCING_DESCRIPTION, inLanguage: 'es-CO', isPartOf: { '@type': 'WebSite', url: `${base}/`, name: 'Planmed' } }
+    { '@type': 'WebPage', '@id': `${url}#webpage`, url, name: FINANCING_SEO_TITLE, description: FINANCING_DESCRIPTION, inLanguage: 'es-CO', isPartOf: { '@type': 'WebSite', url: `${base}/`, name: 'Crediestética' } }
   ]
   if (questions.length) graph.push({ '@type': 'FAQPage', '@id': `${url}#faq`, url, mainEntity: questions })
 

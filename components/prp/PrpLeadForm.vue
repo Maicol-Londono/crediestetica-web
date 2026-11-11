@@ -2,14 +2,14 @@
   <div>
     <!-- Éxito -->
     <div v-if="status === 'success'" class="text-center py-10 md:py-14" role="status">
-      <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-[#0C2619] text-[#D3A76A] flex items-center justify-center">
+      <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-[#111111] text-[#CBA36B] flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
       </div>
       <h3 class="font-serif text-2xl md:text-3xl font-medium text-black uppercase tracking-tight mb-3">¡Gracias<template v-if="submittedName">, <span class="normal-case">{{ submittedName }}</span></template>!</h3>
       <p class="text-gray-600 font-light leading-relaxed max-w-sm mx-auto mb-8">
-        Recibimos tus datos. Una asesora de Planmed se pondrá en contacto contigo muy pronto para agendar tu valoración.
+        Recibimos tus datos. Una asesora de Crediestética se pondrá en contacto contigo muy pronto para agendar tu valoración.
       </p>
-      <NuxtLink to="/" class="inline-block text-[11px] font-bold tracking-[0.15em] text-[#0C2619] uppercase border-b-2 border-[#0C2619] pb-1 hover:text-black hover:border-black transition-colors">
+      <NuxtLink to="/" class="inline-block text-[11px] font-bold tracking-[0.15em] text-[#111111] uppercase border-b-2 border-[#111111] pb-1 hover:text-black hover:border-black transition-colors">
         Volver al inicio
       </NuxtLink>
     </div>
@@ -52,11 +52,11 @@
       </div>
 
       <div>
-        <label class="flex items-start gap-3 cursor-pointer p-4 bg-[#fcf9f8] border border-[#e5e2e1]">
-          <input v-model="form.accepted" type="checkbox" class="mt-0.5 w-5 h-5 shrink-0 accent-[#0C2619] border-gray-300 cursor-pointer" :aria-invalid="!!errors.accepted" />
+        <label class="flex items-start gap-3 cursor-pointer p-4 bg-[#F7F3EE] border border-[#E7DDD1]">
+          <input v-model="form.accepted" type="checkbox" class="mt-0.5 w-5 h-5 shrink-0 accent-[#111111] border-gray-300 cursor-pointer" :aria-invalid="!!errors.accepted" />
           <span class="text-xs text-gray-600 leading-relaxed select-none">
             Acepto la
-            <a :href="PRIVACY_POLICY_URL" target="_blank" rel="noopener noreferrer" class="text-[#0C2619] font-bold underline underline-offset-2" @click.stop>política de tratamiento de datos personales</a>
+            política de tratamiento de datos personales <LegalDocLink doc="politicaDatos" class="text-[#111111] font-bold underline underline-offset-2" />
             y autorizo ser contactado para recibir información. *
           </span>
         </label>
@@ -64,7 +64,7 @@
       </div>
 
       <button type="submit" :disabled="status === 'submitting'"
-        class="w-full bg-[#0C2619] text-white font-bold text-xs tracking-[0.15em] uppercase py-4 px-6 rounded-[2px] hover:bg-black transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+        class="w-full bg-[#111111] text-white font-bold text-xs tracking-[0.15em] uppercase py-4 px-6 rounded-[2px] hover:bg-black transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3">
         <span v-if="status === 'submitting'" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
         {{ status === 'submitting' ? 'Enviando...' : status === 'error' ? 'Intentar nuevamente' : 'Agendar mi valoración' }}
       </button>
@@ -73,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+import LegalDocLink from '~/components/legal/LegalDocLink.vue'
 import { ref, reactive, onMounted } from 'vue'
 import { prpLeadService } from '~/services/PrpLeadService'
 import { publicProcedureService } from '~/services/PublicProcedureService'
@@ -80,9 +81,6 @@ import { PrpLeadError } from '~/types/prpPublic'
 
 // `codePrp` es el código externo del PRP recuperado desde Hub; la persona nunca lo ve ni lo escribe.
 const props = defineProps<{ codePrp: string }>()
-
-// Política de tratamiento de datos personales (PDF del CRM), que se abre en una pestaña nueva.
-const PRIVACY_POLICY_URL = 'https://pdtclientsolutions.com/crm-public/Politica_Tratamiento_Personal.pdf'
 
 type Status = 'idle' | 'submitting' | 'success' | 'error'
 const status = ref<Status>('idle')
@@ -105,8 +103,8 @@ const submittedName = ref('')
 
 function inputClass(error?: string) {
   return [
-    'w-full px-4 py-3 bg-white border rounded-[2px] focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent transition-all',
-    error ? 'border-red-500' : 'border-[#e5e2e1]'
+    'w-full px-4 py-3 bg-white border rounded-[2px] focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all',
+    error ? 'border-red-500' : 'border-[#E7DDD1]'
   ]
 }
 

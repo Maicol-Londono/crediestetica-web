@@ -14,12 +14,12 @@ const read = rel => readFileSync(join(ROOT, rel), 'utf8')
 const HOST = 'planmed.test'
 const TOKEN = 'hub-sanctum-secret-token'
 
-const base = { company: { slug: 'planmed' }, line: { slug: 'planmed' }, permissions: [] }
+const base = { company: { slug: 'legalmed' }, line: { slug: 'crediestetica' }, permissions: [] }
 const USERS = {
   lider: { id: 1, name: 'Líder', email: 'l@x.test', role: { id: 3, name: 'Líder' }, is_area_leader: true, ...base },
   asesora: { id: 2, name: 'Asesora', email: 'a@x.test', role: { id: 22, name: 'Asesora financiera' }, is_area_leader: false, ...base },
   superadmin: { id: 9, name: 'Super', email: 's@x.test', role: null, is_area_leader: false, is_global_admin: true, ...base },
-  liderOtraLinea: { id: 4, name: 'Otro', email: 'o@x.test', role: null, is_area_leader: true, company: { slug: 'planmed' }, line: { slug: 'crediestetica' }, permissions: [] }
+  liderOtraLinea: { id: 4, name: 'Otro', email: 'o@x.test', role: null, is_area_leader: true, company: { slug: 'legalmed' }, line: { slug: 'otra-linea' }, permissions: [] }
 }
 
 const state = { me: 'lider', session: true, hub: { status: 201, data: null }, cleared: false }
@@ -48,7 +48,7 @@ before(async () => {
   g.getRequestHeader = (e, n) => e.headers[n]
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
   g.authError = (statusCode, message) => g.createError({ statusCode, message, data: { message } })
-  g.useRuntimeConfig = () => ({ planmedAdminRoleIds: '', wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed' })
+  g.useRuntimeConfig = () => ({ adminRoleIds: '', wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica' })
   g.canManageFinancingRate = () => false
   g.MSG_UNAVAILABLE = 'unavailable'
   g.MSG_LEADER_ONLY = 'solo líder'
@@ -73,7 +73,7 @@ before(async () => {
     if (String(url).endsWith('/auth/me')) return state.session && state.me ? { status: 200, _data: { user: USERS[state.me] } } : { status: 401, _data: {} }
     return { status: 0, _data: {} }
   } }
-  g.useRuntimeConfig = () => ({ planmedAdminRoleIds: '', wellezyApiBaseUrl: 'http://hub.test/api', sessionPassword: 'x'.repeat(40), wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed' })
+  g.useRuntimeConfig = () => ({ adminRoleIds: '', wellezyApiBaseUrl: 'http://hub.test/api', sessionPassword: 'x'.repeat(40), wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica' })
   post = (await imp('server/api/admin/config/line-users.post.ts')).default
   options = (await imp('server/api/admin/config/line-users/options.get.ts')).default
 })

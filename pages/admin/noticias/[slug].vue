@@ -3,18 +3,18 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
-        <NuxtLink to="/admin/noticias" class="text-[11px] font-bold tracking-[0.15em] text-[#848484] hover:text-[#0C2619] uppercase flex items-center gap-2 mb-4 transition-colors">
+        <NuxtLink to="/admin/noticias" class="text-[11px] font-bold tracking-[0.15em] text-[#848484] hover:text-[#111111] uppercase flex items-center gap-2 mb-4 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Volver a Noticias
         </NuxtLink>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-1 uppercase">{{ isNew ? 'Nueva Noticia' : 'Editar Noticia' }}</h2>
+        <h2 class="text-3xl font-serif text-[#111111] mb-1 uppercase">{{ isNew ? 'Nueva Noticia' : 'Editar Noticia' }}</h2>
         <p class="text-gray-500 font-light">{{ isNew ? 'Redacta un nuevo' : 'Modifica este' }} artículo editorial.</p>
       </div>
       <div class="flex items-center gap-3">
         <button 
           @click="submitForm" 
           :disabled="isSubmitting"
-          class="bg-[#0C2619] hover:bg-[#153a28] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg"
+          class="bg-[#111111] hover:bg-[#333333] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg"
         >
           <span v-if="isSubmitting">Guardando...</span>
           <span v-else>Guardar Cambios</span>
@@ -29,17 +29,17 @@
         
         <!-- Información Principal -->
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Información Principal</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Información Principal</h3>
           
           <div class="space-y-6">
             <div>
               <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Título *</label>
-              <input v-model="form.title" required type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent" placeholder="Título del artículo" />
+              <input v-model="form.title" required type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent" placeholder="Título del artículo" />
             </div>
 
             <div>
               <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Slug *</label>
-              <input v-model="form.slug" :required="!isNew" type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent font-mono text-sm" placeholder="se-generara-automaticamente-si-lo-dejas-vacio" />
+              <input v-model="form.slug" :required="!isNew" type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent font-mono text-sm" placeholder="se-generara-automaticamente-si-lo-dejas-vacio" />
               <p class="text-[10px] text-gray-500 mt-1">Identificador de la URL. Si se deja vacío al crear, se generar desde el título.</p>
             </div>
 
@@ -53,7 +53,7 @@
 
         <!-- Contenido Editorial -->
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Contenido Editorial *</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Contenido Editorial *</h3>
           <div>
             <AdminRichTextEditor v-model="form.content" min-height="20rem" />
             <p class="text-[10px] text-gray-500 mt-2">Usa la barra de herramientas para dar formato: títulos, listas, negrita, cursiva y enlaces.</p>
@@ -62,7 +62,7 @@
 
         <!-- Multimedia Embebida -->
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Multimedia Integrada</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Multimedia Integrada</h3>
           
           <div class="space-y-6">
             <div>
@@ -92,10 +92,10 @@
         
         <!-- Estado / Publicacin -->
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Visibilidad</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Visibilidad</h3>
           
-          <label class="flex items-start gap-3 cursor-pointer p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#0C2619] transition-colors mb-4">
-            <input v-model="isPublished" type="checkbox" class="w-5 h-5 mt-0.5 text-[#0C2619] focus:ring-[#0C2619] border-gray-300 rounded" />
+          <label class="flex items-start gap-3 cursor-pointer p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#111111] transition-colors mb-4">
+            <input v-model="isPublished" type="checkbox" class="w-5 h-5 mt-0.5 text-[#111111] focus:ring-[#111111] border-gray-300 rounded" />
             <div class="flex flex-col">
               <span class="text-sm font-bold text-gray-900">Noticia Publicada</span>
               <span class="text-[10px] text-gray-500 mt-1">Los cambios se aplican al guardar la noticia.</span>
@@ -104,13 +104,13 @@
 
           <div v-if="isPublished">
             <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Fecha de Publicacin</label>
-            <input v-model="form.publishedAtStr" type="datetime-local" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#0C2619]" />
+            <input v-model="form.publishedAtStr" type="datetime-local" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#111111]" />
           </div>
         </div>
 
         <!-- Imagen de Portada -->
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">Portada</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">Portada</h3>
           
           <div v-if="form.coverImage" class="w-full aspect-[4/3] rounded-lg overflow-hidden mb-4 border border-gray-200">
             <img :src="form.coverImage" alt="Cover" class="w-full h-full object-cover" />
@@ -122,7 +122,7 @@
           <div>
             <input ref="coverInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onCoverSelected" />
             <div class="flex gap-2">
-              <button type="button" @click="coverInput?.click()" :disabled="isUploading" class="flex-1 px-4 py-3 bg-[#0C2619] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#143c28] transition-colors disabled:opacity-60">
+              <button type="button" @click="coverInput?.click()" :disabled="isUploading" class="flex-1 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#143c28] transition-colors disabled:opacity-60">
                 {{ isUploading ? 'Procesando...' : (form.coverImage ? 'Cambiar imagen' : 'Subir imagen *') }}
               </button>
               <button v-if="form.coverImage" type="button" @click="form.coverImage = ''" class="px-4 py-3 border border-gray-200 text-gray-500 text-xs font-bold uppercase rounded-lg hover:bg-gray-50">Quitar</button>
@@ -133,16 +133,16 @@
 
         <!-- SEO -->
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-          <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase mb-6 border-b border-gray-100 pb-4">SEO</h3>
+          <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase mb-6 border-b border-gray-100 pb-4">SEO</h3>
           
           <div class="space-y-4">
             <div>
               <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Meta Title</label>
-              <input v-model="form.seo.metaTitle" type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent text-sm" placeholder="Título para Google" />
+              <input v-model="form.seo.metaTitle" type="text" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent text-sm" placeholder="Título para Google" />
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Meta Description</label>
-              <textarea v-model="form.seo.metaDescription" rows="4" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent text-sm resize-none" placeholder="Extracto persuasivo de mx 160 caracteres"></textarea>
+              <textarea v-model="form.seo.metaDescription" rows="4" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent text-sm resize-none" placeholder="Extracto persuasivo de mx 160 caracteres"></textarea>
             </div>
           </div>
         </div>
@@ -212,7 +212,7 @@ import type { NewsArticle } from '~/types/news'
 import { isRichHtmlEmpty } from '~/utils/richText'
 
 useHead({
-  title: 'Editor de Noticias | Admin Planmed'
+  title: 'Editor de Noticias | Admin Crediestética'
 })
 definePageMeta({
   layout: 'admin'

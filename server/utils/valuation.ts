@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { createHash } from 'node:crypto'
+import { crmDestinationProblem, MSG_CRM_UNAVAILABLE } from '#shared/utils/crmDestination'
 import { buildCrmFields, crmConfirmed, normalizeValuation, validateValuation, VALUATION_FIELDS } from '#shared/utils/valuation'
 
 // Solicitud de valoración → CRM médico (POST multipart a /crm-public/api/clients/forms). Solo servidor.
@@ -44,6 +45,15 @@ export async function handleValuation(event: H3Event) {
   assertSameOrigin(event)
   setHeader(event, 'Cache-Control', 'no-store')
 
+  // Destino del CRM: sin configuración válida, o apuntando al CRM heredado de Planmed, NO se procesa ni se envía nada (ni se consume el límite
+  // por IP). Se evalúa en el servidor antes de leer el cuerpo.
+  const url = String(useRuntimeConfig(event).crmValuationUrl || '')
+  const problem = crmDestinationProblem(url)
+  if (problem) {
+    console.error(`[valuation] destino del CRM bloqueado (${problem}): define NUXT_CRM_VALUATION_URL con el CRM propio.`)
+    fail(503, MSG_CRM_UNAVAILABLE, { reason: 'not_configured' })
+  }
+
   const now = Date.now()
   const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
   if (rateLimited(ip, now)) fail(429, 'Recibimos demasiados intentos. Espera unos minutos e inténtalo de nuevo.', { reason: 'rate_limited' })
@@ -57,9 +67,6 @@ export async function handleValuation(event: H3Event) {
   if (inflight.has(print) || (last && now - last < DUPLICATE_WINDOW_MS)) {
     fail(409, 'Ya recibimos tu solicitud. No es necesario enviarla de nuevo.', { reason: 'duplicate' })
   }
-
-  const url = String(useRuntimeConfig(event).crmValuationUrl || '')
-  if (!url) fail(503, 'El envío no está disponible en este momento.', { reason: 'not_configured' })
 
   const form = new FormData()
   for (const [name, val] of buildCrmFields(value)) form.append(name, val)

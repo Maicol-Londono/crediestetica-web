@@ -6,9 +6,9 @@ import { randomBytes } from 'node:crypto'
 // @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { sanitizeRichHtml } from '../../utils/richText.ts'
 
-// Persistencia LOCAL de la página «Nosotros» (no usa Wellezy Hub: esta página se administra solo en la web de Planmed).
+// Persistencia LOCAL de la página «Nosotros» (no usa Wellezy Hub: esta página se administra solo en esta web).
 // El contenido vive en un archivo JSON en el disco del servidor Nitro (preset node-server), dentro de un directorio configurable
-// con NUXT_PLANMED_CONTENT_DIR (por defecto `<cwd>/.data/planmed-content`). Ese directorio debe ser persistente y quedar FUERA de
+// con NUXT_CONTENT_DIR (por defecto `<cwd>/.data/crediestetica-content`). Ese directorio debe ser persistente y quedar FUERA de
 // `.output/`, para que un nuevo despliegue no lo reemplace. Las imágenes de portada subidas se guardan en `<dir>/media/`.
 // Helpers de Nitro (createError, authError, adminSession, wellezyMe, dataUrlToBlob, normalizeAboutContent, …) son auto-imports.
 
@@ -16,8 +16,8 @@ const FILE = 'about.json'
 const BACKUP = 'about.prev.json'
 
 export function aboutContentDir(event: H3Event): string {
-  const configured = String(useRuntimeConfig(event).planmedContentDir || '').trim()
-  const dir = configured || join('.data', 'planmed-content')
+  const configured = String(useRuntimeConfig(event).contentDir || '').trim()
+  const dir = configured || join('.data', 'crediestetica-content')
   return isAbsolute(dir) ? dir : resolve(process.cwd(), dir)
 }
 
@@ -89,7 +89,7 @@ export async function readAboutImage(event: H3Event, name: string): Promise<Buff
 
 /**
  * Autorización para ESCRIBIR: además de la sesión (y el control de origen) de adminSession, se revalida en cada guardado, consultando
- * /auth/me de Hub, que el usuario siga autorizado para el CMS (rol en NUXT_PLANMED_ADMIN_ROLE_IDS) Y sea un perfil editor de contenido
+ * /auth/me de Hub, que el usuario siga autorizado para el CMS (rol en NUXT_ADMIN_ROLE_IDS) Y sea un perfil editor de contenido
  * (canEditLocalContent). Estar en la lista del panel solo da acceso al panel, no a escribir este contenido.
  * Es necesario porque esta escritura no pasa por Hub (que en los demás módulos revalida el token y los permisos).
  */
@@ -124,7 +124,7 @@ export function parseAboutBody(body: any, current: AboutContent): AboutContent {
     const message = errors[keys[0]!]!
     throw createError({ statusCode: 422, message, data: { message, errors } })
   }
-  const id = aboutYoutubeId(next.video.url)!
-  next.video.url = aboutYoutubeWatchUrl(id)
+  const id = aboutYoutubeId(next.video.url)
+  next.video.url = id ? aboutYoutubeWatchUrl(id) : ''
   return next
 }

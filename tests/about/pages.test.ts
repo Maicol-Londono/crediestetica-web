@@ -22,7 +22,7 @@ before(async () => {
   g.readBody = async e => e.body
   g.getRouterParam = (e, n) => e.params[n]
   g.setHeader = () => {}
-  g.useRuntimeConfig = () => ({ planmedContentDir: dir })
+  g.useRuntimeConfig = () => ({ contentDir: dir })
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
   g.authError = (statusCode, message) => g.createError({ statusCode, message, data: { message } })
   g.assertSameOrigin = () => {}
@@ -112,13 +112,13 @@ describe('menú y páginas', () => {
     assert.match(layout, /<main class="[^"]*relative[^"]*overflow-y-auto/)
   })
 
-  test('Servicios está dentro del desplegable Planmed (no suelto) y usa los videos entregados', () => {
+  test('Servicios está dentro del desplegable Planmed (no suelto) y sin videos de otra marca (Etapa D1)', () => {
     assert.ok(existsSync(join(ROOT, 'pages/servicios.vue')))
     const nav = readFileSync(join(ROOT, 'components/layout/Navbar.vue'), 'utf8')
     assert.ok(nav.includes("to: '/servicios'"), 'opción de Planmed (escritorio y móvil comparten planmedItems)')
     assert.ok(!nav.includes('to="/servicios"'), 'sin enlace suelto en la barra')
     const page = readFileSync(join(ROOT, 'pages/servicios.vue'), 'utf8')
-    for (const id of ['rH1wWM51SGM', 'x9ZPOewX4vk']) assert.ok(page.includes(id), id)
+    assert.ok(!/youtube|iframe/i.test(page), 'sin videos heredados de Planmed')
     assert.ok(!/autoplay|v-html/.test(page))
   })
 
@@ -127,7 +127,7 @@ describe('menú y páginas', () => {
     assert.ok(!existsSync(join(ROOT, 'pages/simulador.vue')))
     assert.ok(existsSync(join(ROOT, 'components/simulator/SimulatorPanel.vue')))
     const page = readFileSync(join(ROOT, 'pages/financiacion.vue'), 'utf8')
-    assert.ok(page.includes('NnAkWAmmK4A') && page.includes('<SimulatorPanel') && page.includes('id="calculadora"'))
+    assert.ok(page.includes('<SimulatorPanel') && page.includes('id="calculadora"'))
     assert.ok(page.includes('href="#calculadora"'), 'botón de la cabecera hacia el simulador')
     for (const k of ['AboutFaqAccordion', 'AboutContactSection']) assert.ok(page.includes(k), k)
     assert.ok(!/autoplay|v-html/.test(page))
@@ -146,14 +146,16 @@ describe('menú y páginas', () => {
     assert.deepEqual(bad, [])
   })
 
-  test('Programa de referidos: contenido entregado, formulario maquetado con aviso y sin envío', () => {
+  test('Programa de referidos: contenido entregado y formulario que envía por ReferralService (no directo desde el componente) con estados de error y confirmación accesibles', () => {
     const page = readFileSync(join(ROOT, 'pages/testimonios/programa-de-referidos.vue'), 'utf8')
-    assert.ok(page.includes('<ReferralProgramContent') && page.includes('<ReferralForm'))
-    const content = readFileSync(join(ROOT, 'components/referral/ProgramContent.vue'), 'utf8')
-    for (const t of ['Programa de Remisión de Pacientes', 'hasta 10 días hábiles', '315 785 7783', 'después de 4 meses']) assert.ok(content.includes(t), t)
+    assert.ok(!page.includes('<ReferralProgramContent') && page.includes('<ReferralForm'))
+    assert.ok(!existsSync(join(ROOT, 'components/referral/ProgramContent.vue')), 'el programa estático de Planmed se retiró')
     const form = readFileSync(join(ROOT, 'components/referral/ReferralForm.vue'), 'utf8')
-    assert.ok(form.includes('data-testid="referral-form-not-functional"') && form.includes('role="alert"'))
-    assert.ok(form.includes('@submit.prevent') && !/\$fetch|useFetch|fetch\(|axios/.test(form), 'no envía datos')
-    assert.ok(!/v-html|localStorage/.test(content + form))
+    // Desde D4.2 el formulario envía la inscripción (ReferralService -> /api/forms/prp-enrollment -> Hub); el aviso de «no funcional» ya no existe.
+    assert.ok(!form.includes('referral-form-not-functional'))
+    assert.ok(form.includes('data-testid="referral-error"') && form.includes('role="alert"') && form.includes('role="status"'))
+    assert.ok(form.includes('@submit.prevent="onSubmit"') && form.includes('referralService.submit('))
+    assert.ok(!/\$fetch|useFetch|fetch\(|axios/.test(form), 'el componente no llama a la red directamente')
+    assert.ok(!/v-html|localStorage/.test(form))
   })
 })

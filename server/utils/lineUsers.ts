@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 
-// Colaboradores (usuarios) de la línea Planmed, leídos de Wellezy Hub: GET /cms/line-users (solo líder de la línea).
+// Colaboradores (usuarios) de la línea configurada, leídos de Wellezy Hub: GET /cms/line-users (solo líder de la línea).
 // Empresa y línea las decide el Hub a partir del token de la sesión (company_id y linea_id del personal del usuario), nunca desde el
 // navegador: así, al pasar a los IDs de producción no hay nada que cambiar en la web. Lectura y ALTA (POST /cms/line-users); no hay
 // edición, cambio de estado, corrección de correo ni reenvío de activación.

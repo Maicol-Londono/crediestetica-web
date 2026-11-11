@@ -2,15 +2,17 @@
 // Integración de SOLO LECTURA contra un Wellezy Hub real (el local). No crea, edita, publica ni elimina nada.
 //
 // Se omite por completo salvo que el entorno indique el Hub (misma variable que usa la aplicación; nunca hay una URL escrita aquí):
-//   NUXT_WELLEZY_API_BASE_URL=<url del Hub local>/api  NUXT_WELLEZY_LINE_SLUG=planmed  npm test
+//   NUXT_WELLEZY_API_BASE_URL=<url del Hub local>/api  NUXT_WELLEZY_LINE_SLUG=crediestetica  npm test
 // Ejecuta los handlers REALES de Nitro (server/api/public/**) y los mapeos reales, pero con respuestas reales del Hub en lugar de las
-// simuladas del resto de pruebas: comprueba que el contrato que consume Planmed existe de verdad.
+// simuladas del resto de pruebas: comprueba que el contrato que consume este sitio existe de verdad.
+// Son pruebas de INTEGRACIÓN REAL (no usan el Hub simulado para las respuestas); las pruebas con Hub simulado están en los demás archivos.
+// Solo lecturas (GET) con `X-Tenant-Linea`; nunca `X-Tenant-Domain`. Sin la variable de entorno, no se conecta a nada.
 import { test, describe, before } from 'node:test'
 import assert from 'node:assert/strict'
 import { FakeHub, makeEvent, run, setup } from '../recommendations/harness.ts'
 
 const BASE = String(process.env.NUXT_WELLEZY_API_BASE_URL || '').replace(/\/+$/, '')
-const LINE = process.env.NUXT_WELLEZY_LINE_SLUG || 'planmed'
+const LINE = process.env.NUXT_WELLEZY_LINE_SLUG || 'crediestetica'
 
 async function hubGet(path: string, headers: Record<string, string> = {}) {
   const res = await fetch(`${BASE}${path}`, { headers: { Accept: 'application/json', ...headers }, signal: AbortSignal.timeout(10_000) })
@@ -76,6 +78,37 @@ describe('Hub real (solo lectura): contrato público de recomendaciones', () => 
         assert.equal(proc[flag], fuente === 'pagina' || fuente === 'historico', `${proc.slug}/${kind}: indicador incoherente con la fuente`)
       }
     }
+  })
+})
+
+describe('Hub real (solo lectura): categorías de procedimientos', () => {
+  test('categorias-cirugias responde 200 y el handler de Nitro entrega slug, nombre y cantidad de la línea', async (t) => {
+    if (skipReason()) return t.skip(skipReason())
+    const handler = await api.handler('server/api/public/procedure-categories.get.ts')
+    const { value, error } = await run(handler, makeEvent())
+    assert.equal(error, undefined, error?.message)
+    assert.equal(Array.isArray(value), true)
+    for (const c of value) {
+      assert.equal(typeof c.slug, 'string')
+      assert.equal(typeof c.name, 'string')
+      assert.ok(c.count >= 1, 'solo categorías con procedimientos habilitados en la línea')
+    }
+  })
+})
+
+describe('Hub real (solo lectura): noticias', () => {
+  test('la lista pública responde 200 con `data` (vacía o no) y el handler de Nitro la mapea; una lista vacía no es un error', async (t) => {
+    if (skipReason()) return t.skip(skipReason())
+    const res = await hubGet('/v1/web/posts?per_page=50', { 'X-Tenant-Linea': LINE })
+    assert.equal(res.status, 200)
+    assert.equal(Array.isArray(res.data?.data), true)
+    Object.assign(globalThis, api.news) // fromPublicPost
+    const handler = await api.handler('server/api/public/news/index.get.ts')
+    const { value, error } = await run(handler, makeEvent())
+    assert.equal(error, undefined, error?.message)
+    assert.equal(Array.isArray(value), true)
+    assert.equal(value.length, res.data.data.length)
+    for (const n of value) assert.equal(JSON.stringify(n).includes('company_id') || JSON.stringify(n).includes('linea_id'), false)
   })
 })
 

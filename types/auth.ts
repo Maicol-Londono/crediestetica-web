@@ -16,6 +16,14 @@ export interface AdminUser {
   canCreatePrp: boolean;
   canEditPrp: boolean;
   canDeletePrp: boolean;
+  /** Visibilidad de módulos en menú y dashboard (solo informativa; Hub y el servidor imponen el acceso). */
+  canViewProcedures: boolean;
+  canViewNews: boolean;
+  canViewPatients: boolean;
+  canViewRecommendations: boolean;
+  canViewMicrosites: boolean;
+  canCreateMicrosites: boolean;
+  canAccessConfiguration: boolean;
   canEditContent: boolean;
   /** Contraseña temporal pendiente de cambio: solo se permite /admin/cambiar-contrasena (la impone el servidor). */
   mustChangePassword: boolean;

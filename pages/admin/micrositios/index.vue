@@ -3,10 +3,10 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-2 uppercase">Micrositios</h2>
+        <h2 class="text-3xl font-serif text-[#111111] mb-2 uppercase">Micrositios</h2>
         <p class="text-gray-500 font-light">Administra los micrositios de referidores (PRP) y su enlace público.</p>
       </div>
-      <NuxtLink v-if="canCreate" to="/admin/micrositios/nuevo" class="bg-[#D3A76A] hover:bg-[#c29659] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors inline-flex items-center gap-2">
+      <NuxtLink v-if="canCreate" to="/admin/micrositios/nuevo" class="bg-[#CBA36B] hover:bg-[#c29659] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors inline-flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
         Nuevo Micrositio
       </NuxtLink>
@@ -22,10 +22,10 @@
           v-model="searchQuery"
           type="text"
           placeholder="Buscar por nombre, código PRP o slug..."
-          class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent transition-all"
+          class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all"
         />
       </div>
-      <select v-model="statusFilter" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] text-sm text-gray-700 md:w-48">
+      <select v-model="statusFilter" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] text-sm text-gray-700 md:w-48">
         <option value="all">Todos los estados</option>
         <option value="active">Activos</option>
         <option value="inactive">Inactivos</option>
@@ -34,7 +34,7 @@
 
     <!-- Lista -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div v-if="pending" class="p-12 text-center text-gray-500">
+      <div v-if="loading" class="p-12 text-center text-gray-500">
         Cargando micrositios...
       </div>
       <div v-else-if="error" class="p-12 text-center">
@@ -67,7 +67,7 @@
               <td class="p-4">
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-500 font-mono line-clamp-1 max-w-[260px]" :title="prpService.publicPath(item.slug)">{{ prpService.publicPath(item.slug) }}</span>
-                  <button @click="copyLink(item.slug)" class="p-1.5 text-gray-400 hover:text-[#0C2619] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg shrink-0" title="Copiar enlace">
+                  <button @click="copyLink(item.slug)" class="p-1.5 text-gray-400 hover:text-[#111111] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg shrink-0" title="Copiar enlace">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                   </button>
                 </div>
@@ -96,7 +96,7 @@
               </td>
               <td class="p-4 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <NuxtLink v-if="canEdit" :to="`/admin/micrositios/${item.id}`" class="p-2 text-gray-400 hover:text-[#0C2619] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg" title="Editar">
+                  <NuxtLink v-if="canEdit" :to="`/admin/micrositios/${item.id}`" class="p-2 text-gray-400 hover:text-[#111111] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg" title="Editar">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                   </NuxtLink>
                 </div>
@@ -107,7 +107,7 @@
       </div>
 
       <!-- Paginación -->
-      <AdminPagination v-if="!pending && !error" v-model:page="page" v-model:per-page="perPage" :last-page="lastPage" :total="total" label="micrositios" />
+      <AdminPagination v-if="!loading && !error" v-model:page="page" v-model:per-page="perPage" :last-page="lastPage" :total="total" label="micrositios" />
     </div>
   </div>
 </template>
@@ -121,7 +121,7 @@ import { authService } from '~/services/AuthService'
 
 // Banderas solo informativas (permisos prp_referrers.* de Hub): ocultan acciones que Hub rechazaría con 403. La seguridad la impone Hub.
 const user = authService.getUser()
-const canCreate = computed(() => user.value?.canCreatePrp === true)
+const canCreate = computed(() => user.value?.canCreateMicrosites === true)
 const canEdit = computed(() => user.value?.canEditPrp === true)
 const canDelete = computed(() => user.value?.canDeletePrp === true)
 // Desactivar usa «eliminar»; reactivar usa «editar».
@@ -130,7 +130,7 @@ const canToggle = (item: Prp) => (item.isActive ? canDelete.value : canEdit.valu
 const notify = useNotify()
 
 useHead({
-  title: 'Micrositios | Admin Planmed'
+  title: 'Micrositios | Admin Crediestética'
 })
 definePageMeta({
   layout: 'admin'
@@ -166,6 +166,11 @@ const { data, pending, error, refresh } = await useAsyncData(
   }),
   { default: () => emptyPage, server: false, watch: [debouncedSearch, statusFilter, page, perPage] }
 )
+
+// «Cargando» según un estado igual en servidor y navegador: con server:false `pending` difiere entre ambos y provocaba un desajuste de hidratación.
+const mounted = ref(false)
+onMounted(() => { mounted.value = true })
+const loading = computed(() => !mounted.value || pending.value)
 
 const items = computed<Prp[]>(() => data.value?.items ?? [])
 const lastPage = computed(() => data.value?.lastPage ?? 1)

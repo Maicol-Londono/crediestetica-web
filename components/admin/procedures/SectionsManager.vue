@@ -2,14 +2,14 @@
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8" data-testid="procedure-sections">
     <div class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-4 mb-6">
       <div>
-        <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase">Secciones de contenido</h3>
+        <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase">Secciones de contenido</h3>
         <p class="text-xs text-gray-500 mt-1 max-w-2xl">
           Se muestran en la web de tu línea <strong>debajo</strong> del contenido del procedimiento, en el orden de esta lista. Cada sección tiene una o dos columnas y cada columna puede apilar
           texto, imágenes, videos de YouTube y publicaciones de Instagram.
-          <template v-if="isMaster"> Son solo de Planmed: no modifican el procedimiento maestro ni las secciones de otras líneas.</template>
+          <template v-if="isMaster"> Son solo de Crediestética: no modifican el procedimiento maestro ni las secciones de otras líneas.</template>
         </p>
       </div>
-      <button v-if="!editing && canWrite" type="button" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-5 py-2.5 rounded-lg font-bold text-[11px] tracking-widest uppercase cursor-pointer" data-testid="add-section" @click="startCreate">
+      <button v-if="!editing && canWrite" type="button" class="bg-[#111111] hover:bg-[#333333] text-white px-5 py-2.5 rounded-lg font-bold text-[11px] tracking-widest uppercase cursor-pointer" data-testid="add-section" @click="startCreate">
         + Agregar sección
       </button>
     </div>
@@ -40,14 +40,14 @@
           <div v-if="canWrite" class="flex items-center gap-1 shrink-0">
             <button type="button" class="icon-btn" :disabled="i === 0 || action.busy.value" aria-label="Subir sección" @click="move(i, -1)">↑</button>
             <button type="button" class="icon-btn" :disabled="i === sections.length - 1 || action.busy.value" aria-label="Bajar sección" @click="move(i, 1)">↓</button>
-            <button type="button" class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest border border-gray-200 rounded hover:border-[#0C2619] cursor-pointer" @click="startEdit(s)">Editar</button>
+            <button type="button" class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest border border-gray-200 rounded hover:border-[#111111] cursor-pointer" @click="startEdit(s)">Editar</button>
             <button type="button" class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-red-700 border border-red-100 rounded hover:bg-red-50 cursor-pointer" :disabled="action.busy.value" @click="remove(s)">Eliminar</button>
           </div>
         </li>
       </ul>
 
       <form v-if="editing" class="space-y-5 border border-gray-200 rounded-xl p-5 bg-gray-50/50" data-testid="section-form" @submit.prevent="submit">
-        <p class="text-xs font-bold tracking-widest uppercase text-[#0C2619]">{{ editing === 'new' ? 'Nueva sección' : 'Editar sección' }}</p>
+        <p class="text-xs font-bold tracking-widest uppercase text-[#111111]">{{ editing === 'new' ? 'Nueva sección' : 'Editar sección' }}</p>
 
         <p v-if="legacy" class="text-xs text-sky-900 bg-sky-50 border border-sky-200 rounded px-3 py-2" data-testid="section-legacy-notice">
           Esta sección usa el formato anterior (título, texto e imagen). Al guardar pasará a bloques: el texto y la imagen se convierten en bloques y el contenido anterior se conserva en el sistema.
@@ -63,14 +63,14 @@
         <p v-if="fieldError('content')" class="err">{{ fieldError('content') }}</p>
 
         <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <input v-model="draft.visible" type="checkbox" class="h-4 w-4 accent-[#0C2619]"> Publicar esta sección en la web
+          <input v-model="draft.visible" type="checkbox" class="h-4 w-4 accent-[#111111]"> Publicar esta sección en la web
         </label>
 
         <AdminRecommendationsTreeNotice :error="action.error.value" :hide-fields="['title', 'content', 'layout', 'column_layout']" title="No se pudo guardar la sección" @dismiss="action.clear" />
 
         <div class="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-4">
           <button type="button" class="text-xs font-bold tracking-widest uppercase text-gray-500 hover:text-gray-800 cursor-pointer" @click="cancel">Cancelar</button>
-          <button type="submit" :disabled="action.busy.value" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-6 py-2.5 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 cursor-pointer" data-testid="save-section">
+          <button type="submit" :disabled="action.busy.value" class="bg-[#111111] hover:bg-[#333333] text-white px-6 py-2.5 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 cursor-pointer" data-testid="save-section">
             {{ action.busy.value ? 'Guardando...' : 'Guardar sección' }}
           </button>
         </div>
@@ -209,9 +209,9 @@ onMounted(load)
 <style scoped>
 .label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #374151; margin-bottom: .4rem; }
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #fff; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .err { margin-top: .35rem; font-size: .75rem; color: #b91c1c; }
 .icon-btn { width: 2rem; height: 2rem; border: 1px solid #e5e7eb; border-radius: .375rem; font-weight: 700; cursor: pointer; }
-.icon-btn:hover:not(:disabled) { border-color: #0C2619; }
+.icon-btn:hover:not(:disabled) { border-color: #111111; }
 .icon-btn:disabled { opacity: .35; cursor: default; }
 </style>

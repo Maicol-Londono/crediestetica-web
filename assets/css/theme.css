@@ -1,9 +1,23 @@
 @theme {
   --color-primary: #000000;
   --color-secondary: #333333;
-  --color-accent: #0C2619;
+  --color-accent: #CBA36B;
   --color-background: #FFFFFF;
-  --font-sans: 'Inter', sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Questrial', sans-serif;
+  --font-serif: 'Libre Bodoni', serif;
 }
 
+
+/* Paleta Crediestética: negro obsidiana #111111 · marfil #F7F3EE · beige #E7DDD1 · dorado #CBA36B · gris piedra #BBB2AA */
+:root {
+  --cred-obsidian: #111111;
+  --cred-ivory: #F7F3EE;
+  --cred-beige: #E7DDD1;
+  --cred-gold: #CBA36B;
+  --cred-stone: #BBB2AA;
+  /* Tokens recuperados del proyecto original de Crediestética (D9): bronce de acento y forma de botones/tarjetas. */
+  --cred-bronze: #755A26;
+  --cred-radius-pill: 9999px;
+  --cred-radius-card: 0.75rem;
+  --cred-heading-weight: 700;
+}

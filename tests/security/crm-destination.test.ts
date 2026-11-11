@@ -1,0 +1,155 @@
+// @ts-nocheck -- pruebas ejecutadas con Node (node:test); fuera del alcance del typecheck de Nuxt.
+// Bloqueo de destinos de CRM heredados de Planmed (valoración y PRP) y guardia de tenant vacío hacia Hub.
+// Se ejecuta el código REAL del servidor (copiado a un directorio temporal solo para resolver los alias `#shared/`).
+import { test, describe, before, beforeEach, after } from 'node:test'
+import assert from 'node:assert/strict'
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { ROOT } from '../recommendations/harness.ts'
+
+const fileUrl = rel => pathToFileURL(join(ROOT, rel)).href
+const LEGACY_VALUATION = 'https://pdtclientsolutions.com/crm-public/api/clients/forms'
+const LEGACY_PRP = 'https://pdtclientsolutions.com/crm-public/api/forms-px-prp'
+const OWN_CRM = 'https://crm.crediestetica.example/api/forms' // destino hipotético válido SOLO para las pruebas
+
+const state = { cfg: {}, fetchCalls: [], hubCalls: [], rawCalls: [] }
+let dir, D, handleValuation, prpGet, W
+
+// Copia el archivo del servidor reescribiendo `#shared/utils/<x>` a la ruta real del módulo compartido (Node no conoce los alias de Nuxt).
+const copyServer = (rel, name) => {
+  const base = fileUrl('shared/utils')
+  const src = readFileSync(join(ROOT, rel), 'utf8').replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`)
+  writeFileSync(join(dir, name), src)
+  return import(pathToFileURL(join(dir, name)).href)
+}
+const run = async (fn, e) => { try { return { value: await fn(e) } } catch (error) { return { error } } }
+
+before(async () => {
+  dir = mkdtempSync(join(tmpdir(), 'crm-dest-'))
+  const g = globalThis
+  g.defineEventHandler = fn => fn
+  g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
+  g.useRuntimeConfig = () => state.cfg
+  g.setHeader = () => {}
+  g.assertSameOrigin = () => {}
+  g.getRequestIP = () => '203.0.113.9'
+  g.readBody = async e => e.body
+  g.getRouterParam = (e, n) => e.params?.[n]
+  g.fetch = async (...args) => { state.fetchCalls.push(args); return { ok: true, status: 200, json: async () => ({}) } }
+  g.wellezyPublicGet = async (...args) => { state.hubCalls.push(args); return { status: 404, data: {} } }
+  g.$fetch = { raw: async (...args) => { state.rawCalls.push(args); return { status: 200, _data: {} } } }
+  D = await import(fileUrl('shared/utils/crmDestination.ts'))
+  handleValuation = (await copyServer('server/utils/valuation.ts', 'valuation.ts')).handleValuation
+  prpGet = (await copyServer('server/api/public/prp/[slug].get.ts', 'prp.ts')).default
+  W = await import(fileUrl('server/utils/wellezy.ts'))
+})
+beforeEach(() => { state.cfg = {}; state.fetchCalls = []; state.hubCalls = []; state.rawCalls = [] })
+after(() => rmSync(dir, { recursive: true, force: true }))
+
+describe('crmDestinationProblem', () => {
+  test('bloquea ausente, vacío, inválido, sin https y credenciales embebidas', () => {
+    for (const v of [undefined, null, '', '   ']) assert.equal(D.crmDestinationProblem(v), 'not_configured', String(v))
+    for (const v of ['no es url', 'ftp://crm.example/x', 'http://crm.example/x', 'https://user:pw@crm.example/x', 'javascript:alert(1)']) assert.equal(D.crmDestinationProblem(v), 'invalid', v)
+  })
+  test('bloquea los endpoints heredados de Planmed en cualquier variante equivalente', () => {
+    for (const v of [LEGACY_VALUATION, LEGACY_VALUATION + '/', 'HTTPS://PDTCLIENTSOLUTIONS.COM/CRM-PUBLIC/API/CLIENTS/FORMS', 'https://www.pdtclientsolutions.com/crm-public/api/clients/forms', 'https://pdtclientsolutions.com:443/crm-public/api/clients/forms', ' ' + LEGACY_VALUATION + ' ']) {
+      assert.equal(D.crmDestinationProblem(v), 'legacy', v)
+    }
+  })
+  test('un destino propio válido (https, o http local) no se bloquea', () => {
+    assert.equal(D.crmDestinationProblem(OWN_CRM), null)
+    assert.equal(D.crmDestinationProblem('http://localhost:8000/crm'), null)
+  })
+})
+
+describe('POST /api/forms/valuation (handleValuation)', () => {
+  const body = { identificacion: '123' }
+  test('destino heredado de Planmed => 503 controlado y NO se hace ninguna petición saliente', async () => {
+    state.cfg = { crmValuationUrl: LEGACY_VALUATION }
+    const r = await run(handleValuation, { method: 'POST', body, headers: {} })
+    assert.equal(r.error.statusCode, 503)
+    assert.equal(r.error.data.message, D.MSG_CRM_UNAVAILABLE)
+    assert.equal(state.fetchCalls.length, 0, 'no sale ninguna petición al CRM')
+  })
+  test('sin destino, vacío o inválido => 503 y ninguna petición', async () => {
+    for (const crmValuationUrl of [undefined, '', '  ', 'x', 'http://crm.example/x']) {
+      state.cfg = { crmValuationUrl }
+      const r = await run(handleValuation, { method: 'POST', body, headers: {} })
+      assert.equal(r.error?.statusCode, 503, String(crmValuationUrl))
+    }
+    assert.equal(state.fetchCalls.length, 0)
+  })
+  test('el bloqueo se evalúa en el servidor ANTES de validar el cuerpo', async () => {
+    state.cfg = { crmValuationUrl: LEGACY_VALUATION }
+    for (const b of [undefined, null, {}, body, 'x']) assert.equal((await run(handleValuation, { method: 'POST', body: b, headers: {} })).error.statusCode, 503)
+    assert.equal(state.fetchCalls.length, 0)
+  })
+  test('con un destino propio válido NO se bloquea (el cuerpo vacío llega a la validación: 422) y tampoco sale petición', async () => {
+    state.cfg = { crmValuationUrl: OWN_CRM }
+    const r = await run(handleValuation, { method: 'POST', body: {}, headers: {} })
+    assert.equal(r.error.statusCode, 422)
+    assert.equal(state.fetchCalls.length, 0)
+  })
+})
+
+describe('GET /api/public/prp/[slug]', () => {
+  const e = { params: { slug: 'demo' }, headers: {} }
+  test('el endpoint de PRP del CRM es compartido con Planmed: ya no se considera heredado', () => {
+    for (const v of [LEGACY_PRP, LEGACY_PRP + '/', 'HTTPS://PDTCLIENTSOLUTIONS.COM/CRM-PUBLIC/API/FORMS-PX-PRP']) assert.equal(D.crmDestinationProblem(v), null, v)
+  })
+  test('con el CRM de PRP compartido sí consulta a Hub', async () => {
+    state.cfg = { public: { crmPrpFormUrl: LEGACY_PRP } }
+    await run(prpGet, e)
+    assert.equal(state.hubCalls.length, 1)
+  })
+  test('PRP deshabilitado con el CRM de PRP ausente o inválido: 404 y Hub no se consulta', async () => {
+    for (const crmPrpFormUrl of ['', undefined, 'x']) {
+      state.cfg = { public: { crmPrpFormUrl } }
+      assert.equal((await run(prpGet, e)).error?.statusCode, 404, String(crmPrpFormUrl))
+    }
+    state.cfg = {}
+    assert.equal((await run(prpGet, e)).error?.statusCode, 404)
+    assert.equal(state.hubCalls.length, 0)
+  })
+  test('con un destino propio válido sí consulta a Hub (el bloqueo es solo por destino)', async () => {
+    state.cfg = { public: { crmPrpFormUrl: OWN_CRM } }
+    await run(prpGet, e)
+    assert.equal(state.hubCalls.length, 1)
+  })
+  test('el proveedor del navegador también se niega a enviar (defensa en profundidad)', () => {
+    const src = readFileSync(join(ROOT, 'providers/CrmPrpLeadProvider.ts'), 'utf8')
+    const guard = src.indexOf('crmDestinationProblem(url)')
+    assert.ok(guard > -1, 'hay guardia')
+    assert.ok(guard < src.indexOf('await fetch('), 'la guardia va antes del fetch')
+  })
+})
+
+describe('tenant hacia Hub', () => {
+  const ev = {}
+  test('línea ausente, vacía o solo espacios: NO se hace petición (nunca X-Tenant-Linea vacío)', async () => {
+    for (const wellezyLineSlug of [undefined, null, '', '   ']) {
+      state.cfg = { wellezyApiBaseUrl: 'https://hub.test/api', wellezyLineSlug }
+      assert.deepEqual(await W.wellezyPublicGet(ev, '/v1/web/x'), { status: 0 }, `GET ${wellezyLineSlug}`)
+      assert.deepEqual(await W.wellezyPublicPost(ev, '/v1/web/x', {}), { status: 0 }, `POST ${wellezyLineSlug}`)
+    }
+    assert.equal(state.rawCalls.length, 0)
+  })
+  test('con línea configurada se envía exactamente X-Tenant-Linea: crediestetica', async () => {
+    state.cfg = { wellezyApiBaseUrl: 'https://hub.test/api', wellezyLineSlug: ' crediestetica ' }
+    await W.wellezyPublicGet(ev, '/v1/web/x')
+    await W.wellezyPublicPost(ev, '/v1/web/x', {})
+    assert.equal(state.rawCalls.length, 2)
+    for (const [, opts] of state.rawCalls) assert.equal(opts.headers['X-Tenant-Linea'], 'crediestetica')
+  })
+})
+
+describe('robots.txt', () => {
+  test('el sitemap apunta a crediestetica.com y no a Planmed', () => {
+    const robots = readFileSync(join(ROOT, 'public/robots.txt'), 'utf8')
+    assert.match(robots, /^Sitemap: https:\/\/crediestetica\.com\/sitemap\.xml\s*$/m)
+    assert.ok(!/planmed/i.test(robots))
+    assert.match(robots, /^Disallow: \/api\/\s*$/m)
+  })
+})

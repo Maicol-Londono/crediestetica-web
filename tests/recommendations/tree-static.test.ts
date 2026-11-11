@@ -141,7 +141,7 @@ describe('renderizado de secciones', () => {
 })
 
 describe('diseño responsive (clases de Tailwind existentes, sin estilos nuevos del sitio)', () => {
-  test('las secciones y la portada del tema se adaptan: columnas solo desde md/lg, texto con salto de línea y paleta de Planmed', () => {
+  test('las secciones y la portada del tema se adaptan: columnas solo desde md/lg, texto con salto de línea y paleta de Crediestética', () => {
     const view = read(SECTIONS)
     assert.match(view, /md:grid md:grid-cols-/)
     assert.match(view, /p-6 md:p-12/)
@@ -150,7 +150,7 @@ describe('diseño responsive (clases de Tailwind existentes, sin estilos nuevos 
     assert.match(index, /grid-cols-1 sm:grid-cols-2 lg:grid-cols-3/)
     for (const file of [SECTIONS, 'components/recommendations/RecommendationTopicIndex.vue']) {
       assert.equal(/#[0-9a-fA-F]{6}/.test(read(file)), true)
-      assert.equal(/#(0C2619|D3A76A|fcf9f8|e5e2e1)/i.test(read(file)), true, `${file} usa la paleta de Planmed`)
+      assert.equal(/#(111111|CBA36B|F7F3EE|E7DDD1)/i.test(read(file)), true, `${file} usa la paleta de Crediestética`)
     }
   })
 })
@@ -175,7 +175,19 @@ describe('sin atajos', () => {
     }
   })
 
-  test('el módulo compartido es puro (sin imports) para poder usarse en navegador, servidor y pruebas', () => {
-    assert.equal(/^import\s/m.test(read('shared/utils/recommendationTree.ts')), false)
+  test('el módulo compartido es puro: solo importa otros módulos puros de shared/utils por ruta relativa con extensión (sin alias de Nuxt, paquetes ni Nitro)', () => {
+    // «Puro» = resoluble por Node sin Nuxt. Desde 8a65274 reutiliza contentBlocks.ts (y este, embedUrl.ts), por eso ya no exige cero imports.
+    const importsOf = (rel) => [...read(rel).matchAll(/^(?:\/\/ @ts-expect-error[^\n]*\n)?import\s[^\n]*?from\s+'([^']+)'/gm)].map(m => m[1])
+    const seen = new Set()
+    const visit = (rel) => {
+      if (seen.has(rel)) return
+      seen.add(rel)
+      for (const spec of importsOf(rel)) {
+        assert.match(spec, /^\.\/[A-Za-z]+\.ts$/, `${rel} importa «${spec}»: solo se admiten módulos hermanos de shared/utils con extensión .ts`)
+        visit(`shared/utils/${spec.slice(2)}`)
+      }
+    }
+    visit('shared/utils/recommendationTree.ts')
+    assert.ok(seen.size >= 1)
   })
 })

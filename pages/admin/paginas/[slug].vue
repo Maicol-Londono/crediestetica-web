@@ -2,10 +2,10 @@
   <div>
     <div class="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
       <div>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-2 uppercase">{{ meta.title }}</h2>
-        <p class="text-gray-500 font-light">Contenido de la página pública «{{ meta.title }}». Se guarda en el servidor de la web de Planmed.</p>
+        <h2 class="text-3xl font-serif text-[#111111] mb-2 uppercase">{{ meta.title }}</h2>
+        <p class="text-gray-500 font-light">Contenido de la página pública «{{ meta.title }}». Se guarda en el servidor de la web de Crediestética.</p>
       </div>
-      <NuxtLink :to="meta.route" target="_blank" class="text-xs font-bold tracking-widest uppercase text-[#0C2619] underline underline-offset-4">Ver página pública</NuxtLink>
+      <NuxtLink :to="meta.route" target="_blank" class="text-xs font-bold tracking-widest uppercase text-[#111111] underline underline-offset-4">Ver página pública</NuxtLink>
     </div>
 
     <div v-if="loading" class="bg-white border border-gray-200 rounded-xl p-8 text-gray-500">Cargando contenido…</div>
@@ -50,7 +50,7 @@
           <span v-else-if="savedAt" class="text-emerald-700">Textos guardados a las {{ savedAt }}. Ya son visibles en la página pública.</span>
           <span v-else class="text-gray-400">Sin cambios.</span>
         </p>
-        <button type="submit" :disabled="!dirty || saving" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 shadow-lg">
+        <button type="submit" :disabled="!dirty || saving" class="bg-[#111111] hover:bg-[#333333] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 shadow-lg">
           {{ saving ? 'Guardando…' : 'Guardar textos' }}
         </button>
       </div>
@@ -74,7 +74,7 @@ const rawSlug = useRoute().params.slug
 if (!isSitePageSlug(rawSlug)) throw createError({ statusCode: 404, statusMessage: 'Página no encontrada', fatal: true })
 const slug = rawSlug
 const meta = SITE_PAGES[slug]
-useHead({ title: `${meta.title} | Admin Planmed` })
+useHead({ title: `${meta.title} | Admin Crediestética` })
 
 const notify = useNotify()
 const form = ref<SitePageContent | null>(null)
@@ -139,7 +139,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 <style scoped>
 .lbl { display: block; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #6b7280; margin-bottom: .5rem; }
 .inp { width: 100%; padding: .5rem .75rem; background: #fff; border: 1px solid #e5e7eb; border-radius: .375rem; font-size: .875rem; }
-.inp:focus { outline: none; box-shadow: 0 0 0 1px #0C2619; }
+.inp:focus { outline: none; box-shadow: 0 0 0 1px #111111; }
 .inp[aria-invalid='true'] { border-color: #dc2626; }
 .msg { margin-top: .375rem; font-size: .75rem; color: #b91c1c; }
 .hint { margin-top: .5rem; font-size: 10px; color: #6b7280; }

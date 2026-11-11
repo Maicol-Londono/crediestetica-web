@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="mb-8">
-      <h2 class="text-3xl font-serif text-[#0C2619] mb-2 uppercase">Configuración</h2>
-      <p class="text-gray-500 font-light">Colaboradores de la línea Planmed (solo líder), tasa de usura mensual del simulador y guía de uso del panel.</p>
+      <h2 class="text-3xl font-serif text-[#111111] mb-2 uppercase">Configuración</h2>
+      <p class="text-gray-500 font-light">Colaboradores de la línea Crediestética (solo líder), tasa de usura mensual del simulador y guía de uso del panel.</p>
     </div>
 
     <!-- Pestañas -->
@@ -17,8 +17,8 @@
         :aria-selected="tab === t.key ? 'true' : 'false'"
         :aria-controls="`cfg-panel-${t.key}`"
         :tabindex="tab === t.key ? 0 : -1"
-        class="px-5 py-3 text-xs font-bold tracking-widest uppercase border-b-2 -mb-px transition-colors focus-visible:outline-2 focus-visible:outline-[#0C2619]"
-        :class="tab === t.key ? 'border-[#0C2619] text-[#0C2619]' : 'border-transparent text-gray-400 hover:text-gray-700'"
+        class="px-5 py-3 text-xs font-bold tracking-widest uppercase border-b-2 -mb-px transition-colors focus-visible:outline-2 focus-visible:outline-[#111111]"
+        :class="tab === t.key ? 'border-[#111111] text-[#111111]' : 'border-transparent text-gray-400 hover:text-gray-700'"
         @click="select(t.key)"
       >{{ t.label }}</button>
     </div>
@@ -42,7 +42,7 @@
 import { computed, ref } from 'vue'
 import { useFetch, useHead, useRoute, useRouter } from '#imports'
 
-useHead({ title: 'Configuración | Admin Planmed' })
+useHead({ title: 'Configuración | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 // Qué secciones puede usar la persona (el servidor lo decide y vuelve a comprobarlo en cada ruta): colaboradores = solo líder;

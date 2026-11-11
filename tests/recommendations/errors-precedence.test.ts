@@ -83,7 +83,8 @@ describe('precedencia de Recomendaciones (regla vigente)', () => {
     const s = code('components/recommendations/ProcedureRecommendation.vue')
     assert.match(s, /publicProcedureService\.getProcedureBySlug/)
     assert.match(s, /resolveRecommendation\(/)
-    assert.match(s, /source\.type === 'page' \? await publicRecommendationsService\.getPage\(source\.slug\)/)
+    // La página solo se pide cuando la fuente efectiva es 'page'; la llamada va dentro de runWithContext (contexto de Nuxt tras un await).
+    assert.match(s, /source\.type === 'page' \? await nuxtApp\.runWithContext\(\(\) => publicRecommendationsService\.getPage\(source\.slug\)\)/)
     assert.equal(/getPages\(/.test(s), false, 'no lista ni adivina páginas por slug')
   })
 

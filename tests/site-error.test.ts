@@ -110,14 +110,17 @@ describe('mecanismo y seguridad de error.vue', () => {
   test('no depende del Hub ni de datos externos (la cabecera es mínima) ni de imágenes remotas', () => {
     assert.equal(/LayoutNavbar|LayoutFooter|useAsyncData|useFetch|\$fetch|wellezy/i.test(vue), false)
     assert.equal(/<img[^>]+src="https?:/.test(vue), false)
-    assert.equal(/<img[^>]+src="\/images\/branding\/logo\.jpg"/.test(vue), true)
-    assert.equal(existsSync(join(ROOT, 'public/images/branding/logo.jpg')), true)
+    // Cabecera, pie y chat vienen del layout público (error.vue lo usa con <NuxtLayout>); ya no lleva su propio logo.
+    assert.match(vue, /<NuxtLayout>/)
+    assert.match(read('layouts/default.vue'), /<LayoutNavbar \/>[\s\S]*<slot \/>[\s\S]*<LayoutFooter \/>/)
   })
 })
 
 describe('diseño adaptable y accesibilidad básica', () => {
   test('estructura semántica: main, un solo h1 enlazado a la sección, idioma y noindex', () => {
-    assert.match(vue, /<main id="contenido"/)
+    // El <main> lo aporta el layout público; la página conserva el ancla #contenido.
+    assert.match(read('layouts/default.vue'), /<main class="flex-grow"/)
+    assert.match(vue, /id="contenido"/)
     assert.equal((vue.match(/<h1/g) || []).length, 1)
     assert.match(vue, /aria-labelledby="error-titulo"/)
     assert.match(vue, /id="error-titulo"/)
@@ -141,12 +144,14 @@ describe('diseño adaptable y accesibilidad básica', () => {
     assert.equal((vue.match(/<button(?![^>]*type="button")/g) || []).length, 0)
     assert.match(vue, /min-height: 48px/)
     assert.match(vue, /:focus-visible/)
-    assert.match(vue, /focus-visible:ring-2/)
+    assert.match(vue, /outline: 2px solid/)
   })
 
   test('misma identidad visual que el sitio: paleta y tipografías existentes', () => {
-    for (const token of ['#0C2619', '#D3A76A', '#fcf9f8', '#e5e2e1', '#4c4546', 'font-serif', 'font-sans']) assert.ok(vue.includes(token), token)
-    assert.match(read('assets/css/theme.css'), /--color-accent: #0C2619/)
+    for (const token of ['#111111', '#CBA36B', '#F7F3EE', '#E7DDD1', '#4c4546', 'font-serif']) assert.ok(vue.includes(token), token)
+    // font-sans lo hereda del layout público.
+    assert.match(read('layouts/default.vue'), /font-sans/)
+    assert.match(read('assets/css/theme.css'), /--color-accent: #CBA36B/)
   })
 })
 

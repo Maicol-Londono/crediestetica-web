@@ -2,13 +2,13 @@
   <div class="pb-24">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-1 uppercase">Nuestros Pacientes</h2>
+        <h2 class="text-3xl font-serif text-[#111111] mb-1 uppercase">Nuestros Pacientes</h2>
         <p class="text-gray-500 font-light">Administra el contenido de la sección de testimonios.</p>
       </div>
       <button
         @click="save"
         :disabled="isSaving || !loaded"
-        class="bg-[#0C2619] hover:bg-[#153a28] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 shadow-lg"
+        class="bg-[#111111] hover:bg-[#333333] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 shadow-lg"
       >
         {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
       </button>
@@ -19,7 +19,7 @@
       <button
         v-for="t in tabs" :key="t.key" type="button" @click="tab = t.key"
         class="px-5 py-3 text-xs font-bold tracking-widest uppercase border-b-2 -mb-px transition-colors"
-        :class="tab === t.key ? 'border-[#0C2619] text-[#0C2619]' : 'border-transparent text-gray-400 hover:text-gray-700'"
+        :class="tab === t.key ? 'border-[#111111] text-[#111111]' : 'border-transparent text-gray-400 hover:text-gray-700'"
       >
         {{ t.label }}
       </button>
@@ -32,7 +32,7 @@
       <div v-if="tab !== 'referral'" class="mb-6">
         <label class="flex items-center gap-3 cursor-pointer w-fit">
           <input type="checkbox" v-model="content.visibility[tab]" class="sr-only peer" />
-          <span class="w-11 h-6 rounded-full bg-gray-300 peer-checked:bg-[#0C2619] relative transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5"></span>
+          <span class="w-11 h-6 rounded-full bg-gray-300 peer-checked:bg-[#111111] relative transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5"></span>
           <span class="text-sm font-bold text-gray-700">{{ content.visibility[tab] ? 'Publicado' : 'Oculto al público' }}</span>
         </label>
         <p class="text-xs text-gray-400 mt-1">Al ocultarlo, esta vista deja de mostrarse en el sitio y desaparece del menú. El contenido se conserva. Recuerda guardar los cambios.</p>
@@ -52,7 +52,7 @@
             <input v-model="v.url" type="url" class="field" placeholder="https://www.youtube.com/watch?v=..." />
           </div>
           <div class="flex gap-1 items-center">
-            <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none mr-2"><input type="checkbox" v-model="v.active" class="accent-[#0C2619]" /> Visible</label>
+            <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none mr-2"><input type="checkbox" v-model="v.active" class="accent-[#111111]" /> Visible</label>
             <button type="button" @click="move(content.videos, i, -1)" :disabled="i === 0" class="icon-btn" title="Subir">↑</button>
             <button type="button" @click="move(content.videos, i, 1)" :disabled="i === content.videos.length - 1" class="icon-btn" title="Bajar">↓</button>
             <button type="button" @click="remove(content.videos, i, 'este video')" class="icon-btn hover:!text-red-600 hover:!bg-red-50" title="Eliminar">✕</button>
@@ -70,7 +70,7 @@
           <div class="grid md:grid-cols-2 gap-6 mb-6">
             <div v-for="side in sides" :key="side.key">
               <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">{{ side.label }} *</label>
-              <label class="block aspect-[3/4] max-w-[220px] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#0C2619] bg-gray-50 relative">
+              <label class="block aspect-[3/4] max-w-[220px] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#111111] bg-gray-50 relative">
                 <img v-if="c[side.key]" :src="c[side.key]" :alt="side.label" class="w-full h-full object-cover" />
                 <span v-else class="absolute inset-0 flex items-center justify-center text-xs text-gray-400 text-center px-3">Haz clic para subir la foto</span>
                 <input type="file" accept="image/*" class="hidden" @change="onImage($event, c, side.key)" />
@@ -87,7 +87,7 @@
               <input v-model="c.description" type="text" class="field" />
             </div>
             <div class="flex gap-1 items-center">
-              <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none mr-2"><input type="checkbox" v-model="c.published" class="accent-[#0C2619]" /> Publicado</label>
+              <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none mr-2"><input type="checkbox" v-model="c.published" class="accent-[#111111]" /> Publicado</label>
               <button type="button" @click="move(content.beforeAfter, i, -1)" :disabled="i === 0" class="icon-btn" title="Subir">↑</button>
               <button type="button" @click="move(content.beforeAfter, i, 1)" :disabled="i === content.beforeAfter.length - 1" class="icon-btn" title="Bajar">↓</button>
               <button type="button" @click="remove(content.beforeAfter, i, 'este caso')" class="icon-btn hover:!text-red-600 hover:!bg-red-50" title="Eliminar">✕</button>
@@ -98,7 +98,7 @@
         <button type="button" @click="content.beforeAfter.push({ id: uid(), title: '', description: '', beforeImage: '', afterImage: '', published: true })" class="add-btn">+ Agregar caso</button>
 
         <!-- Videos de Instagram -->
-        <h3 class="text-xs font-bold tracking-widest text-[#0C2619] uppercase pt-8 border-t border-gray-200">Videos de Instagram</h3>
+        <h3 class="text-xs font-bold tracking-widest text-[#111111] uppercase pt-8 border-t border-gray-200">Videos de Instagram</h3>
         <p class="text-sm text-gray-500">Pega el enlace de cada publicación o reel de Instagram (instagram.com/reel/... o instagram.com/p/...). Aparecen debajo de la galería.</p>
 
         <div v-for="(p, i) in content.instagram" :key="p.id" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 grid md:grid-cols-[1fr_auto] gap-4 items-end">
@@ -107,7 +107,7 @@
             <input v-model="p.url" type="url" class="field" placeholder="https://www.instagram.com/reel/..." />
           </div>
           <div class="flex gap-1 items-center">
-            <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none mr-2"><input type="checkbox" v-model="p.active" class="accent-[#0C2619]" /> Visible</label>
+            <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none mr-2"><input type="checkbox" v-model="p.active" class="accent-[#111111]" /> Visible</label>
             <button type="button" @click="move(content.instagram, i, -1)" :disabled="i === 0" class="icon-btn" title="Subir">↑</button>
             <button type="button" @click="move(content.instagram, i, 1)" :disabled="i === content.instagram.length - 1" class="icon-btn" title="Bajar">↓</button>
             <button type="button" @click="remove(content.instagram, i, 'este video de Instagram')" class="icon-btn hover:!text-red-600 hover:!bg-red-50" title="Eliminar">✕</button>
@@ -140,7 +140,7 @@ import { testimonialsService } from '~/services/TestimonialsService'
 import { fileToOptimizedDataUrl } from '~/utils/imageFile'
 import type { BeforeAfterCase, TestimonialsContent } from '~/types/testimonials'
 
-useHead({ title: 'Nuestros Pacientes | Admin Planmed' })
+useHead({ title: 'Nuestros Pacientes | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 const notify = useNotify()
@@ -204,14 +204,20 @@ async function onImage(e: Event, c: BeforeAfterCase, key: 'beforeImage' | 'after
 const YOUTUBE_RE = /^https?:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//i
 const INSTAGRAM_RE = /^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv)\//i
 
+// Si el error está en otra pestaña, se abre esa pestaña para que la fila con el problema sea visible.
+function invalid(target: 'videos' | 'beforeAfter', message: string, title: string) {
+  tab.value = target
+  return notify.error(message, title)
+}
+
 async function save() {
   const c = content.value
-  if (c.videos.some(v => !v.url.trim())) return notify.error('Completa el enlace de todos los videos o elimina los vacíos.', 'Falta información')
-  if (c.videos.some(v => !YOUTUBE_RE.test(v.url.trim()))) return notify.error('Solo se admiten enlaces de YouTube.', 'Enlace no válido')
-  if (c.beforeAfter.some(x => !x.title.trim())) return notify.error('Cada caso necesita un título.', 'Falta información')
-  if (c.beforeAfter.some(x => x.published !== false && (!x.beforeImage || !x.afterImage))) return notify.error('Cada caso publicado necesita la foto del antes y la del después.', 'Falta información')
-  if (c.instagram.some(p => !p.url.trim())) return notify.error('Completa el enlace de todos los videos de Instagram o elimina los vacíos.', 'Falta información')
-  if (c.instagram.some(p => !INSTAGRAM_RE.test(p.url.trim()))) return notify.error('Usa enlaces de publicaciones o reels de Instagram.', 'Enlace no válido')
+  if (c.videos.some(v => !v.url.trim())) return invalid('videos', 'Hay un video de YouTube sin enlace (pestaña Videos). Complétalo o elimínalo.', 'Falta información')
+  if (c.videos.some(v => !YOUTUBE_RE.test(v.url.trim()))) return invalid('videos', 'Solo se admiten enlaces de YouTube.', 'Enlace no válido')
+  if (c.beforeAfter.some(x => !x.title.trim())) return invalid('beforeAfter', 'Cada caso necesita un título.', 'Falta información')
+  if (c.beforeAfter.some(x => x.published !== false && (!x.beforeImage || !x.afterImage))) return invalid('beforeAfter', 'Cada caso publicado necesita la foto del antes y la del después.', 'Falta información')
+  if (c.instagram.some(p => !p.url.trim())) return invalid('beforeAfter', 'Completa el enlace de todos los videos de Instagram o elimina los vacíos.', 'Falta información')
+  if (c.instagram.some(p => !INSTAGRAM_RE.test(p.url.trim()))) return invalid('beforeAfter', 'Usa enlaces de publicaciones o reels de Instagram.', 'Enlace no válido')
 
   isSaving.value = true
   try {
@@ -236,10 +242,10 @@ async function save() {
 
 <style scoped>
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #f9fafb; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .icon-btn { padding: .5rem .75rem; border-radius: .5rem; background: #f9fafb; color: #9ca3af; font-size: .875rem; transition: all .15s; }
-.icon-btn:hover:not(:disabled) { color: #0C2619; background: #f3f4f6; }
+.icon-btn:hover:not(:disabled) { color: #111111; background: #f3f4f6; }
 .icon-btn:disabled { opacity: .3; cursor: default; }
-.add-btn { padding: .75rem 1.5rem; border: 2px dashed #d1d5db; border-radius: .75rem; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #0C2619; width: 100%; transition: all .15s; }
-.add-btn:hover { border-color: #0C2619; background: #0C26190d; }
+.add-btn { padding: .75rem 1.5rem; border: 2px dashed #d1d5db; border-radius: .75rem; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #111111; width: 100%; transition: all .15s; }
+.add-btn:hover { border-color: #111111; background: #1111110d; }
 </style>

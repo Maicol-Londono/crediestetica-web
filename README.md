@@ -1,31 +1,31 @@
-﻿# Planmed Web
+﻿# Crediestética Web
 
-Planmed es la plataforma de financiación médica directa. Este frontend está enfocado en brindar una experiencia de usuario clara, moderna y 100% virtual para la simulación y captura de solicitudes de financiación de procedimientos médicos y estéticos.
+Sitio web público y panel de administración de Crediestética (financiación de procedimientos estéticos). Se construyó a partir de la base de Planmed (`planmed-web`) y se está adaptando a la identidad, los datos y las integraciones de Crediestética.
 
-## Stack Tecnológico
-- **Framework:** Nuxt 4 (Vue 3)
-- **Estilos:** Tailwind CSS v4 (@tailwindcss/vite)
-- **Despliegue/Build:** Nitro
+## Stack
 
-## Estructura Principal
-El código se organiza siguiendo el estándar de Nuxt con un enfoque arquitectónico orientado a servicios:
-- pages/: Vistas de alto nivel y enrutamiento (Home, Simulador, Procedimientos).
-- components/: Bloques de UI modulares y reutilizables.
-- services/: Capa de negocio que aísla la UI de la obtención de datos.
-- providers/: Capa de infraestructura y llamadas externas (actualmente basada en Mocks).
-- composables/: Lógica reactiva reutilizable (ej. useSimulator).
-- data/: Información estática como fuente de verdad (procedures.ts).
+- Nuxt 4 (Vue 3) con Nitro.
+- Tailwind CSS 4.
+- Pruebas con `node --test` (`npm test`) y `nuxt typecheck` (`npm run typecheck`).
 
-## Documentación Oficial
-Toda la toma de decisiones comerciales, visuales y técnicas de Planmed se encuentra documentada en la carpeta /documentacion/. 
+## Integración con Wellezy Hub
 
-**IMPORTANTE:** La documentación actual de Planmed tiene prioridad estricta sobre cualquier documentación legacy.
+Las lecturas públicas (noticias, procedimientos, recomendaciones, testimonios) se piden a Wellezy Hub desde el servidor con la cabecera `X-Tenant-Linea` de la línea configurada (`crediestetica`, empresa `legalmed`). La configuración está en `nuxt.config.ts` y `.env.example` (variables `NUXT_WELLEZY_*`). Esta web se adapta a los contratos actuales de Hub; no los modifica.
 
-- 📄 **Reglas de Negocio:** /documentacion/business_rules.md
-- 🏗️ **Arquitectura y Servicios:** /documentacion/architecture.md
-- 🎨 **Identidad Visual y Baseline:** /documentacion/identidad_visual.md
+## Estructura
 
-## Documentación Legacy
-La documentación heredada de proyectos pasados (Crediestética, Cliniplanes, Wellezy Hub) se ha conservado por motivos de trazabilidad histórica en:
-- 🗃️ /documentacion/legacy/
-*Nota: Los archivos en esta carpeta NO aplican al funcionamiento actual de Planmed.*
+- `pages/`, `components/`, `layouts/`: vistas públicas y panel de administración.
+- `server/`: rutas de Nitro (lecturas públicas, panel, contenido local).
+- `services/`, `providers/`: capa de acceso a datos de la interfaz.
+- `shared/utils/`: lógica compartida entre navegador, servidor y pruebas (contacto, documentos legales, contenido de «Nosotros»).
+- `tests/`: pruebas.
+
+## Estado de la migración
+
+El registro de la migración desde Planmed (paridad funcional, problemas conocidos, bloqueos y decisiones) está en [`docs/migration/`](docs/migration/README.md). Empieza por ahí para saber qué está hecho y qué está pendiente.
+
+## Carpetas heredadas
+
+- `documentacion/` conserva documentación del proyecto de Planmed. Es referencia histórica: no describe a Crediestética.
+- `archivo-legal-heredado/` guarda PDF heredados que no se publican.
+- `.data/planmed-content/` y `.output-uat-portable/` son restos locales de Planmed que el código no usa (ver KI-11 y KI-16 en `docs/migration/KNOWN_ISSUES.md`).

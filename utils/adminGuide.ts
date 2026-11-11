@@ -1,7 +1,7 @@
 // Guía de uso del panel (pantalla Configuración): qué hace cada opción y DÓNDE vive su contenido.
 // Datos puros (sin dependencias) para poder probarlos. Debe mantenerse alineada con documentacion/guias/02-guia-panel-administrativo.md.
 
-/** hub = se guarda en la BD de Wellezy Hub · web = vive en el servidor de la web de Planmed · code = está en el código (no editable en el panel). */
+/** hub = se guarda en la BD de Wellezy Hub · web = vive en el servidor de la web de Crediestética · code = está en el código (no editable en el panel). */
 export type GuideStorage = 'hub' | 'web' | 'code'
 
 export const GUIDE_STORAGE: Record<GuideStorage, { label: string, short: string, description: string, badge: string }> = {
@@ -15,7 +15,7 @@ export const GUIDE_STORAGE: Record<GuideStorage, { label: string, short: string,
     label: 'Servidor de la web',
     short: 'Web',
     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    description: 'Vive solo en el servidor de la web de Planmed (archivos propios). No se envía al Hub ni se ve en él. Hay que incluirlo en los respaldos de la web.'
+    description: 'Vive solo en el servidor de la web de Crediestética (archivos propios). No se envía al Hub ni se ve en él. Hay que incluirlo en los respaldos de la web.'
   },
   code: {
     label: 'Código de la web',
@@ -62,10 +62,10 @@ export const GUIDE_MODULES: GuideModule[] = [
     storage: 'hub',
     publicEffect: 'Menú y página «Procedimientos», fichas de cada procedimiento y «Procedimientos destacados» del inicio.',
     steps: [
-      'Los procedimientos se administran centralmente en Wellezy Hub (catálogo «cirugías» y su habilitación por línea). Planmed no guarda una copia: consulta el catálogo de su línea mediante la API del Hub, así que los cambios se hacen en el Hub o desde este panel, que escribe en el Hub.',
+      'Los procedimientos se administran centralmente en Wellezy Hub (catálogo «cirugías» y su habilitación por línea). Crediestética no guarda una copia: consulta el catálogo de su línea mediante la API del Hub, así que los cambios se hacen en el Hub o desde este panel, que escribe en el Hub.',
       'Hay dos tipos. «Maestro»: procedimiento global del catálogo, que no pertenece a ninguna empresa ni línea y solo se publica en las líneas donde esté habilitado. «Propio»: procedimiento específico de una empresa y una línea; el Hub lo asigna a la empresa y la línea de tu sesión.',
       'Crear no es lo mismo que publicar. Un maestro nuevo (creado en el Hub) no queda visible en ninguna web hasta que se habilite para la línea: en la lista, usa el botón de habilitar de su fila. Un procedimiento propio que crees desde este panel queda habilitado en tu línea.',
-      'En la lista, la estrella marca o desmarca un procedimiento como destacado (aparece primero y en «Procedimientos destacados» del inicio). El botón de activar actúa así: en un maestro lo habilita o deshabilita solo en Planmed; en un propio lo activa o desactiva. Desactivar no elimina: el procedimiento se conserva y puede reactivarse.',
+      'En la lista, la estrella marca o desmarca un procedimiento como destacado (aparece primero y en «Procedimientos destacados» del inicio). El botón de activar actúa así: en un maestro lo habilita o deshabilita solo en Crediestética; en un propio lo activa o desactiva. Desactivar no elimina: el procedimiento se conserva y puede reactivarse.',
       'Un maestro solo se puede habilitar, deshabilitar o destacar; su contenido global no se edita aquí. Un propio se edita completo con «Nuevo Procedimiento» o con el lápiz: nombre, slug (URL), categoría, descripción corta, «¿Qué es?», ficha técnica, perfil del paciente, imagen principal, galería y SEO.',
       'Pulsa Guardar. Las imágenes nuevas se suben en ese momento.'
     ],
@@ -182,7 +182,7 @@ export const GUIDE_MODULES: GuideModule[] = [
     ],
     notes: [
       'La empresa y la línea salen del usuario con el que iniciaste sesión, no se configuran en la web.',
-      'La tasa se guarda en el servidor de la web (no en Wellezy Hub). Al desplegar por primera vez arranca en 2.0000 % mensual y no se vuelve a pisar.'
+      'La tasa se guarda en el servidor de la web (no en Wellezy Hub). No existe ninguna tasa por defecto: hasta que una persona autorizada configure la tasa real, el simulador y las cotizaciones permanecen no disponibles.'
     ],
     hubLinks: [{ label: 'Usuarios en el Hub', path: '/users' }]
   }

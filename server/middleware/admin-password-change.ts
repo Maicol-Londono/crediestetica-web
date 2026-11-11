@@ -5,7 +5,7 @@
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
   if (!path.startsWith('/api/admin/')) return
-  if (!getCookie(event, 'planmed-admin')) return // sin sesión: cada ruta responde 401 por su cuenta
+  if (!getCookie(event, 'crediestetica-admin')) return // sin sesión: cada ruta responde 401 por su cuenta
 
   const session = await useAdminSession(event)
   if (session.data.user?.mustChangePassword === true) {

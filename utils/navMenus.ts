@@ -1,5 +1,5 @@
 // Menús desplegables de la barra de navegación (NUESTROS PACIENTES y RECOMENDACIONES), como función pura para poder probarla.
-// Las entradas salen SOLO de lo que Wellezy Hub entrega públicamente para la línea de Planmed:
+// Las entradas salen SOLO de lo que Wellezy Hub entrega públicamente para la línea de Crediestética:
 //  - RECOMENDACIONES: ÚNICAMENTE el árbol vigente (temas principales publicados con sus subtemas publicados, en el orden del Hub): cada
 //    tema es una entrada y sus subtemas cuelgan de él; un subtema NUNCA aparece como entrada suelta ni repetido. Las páginas del
 //    contrato histórico y los grupos por procedimiento («cuidados»/«revisión») YA NO construyen este menú: con el árbol convivían con

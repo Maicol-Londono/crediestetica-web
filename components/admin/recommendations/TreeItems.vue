@@ -2,10 +2,10 @@
   <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8 space-y-5" data-testid="items">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="min-w-0">
-        <h3 class="text-sm font-bold tracking-widest uppercase text-[#0C2619]">Recomendaciones individuales</h3>
+        <h3 class="text-sm font-bold tracking-widest uppercase text-[#111111]">Recomendaciones individuales</h3>
         <p class="mt-1 text-xs text-gray-500">Cada una se muestra como un elemento de la lista de esta sección. Son independientes del texto de la sección.</p>
       </div>
-      <button type="button" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-5 py-2.5 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50" data-testid="add-item" :disabled="action.busy.value" @click="openCreate">Añadir recomendación</button>
+      <button type="button" class="bg-[#111111] hover:bg-[#333333] text-white px-5 py-2.5 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50" data-testid="add-item" :disabled="action.busy.value" @click="openCreate">Añadir recomendación</button>
     </div>
 
     <div v-if="!loaded" class="text-gray-400 text-sm">Cargando recomendaciones...</div>
@@ -16,7 +16,7 @@
 
     <template v-else>
       <div v-if="form" class="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4" data-testid="item-form">
-        <h4 class="text-xs font-bold tracking-widest uppercase text-[#0C2619]">{{ form.id ? 'Editar recomendación' : 'Nueva recomendación' }}</h4>
+        <h4 class="text-xs font-bold tracking-widest uppercase text-[#111111]">{{ form.id ? 'Editar recomendación' : 'Nueva recomendación' }}</h4>
         <div>
           <label class="label" for="item-title">Título *</label>
           <input id="item-title" v-model="form.title" type="text" class="field" maxlength="255" placeholder="Ej. Duerme de lado las primeras semanas" :aria-invalid="!!fieldError('title')">
@@ -32,10 +32,10 @@
           <input id="item-slug" v-model="form.slug" type="text" class="field font-mono" maxlength="120" placeholder="Se genera desde el título" :aria-invalid="!!fieldError('slug')">
           <p v-if="fieldError('slug')" class="err">{{ fieldError('slug') }}</p>
         </div>
-        <label v-if="!form.id" class="flex items-center gap-2 text-sm text-gray-700"><input v-model="form.published" type="checkbox" class="h-4 w-4 accent-[#0C2619]"> Publicar al crear</label>
+        <label v-if="!form.id" class="flex items-center gap-2 text-sm text-gray-700"><input v-model="form.published" type="checkbox" class="h-4 w-4 accent-[#111111]"> Publicar al crear</label>
         <AdminRecommendationsTreeNotice :error="action.error.value" :hide-fields="['title', 'content', 'slug']" @dismiss="action.clear" />
         <div class="flex flex-wrap items-center gap-3">
-          <button type="button" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-5 py-2.5 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50" :disabled="action.busy.value" data-testid="save-item" @click="save">{{ action.busy.value ? 'Guardando...' : form.id ? 'Guardar recomendación' : 'Crear recomendación' }}</button>
+          <button type="button" class="bg-[#111111] hover:bg-[#333333] text-white px-5 py-2.5 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50" :disabled="action.busy.value" data-testid="save-item" @click="save">{{ action.busy.value ? 'Guardando...' : form.id ? 'Guardar recomendación' : 'Crear recomendación' }}</button>
           <button type="button" class="text-xs font-bold tracking-widest uppercase text-gray-500 hover:text-gray-800" :disabled="action.busy.value" @click="form = null">Cancelar</button>
         </div>
       </div>
@@ -51,7 +51,7 @@
             <button type="button" class="icon-btn" aria-label="Subir" :disabled="i === 0 || action.busy.value" @click="move(i, -1)">↑</button>
             <button type="button" class="icon-btn" aria-label="Bajar" :disabled="i === items.length - 1 || action.busy.value" @click="move(i, 1)">↓</button>
           </div>
-          <span class="min-w-0 break-words text-sm font-semibold text-[#0C2619]">{{ it.title }}</span>
+          <span class="min-w-0 break-words text-sm font-semibold text-[#111111]">{{ it.title }}</span>
           <span><AdminRecommendationsStatusBadge :label="it.published ? 'Publicada' : 'Oculta'" :tone="it.published ? 'green' : 'gray'" /></span>
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1 md:justify-end">
             <button type="button" class="link" :disabled="action.busy.value" @click="openEdit(it)">Editar</button>
@@ -162,11 +162,11 @@ onMounted(load)
 <style scoped>
 .label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #374151; margin-bottom: .4rem; }
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #fff; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .field[aria-invalid="true"] { border-color: #dc2626; }
 .err { margin-top: .35rem; font-size: .75rem; color: #b91c1c; }
-.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0C2619; }
-.link:hover:not(:disabled) { color: #D3A76A; }
+.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #111111; }
+.link:hover:not(:disabled) { color: #CBA36B; }
 .link:disabled { opacity: .5; }
 .icon-btn { width: 1.6rem; height: 1.6rem; border: 1px solid #e5e7eb; border-radius: .4rem; font-size: .8rem; color: #374151; }
 .icon-btn:hover:not(:disabled) { background: #f3f4f6; }

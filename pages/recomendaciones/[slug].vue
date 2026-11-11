@@ -56,8 +56,8 @@ if (resolution.kind === 'redirect') {
 const isBase = RECOMMENDATION_SLUGS.some(s => s.slug === slug)
 
 if (topic.value) {
-  useSeoMeta({ title: `${topic.value.title} | Planmed`, description: `Recomendaciones de Planmed: ${topic.value.title}.` })
+  useSeoMeta({ title: `${topic.value.title} | Crediestética`, description: `Recomendaciones de Crediestética: ${topic.value.title}.` })
 } else if (page.value) {
-  useSeoMeta({ title: `${page.value.title} | Planmed`, description: 'Recomendaciones de Planmed para antes, durante y después de tu cirugía plástica.' })
+  useSeoMeta({ title: `${page.value.title} | Crediestética`, description: 'Recomendaciones de Crediestética para antes, durante y después de tu cirugía plástica.' })
 }
 </script>

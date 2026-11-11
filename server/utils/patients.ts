@@ -1,9 +1,9 @@
 import type { H3Event } from 'h3'
 
-// «Nuestros Pacientes» de Planmed: la fuente de verdad es Wellezy Hub.
+// «Nuestros Pacientes» de la línea: la fuente de verdad es Wellezy Hub.
 //  - Público: GET /api/v1/web/patient-section (tenant por X-Tenant-Linea, sale de la configuración del servidor).
 //  - Admin:   /api/cms/{patient-section,testimonial-embeds,before-after-cases} con el Bearer de la sesión (nunca llega al navegador).
-// Este módulo traduce entre el modelo de Planmed (TestimonialsContent) y el contrato del Hub, y NUNCA reenvía company_id ni
+// Este módulo traduce entre el modelo de la web (TestimonialsContent) y el contrato del Hub, y NUNCA reenvía company_id ni
 // linea_id: Hub los deriva del token del usuario autenticado.
 
 const MSG_NOT_FOUND = 'El contenido no existe.'

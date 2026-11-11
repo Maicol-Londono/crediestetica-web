@@ -1,6 +1,6 @@
 import type { EnrollmentErrors, EnrollmentInput } from '#shared/utils/prpEnrollment'
 
-// Envío de la inscripción al PRP a la ruta de servidor de Planmed (POST /api/forms/prp-enrollment), que valida y reenvía a Wellezy Hub.
+// Envío de la inscripción al PRP a la ruta de servidor de Crediestética (POST /api/forms/prp-enrollment), que valida y reenvía a Wellezy Hub.
 // Sin reintentos automáticos. «completed» = confirmado por el CRM médico; «received» = guardada, pendiente (NO es éxito definitivo).
 
 export type ReferralErrorKind = 'validation' | 'rate_limited' | 'unavailable' | 'server'

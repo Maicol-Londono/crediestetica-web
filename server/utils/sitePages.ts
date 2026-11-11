@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto'
 import { sanitizeRichHtml } from '../../utils/richText.ts'
 
 // Persistencia LOCAL de las páginas informativas simples (Clínicas aliadas, Estudio de créditos): un JSON por página en
-// `<NUXT_PLANMED_CONTENT_DIR>/pages/<slug>.json`, junto al contenido de «Nosotros». No usa Wellezy Hub.
+// `<NUXT_CONTENT_DIR>/pages/<slug>.json`, junto al contenido de «Nosotros». No usa Wellezy Hub.
 // Helpers de Nitro (createError, aboutContentDir, requireAboutEditor, normalizeSitePage, …) son auto-imports.
 
 const dirOf = (event: H3Event) => join(aboutContentDir(event), 'pages')

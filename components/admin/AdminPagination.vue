@@ -5,7 +5,7 @@
         Mostrar
         <select
           :value="perPage"
-          class="px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0C2619]"
+          class="px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#111111]"
           @change="$emit('update:perPage', Number(($event.target as HTMLSelectElement).value))"
         >
           <option v-for="n in options" :key="n" :value="n">{{ n }}</option>

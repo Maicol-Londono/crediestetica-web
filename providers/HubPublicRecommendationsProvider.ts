@@ -4,7 +4,7 @@ import type { RecommendationPage } from '~/types/recommendations'
 import type { TreeSubtopic, TreeTopic } from '#shared/utils/recommendationTree'
 
 // Habla únicamente con las rutas internas de Nitro (/api/public/recommendation-topics* y /api/public/recommendations*). Nitro consulta
-// a Wellezy Hub con el tenant de la configuración de Planmed; este código no conoce la URL de Hub ni el tenant. Funciona igual en SSR y
+// a Wellezy Hub con el tenant de la configuración del servidor; este código no conoce la URL de Hub ni el tenant. Funciona igual en SSR y
 // en el navegador (sin localStorage), así que una URL directa /recomendaciones/{tema}/{subtema} resuelve igual que la navegación interna.
 
 const requestFetch: Fetcher = (url, options) => (useRequestFetch() as any)(url, options)

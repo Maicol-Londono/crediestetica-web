@@ -32,7 +32,7 @@ export type ProcedureSectionInput = Partial<{
   visible: boolean
 }>
 
-/** Sección tal como la entrega la API pública del detalle (`secciones`), ya filtrada por la línea de Planmed. Un único formato de bloques por columna. */
+/** Sección tal como la entrega la API pública del detalle (`secciones`), ya filtrada por la línea de Crediestética. Un único formato de bloques por columna. */
 export interface ProcedureSectionPublic {
   orden: number
   title: string | null

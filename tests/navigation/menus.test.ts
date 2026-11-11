@@ -77,7 +77,7 @@ describe('Navbar.vue', () => {
   test('los tres módulos consumen sus servicios públicos de Hub con SSR y no hay datos en onMounted', () => {
     assert.match(navbar, /useAsyncData\('patient-section'/)
     assert.match(navbar, /useAsyncData\('nav-recommendations'/)
-    assert.match(navbar, /publicTestimonialsService\.getContent\(\)/)
+    assert.match(navbar, /useAsyncData\('patient-section', fetchPatientSection\)/) // D9.5: manejador compartido (servicio público)
     assert.match(navbar, /publicRecommendationsService\.getTopics\(\)/)
     assert.equal(/getPages\(\)/.test(navbar), false, 'el menú ya no consulta el contrato histórico')
     assert.match(navbar, /publicProcedureService\.getProcedures\(\)/)
@@ -94,7 +94,7 @@ describe('Navbar.vue', () => {
 
   test('el submenú de segundo nivel de recomendaciones tiene altura máxima con scroll interno (escritorio) y el menú móvil scrollea', () => {
     assert.match(navbar, /max-h-\[70vh\] overflow-y-auto/)
-    assert.match(navbar, /max-h-\[calc\(100dvh-88px\)\] overflow-y-auto/)
+    assert.match(navbar, /max-h-\[calc\(100dvh-80px\)\] overflow-y-auto/)
   })
 })
 
@@ -159,6 +159,36 @@ describe('Navbar.vue alimenta el menú con el árbol y es responsive', () => {
     assert.match(nav, /<details v-if="item\.children" class="group\/sub">/)
     assert.match(nav, /Ver todo/)
     assert.equal((nav.match(/break-words/g) ?? []).length >= 4, true)
-    assert.match(nav, /min-\[1360px\]:hidden/)
+    assert.match(nav, /min-\[1280px\]:hidden/)
+  })
+})
+
+describe('Navbar.vue: identidad de Crediestética (Etapa D3)', () => {
+  const nav = readFileSync(join(ROOT, 'components/layout/Navbar.vue'), 'utf8')
+
+  test('no queda identidad visible de Planmed (nombre, alt, menú, identificadores) ni su verde', () => {
+    assert.equal(/planmed/i.test(nav), false)
+    assert.equal(/#0C2619|#fcf9f8|#e5e2e1|#cfc4c5/i.test(nav), false, 'colores heredados de Planmed')
+    // D9.2: el menú usa el mismo logo.png del original (en blanco sobre el hero, a color al desplazarse).
+    assert.match(nav, /<img src="\/images\/branding\/logo\.png" alt="Crediestética"/)
+  })
+
+  test('el desplegable institucional se llama CONÓCENOS y conserva sus entradas, accesibilidad y versión móvil', () => {
+    assert.match(nav, /data-testid="institutional-menu" @focusin="openMenu = 'CONOCENOS'" @focusout="openMenu = null"/)
+    assert.match(nav, /aria-haspopup="true" :aria-expanded="openMenu === 'CONOCENOS' \? 'true' : 'false'"/)
+    assert.match(nav, /data-testid="institutional-menu-mobile"/)
+    assert.match(nav, /CONÓCENOS/)
+    assert.match(nav, /<span>Conócenos<\/span>/)
+    assert.equal((nav.match(/v-for="item in institutionalItems"/g) ?? []).length, 2, 'escritorio y móvil comparten la lista')
+    const list = nav.slice(nav.indexOf('const institutionalItems = ['), nav.indexOf(']', nav.indexOf('const institutionalItems = [')))
+    const routes = [...list.matchAll(/to: '([^']+)'/g)].map(m => m[1])
+    assert.deepEqual(routes, ['/nosotros', '/quienes-somos', '/servicios', '/clinicas-aliadas', '/estudio-de-creditos', '/informacion-precontractual', '/politica-datos-personales', '/recursos'])
+    assert.equal(new Set(routes).size, routes.length, 'sin rutas duplicadas')
+  })
+
+  test('paleta de Crediestética en la barra y los botones', () => {
+    // D9.2: valores medidos en el menú del original (activo/hover #755A26, gris #43474d, panel desplegable #F7F3EE) + foco dorado.
+    for (const c of ['#F7F3EE', '#755A26', '#43474d', '#CBA36B']) assert.ok(nav.includes(c), c)
+    assert.match(nav, /<nav class="font-sans /)
   })
 })

@@ -2,10 +2,17 @@
 // Hub resuelve empresa/línea con X-Tenant-Linea y solo devuelve PRP activos de ese tenant.
 // Nunca se reenvía nada más que los 4 campos públicos.
 
+import { crmDestinationProblem } from '#shared/utils/crmDestination'
+
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
+
+  // PRP deshabilitado mientras el destino del CRM de PRP sea el heredado de Planmed o no sea válido: el micrositio (y su formulario, que
+  // envía directo desde el navegador) no se ofrece. 404 = la página «no existe». No se consulta a Hub.
+  const crmProblem = crmDestinationProblem(useRuntimeConfig(event).public?.crmPrpFormUrl)
+  if (crmProblem) throw createError({ statusCode: 404, message: 'No encontrado' })
 
   const slug = String(getRouterParam(event, 'slug') ?? '')
   if (!slug || slug.length > 255 || !SLUG_RE.test(slug)) {

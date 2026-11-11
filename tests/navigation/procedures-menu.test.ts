@@ -51,4 +51,90 @@ describe('Navbar.vue — desplegable de Procedimientos', () => {
     // Las dos listas (procedimientos y árbol de temas) se piden de forma independiente; el menú ya no usa el contrato histórico.
     assert.match(navbar, /Promise\.allSettled\(\[publicProcedureService\.getProcedures\(\), publicRecommendationsService\.getTopics\(\)\]\)/)
   })
+  test('si el servidor no trajo los temas, el navegador los vuelve a pedir al montar (menú siempre igual)', () => {
+    assert.match(navbar, /recoverTopics\(\)/)
+    assert.match(navbar, /await refreshHubMenu\(\)/)
+  })
+})
+
+describe('Navbar.vue: recuperación de temas sincronizada con Planmed (KI-15)', () => {
+  test('sin reintento en el servidor (withRetry) ni bucle ensureTopics heredados', () => {
+    assert.doesNotMatch(navbar, /withRetry|ensureTopics/)
+  })
+  test('recoverTopics: máximo 3 intentos, se detiene con temas o al desmontar y limpia el temporizador', () => {
+    assert.match(navbar, /async function recoverTopics\(attempt = 1\)/)
+    assert.match(navbar, /attempt >= 3/)
+    assert.match(navbar, /if \(unmounted \|\| hasTopics\(\)\) return/)
+    assert.match(navbar, /setTimeout\(\(\) => recoverTopics\(attempt \+ 1\), 3000\)/)
+    assert.match(navbar, /clearTimeout\(retryTimer\)/)
+    assert.doesNotMatch(navbar, /setInterval/)
+  })
+  test('se invoca al montar (navegador), no durante el render del servidor', () => {
+    assert.match(navbar, /onMounted\(\(\) => \{\s*window\.addEventListener\('resize', onResize\)\s*window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)\s*onScroll\(\)\s*recoverTopics\(\)\s*\}\)/)
+  })
+  test('los errores de Hub siguen siendo independientes: cada lista cae a [] por separado', () => {
+    assert.match(navbar, /procedures: procedures\.status === 'fulfilled' \? procedures\.value : \[\]/)
+    assert.match(navbar, /topics: topics\.status === 'fulfilled' \? topics\.value : \[\]/)
+  })
+})
+
+// Comportamiento REAL de recoverTopics: se extrae del propio Navbar.vue y se ejecuta con un refresh simulado y temporizador falso.
+describe('recoverTopics (ejecutada con refresh simulado)', () => {
+  const start = navbar.indexOf('const hasTopics')
+  const end = navbar.indexOf('onMounted(() => {', start)
+  const body = navbar.slice(start, end)
+  assert.ok(start > 0 && end > start, 'bloque recoverTopics localizado')
+
+  function harness(responses: Array<any[] | 'error'>) {
+    const hubMenu = { value: { procedures: [], topics: [] as any[] } }
+    const timers: Array<() => void> = []
+    let calls = 0
+    const refreshHubMenu = async () => {
+      const r = responses[Math.min(calls++, responses.length - 1)]
+      if (r === 'error') hubMenu.value = { procedures: [], topics: [] } // Navbar: un fallo deja los temas en []
+      else hubMenu.value = { procedures: [], topics: r }
+    }
+    const setTimeoutFake = (fn: () => void, ms: number) => { assert.equal(ms, 3000); timers.push(fn); return timers.length }
+    const clearTimeoutFake = () => { timers.length = 0 }
+    const api = new Function('hubMenu', 'refreshHubMenu', 'setTimeout', 'clearTimeout', `${body}; return { recoverTopics, unmount: () => { unmounted = true; if (retryTimer) clearTimeout(retryTimer) } }`)(hubMenu, refreshHubMenu, setTimeoutFake, clearTimeoutFake)
+    const flush = async () => { while (timers.length) { const fn = timers.shift()!; await fn(); await Promise.resolve() } }
+    return { api, calls: () => calls, flush, timers }
+  }
+  const topic = [{ slug: 'cuidados', subtopics: [{ slug: 'a' }] }]
+
+  test('con los temas ya presentes (SSR completo) no se pide nada', async () => {
+    const hubMenu = { value: { topics: topic } }
+    const recover = new Function('hubMenu', 'refreshHubMenu', 'setTimeout', 'clearTimeout', `${body}; return recoverTopics`)(hubMenu, async () => { throw new Error('no debe pedir') }, () => 0, () => {})
+    await recover()
+  })
+  test('primera respuesta incompleta (sin temas): recupera al segundo intento y se detiene', async () => {
+    const h = harness([[], topic])
+    await h.api.recoverTopics(); assert.equal(h.calls(), 1); assert.equal(h.timers.length, 1)
+    await h.flush(); assert.equal(h.calls(), 2); assert.equal(h.timers.length, 0, 'sin más reintentos')
+  })
+  test('respuestas vacías o con error: exactamente 3 intentos y se detiene', async () => {
+    for (const seq of [[[]], ['error'], ['error', [], 'error']] as any[]) {
+      const h = harness(seq)
+      await h.api.recoverTopics(); await h.flush()
+      assert.equal(h.calls(), 3, JSON.stringify(seq))
+      assert.equal(h.timers.length, 0)
+    }
+  })
+  test('al desmontar se cancela el reintento pendiente y no se vuelve a pedir', async () => {
+    const h = harness([[]])
+    await h.api.recoverTopics(); assert.equal(h.timers.length, 1)
+    h.api.unmount(); await h.flush()
+    assert.equal(h.calls(), 1)
+  })
+})
+
+describe('Navbar.vue conserva la identidad y la navegación de Crediestética tras la sincronización', () => {
+  test('menú CONÓCENOS y rutas institucionales intactos, sin etiquetas de Planmed', () => {
+    for (const to of ['/nosotros', '/quienes-somos', '/servicios', '/clinicas-aliadas', '/estudio-de-creditos', '/informacion-precontractual', '/politica-datos-personales', '/recursos']) assert.ok(navbar.includes(`to: '${to}'`), to)
+    assert.match(navbar, /data-testid="institutional-menu"/)
+    assert.match(navbar, /CONÓCENOS/)
+    // El acceso al panel se trasladó al Footer (decisión aprobada): el Navbar ya no lo ofrece.
+    assert.doesNotMatch(navbar, /\/admin\/login/)
+    assert.doesNotMatch(navbar, /planmed|0C2619|D3A76A/i)
+  })
 })

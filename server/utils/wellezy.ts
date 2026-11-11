@@ -143,18 +143,25 @@ export async function wellezyUpload<T>(event: H3Event, token: string, path: stri
   }
 }
 
+// Línea (tenant) configurada. Vacía o ausente => NO se hace ninguna petición pública a Hub (nunca se envía X-Tenant-Linea vacío).
+function tenantLine(event: H3Event): string {
+  const slug = String(useRuntimeConfig(event).wellezyLineSlug ?? '').trim()
+  if (!slug) console.error('[wellezy] NUXT_WELLEZY_LINE_SLUG no está configurada: se omite la petición a Hub.')
+  return slug
+}
+
 // Lectura pública (sin Bearer) de la API web de Hub. El tenant lo resuelve Hub con el header
-// X-Tenant-Linea, cuyo valor sale de la configuración de Planmed (wellezyLineSlug), nunca del navegador.
+// X-Tenant-Linea, cuyo valor sale de la configuración del servidor (wellezyLineSlug), nunca del navegador.
 export function wellezyPublicGet<T>(event: H3Event, path: string): Promise<WellezyResult<T>> {
-  const lineSlug = String(useRuntimeConfig(event).wellezyLineSlug || '')
-  if (!lineSlug) console.error('[prp] NUXT_WELLEZY_LINE_SLUG no está configurada.')
+  const lineSlug = tenantLine(event)
+  if (!lineSlug) return Promise.resolve({ status: 0 })
   return call<T>(event, path, { method: 'GET', headers: { 'X-Tenant-Linea': lineSlug } })
 }
 
 // Escritura pública (sin Bearer) en la API web de Hub (p. ej. inscripción al PRP). El tenant sale de la configuración del servidor;
 // `headers` admite la clave de idempotencia. Sin reintentos: el llamador decide (una escritura repetida solo es segura con la misma clave).
 export function wellezyPublicPost<T>(event: H3Event, path: string, body: Record<string, unknown>, headers: Record<string, string> = {}): Promise<WellezyResult<T>> {
-  const lineSlug = String(useRuntimeConfig(event).wellezyLineSlug || '')
-  if (!lineSlug) console.error('[prp] NUXT_WELLEZY_LINE_SLUG no está configurada.')
+  const lineSlug = tenantLine(event)
+  if (!lineSlug) return Promise.resolve({ status: 0 })
   return call<T>(event, path, { method: 'POST', body, headers: { 'X-Tenant-Linea': lineSlug, ...headers } })
 }

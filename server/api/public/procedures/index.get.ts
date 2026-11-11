@@ -1,5 +1,5 @@
 // Listado público de procedimientos desde Wellezy Hub (GET /api/v1/web/cirugias).
-// Hub resuelve la línea con X-Tenant-Linea (configuración de Planmed) y solo entrega los procedimientos activos y habilitados
+// Hub resuelve la línea con X-Tenant-Linea (configuración del servidor) y solo entrega los procedimientos activos y habilitados
 // para esa línea (maestros habilitados + propios). Nada de company_id/linea_id viaja desde el navegador.
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')

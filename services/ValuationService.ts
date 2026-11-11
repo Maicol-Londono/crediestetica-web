@@ -1,6 +1,6 @@
 import type { ValuationErrors, ValuationInput } from '#shared/utils/valuation'
 
-// Envío de la solicitud de valoración a la ruta de servidor de Planmed (POST /api/forms/valuation), que valida de nuevo y reenvía al CRM
+// Envío de la solicitud de valoración a la ruta de servidor de Crediestética (POST /api/forms/valuation), que valida de nuevo y reenvía al CRM
 // médico. El navegador nunca llama al CRM ni conoce sus identificadores. Sin reintentos automáticos (podrían duplicar el registro).
 
 export type ValuationErrorKind = 'validation' | 'duplicate' | 'rate_limited' | 'network' | 'server'

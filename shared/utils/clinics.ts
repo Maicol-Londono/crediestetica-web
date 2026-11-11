@@ -1,5 +1,5 @@
 // «Clínicas aliadas»: modelo, normalización y validación. Módulo PURO (sin imports), compartido por el navegador (administración),
-// el servidor Nitro (rutas /api/{admin,public}/clinics) y las pruebas. Se administra SOLO en la web de Planmed (no en Wellezy Hub).
+// el servidor Nitro (rutas /api/{admin,public}/clinics) y las pruebas. Se administra SOLO en la web de Crediestética (no en Wellezy Hub).
 // Los archivos se suben aparte (POST /api/admin/clinics/upload) y aquí solo se guardan sus URLs públicas.
 
 export interface ClinicFile { url: string, name: string }
@@ -12,13 +12,22 @@ export interface Clinic {
   image: string
   gallery: string[]
   documents: ClinicDocument[]
+  /** Visible en la web pública. Una clínica antigua sin este campo se considera visible. */
+  active: boolean
+  /** Datos de contacto opcionales (vacío = no se muestran). */
+  website: string
+  phone: string
+  email: string
+  address: string
 }
 export interface ClinicsContent { clinics: Clinic[], updatedAt: string }
 export type ClinicErrors = Record<string, string>
 
 export const CLINIC_MEDIA_PREFIX = '/api/public/clinics/media/'
 export const CLINIC_MEDIA_NAME_RE = /^(img|doc)-[a-z0-9-]{6,60}\.(jpg|png|webp|pdf)$/
-export const CLINIC_LIMITS = { clinics: 100, name: 200, description: 6000, gallery: 20, documents: 10, filesPerDocument: 5, docTitle: 200, fileName: 120 } as const
+export const CLINIC_LIMITS = { clinics: 100, name: 200, description: 6000, gallery: 20, documents: 10, filesPerDocument: 5, docTitle: 200, fileName: 120, contact: 200 } as const
+const CLINIC_EMAIL_RE = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[A-Za-z]{2,}$/
+const CLINIC_PHONE_RE = /^\+?[0-9][0-9 ()-]{6,19}$/
 // (el export siguiente a un `as const` no lo detecta el auto-import de Nitro: no poner aquí nada que use el servidor)
 export const CLINIC_IMAGE_EXT = ['jpg', 'png', 'webp']
 
@@ -61,7 +70,12 @@ export function normalizeClinics(raw: any, fallback: ClinicsContent = clinicsDef
             id: uniqueId(d.id, j, dseen, 'doc'),
             title: text(d.title),
             files: (Array.isArray(d.files) ? d.files : []).filter((x: any) => x && typeof x === 'object').map((x: any) => ({ url: text(x.url), name: text(x.name).slice(0, CLINIC_LIMITS.fileName) }))
-          }))
+          })),
+          active: c.active !== false,
+          website: text(c.website),
+          phone: text(c.phone),
+          email: text(c.email),
+          address: text(c.address)
         }
       })
     : fallback.clinics.map(c => structuredClone(c))
@@ -80,6 +94,14 @@ export function validateClinics(c: ClinicsContent): ClinicErrors {
     else if (cl.description.length > CLINIC_LIMITS.description) e[`${k}.description`] = `Clínica ${n}: la descripción admite máximo ${CLINIC_LIMITS.description} caracteres.`
     if (!cl.image) e[`${k}.image`] = `Clínica ${n}: la imagen principal es obligatoria.`
     else if (!isImageUrl(cl.image)) e[`${k}.image`] = `Clínica ${n}: la imagen principal no es válida.`
+    if (cl.website) {
+      let ok = false
+      try { ok = new URL(cl.website).protocol === 'https:' } catch { ok = false }
+      if (!ok || cl.website.length > CLINIC_LIMITS.contact) e[`${k}.website`] = `Clínica ${n}: el sitio web debe ser un enlace https válido.`
+    }
+    if (cl.phone && !CLINIC_PHONE_RE.test(cl.phone)) e[`${k}.phone`] = `Clínica ${n}: el teléfono solo admite números, espacios, guiones, paréntesis y el prefijo +.`
+    if (cl.email && (!CLINIC_EMAIL_RE.test(cl.email) || cl.email.length > CLINIC_LIMITS.contact)) e[`${k}.email`] = `Clínica ${n}: escribe un correo electrónico válido.`
+    if ((cl.address ?? '').length > CLINIC_LIMITS.contact) e[`${k}.address`] = `Clínica ${n}: la dirección admite máximo ${CLINIC_LIMITS.contact} caracteres.`
     if (cl.gallery.length > CLINIC_LIMITS.gallery) e[`${k}.gallery`] = `Clínica ${n}: máximo ${CLINIC_LIMITS.gallery} imágenes en la galería.`
     if (cl.gallery.some(g => !isImageUrl(g))) e[`${k}.gallery`] = `Clínica ${n}: hay una imagen de la galería no válida.`
     if (cl.documents.length > CLINIC_LIMITS.documents) e[`${k}.documents`] = `Clínica ${n}: máximo ${CLINIC_LIMITS.documents} documentos.`
@@ -93,6 +115,11 @@ export function validateClinics(c: ClinicsContent): ClinicErrors {
     })
   })
   return e
+}
+
+/** Vista pública: solo las clínicas activas (las desactivadas se conservan en la administración, pero no se exponen). */
+export function clinicsPublicView(c: ClinicsContent): ClinicsContent {
+  return { ...c, clinics: c.clinics.filter(cl => cl.active !== false) }
 }
 
 /** Todas las URLs de archivos propios referenciadas por el contenido (para limpiar los que dejan de usarse). */

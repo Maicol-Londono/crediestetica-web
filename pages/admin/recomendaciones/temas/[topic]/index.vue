@@ -16,7 +16,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">Tema principal</p>
-            <h2 class="text-2xl font-serif text-[#0C2619] break-words">{{ topic.title }}</h2>
+            <h2 class="text-2xl font-serif text-[#111111] break-words">{{ topic.title }}</h2>
             <p class="mt-1 text-xs text-gray-500">Texto del menú: <strong class="break-words">{{ topic.menu_label }}</strong> · Dirección <code class="bg-gray-100 rounded px-1.5 py-0.5">/recomendaciones/{{ topic.slug }}</code></p>
             <p class="mt-1 text-xs text-gray-500">{{ topic.subtopics_count }} subtema{{ topic.subtopics_count === 1 ? '' : 's' }} ({{ topic.published_subtopics_count }} publicado{{ topic.published_subtopics_count === 1 ? '' : 's' }})</p>
           </div>
@@ -54,7 +54,7 @@
       </div>
 
       <form v-if="creating" class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4" data-testid="subtopic-form" @submit.prevent="createSubtopic">
-        <h4 class="text-sm font-bold tracking-widest uppercase text-[#0C2619]">Nuevo subtema en «{{ topic.title }}»</h4>
+        <h4 class="text-sm font-bold tracking-widest uppercase text-[#111111]">Nuevo subtema en «{{ topic.title }}»</h4>
         <p class="hint">El subtema queda asociado automáticamente a este tema, a tu empresa y a tu línea.</p>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
@@ -104,7 +104,7 @@
               <button type="button" class="icon-btn" aria-label="Subir" :disabled="i === 0 || subAction.busy.value" @click="move(i, -1)">↑</button>
               <button type="button" class="icon-btn" aria-label="Bajar" :disabled="i === subtopics.length - 1 || subAction.busy.value" @click="move(i, 1)">↓</button>
             </div>
-            <NuxtLink :to="subtopicUrl(s.id)" class="min-w-0 break-words font-semibold text-[#0C2619] hover:text-[#D3A76A]">{{ s.title }}</NuxtLink>
+            <NuxtLink :to="subtopicUrl(s.id)" class="min-w-0 break-words font-semibold text-[#111111] hover:text-[#CBA36B]">{{ s.title }}</NuxtLink>
             <span class="min-w-0 break-words text-sm text-gray-600"><span class="md:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400">Menú: </span>{{ s.menu_label }}</span>
             <span class="text-sm text-gray-600"><span class="md:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400">Secciones: </span>{{ s.sections_count }}</span>
             <span><AdminRecommendationsStatusBadge :label="s.published ? 'Publicado' : 'Oculto'" :tone="s.published ? 'green' : 'gray'" /></span>
@@ -127,7 +127,7 @@ import { describeTreeError, moveId, type TreeErrorInfo } from '#shared/utils/rec
 import { recommendationTreeAdmin as api } from '~/providers/HubRecommendationTreeAdminProvider'
 import type { TreeSubtopic, TreeTopic } from '~/types/recommendationTree'
 
-useHead({ title: 'Tema de recomendaciones | Admin Planmed' })
+useHead({ title: 'Tema de recomendaciones | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 const GROUPS = { general: 'General', cuidados: 'Cuidados', revision: 'Revisión' } as const
@@ -252,15 +252,15 @@ onMounted(load)
 <style scoped>
 .label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #374151; margin-bottom: .4rem; }
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #f9fafb; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .field[aria-invalid="true"] { border-color: #dc2626; }
 .err { margin-top: .35rem; font-size: .75rem; color: #b91c1c; }
 .hint { font-size: .7rem; color: #6b7280; }
-.btn { background: #0C2619; color: #fff; padding: .75rem 1.5rem; border-radius: .5rem; font-weight: 700; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
-.btn:hover:not(:disabled) { background: #153a28; }
+.btn { background: #111111; color: #fff; padding: .75rem 1.5rem; border-radius: .5rem; font-weight: 700; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
+.btn:hover:not(:disabled) { background: #333333; }
 .btn:disabled { opacity: .5; }
-.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0C2619; }
-.link:hover:not(:disabled) { color: #D3A76A; }
+.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #111111; }
+.link:hover:not(:disabled) { color: #CBA36B; }
 .link:disabled { opacity: .5; }
 .icon-btn { width: 1.6rem; height: 1.6rem; border: 1px solid #e5e7eb; border-radius: .4rem; font-size: .8rem; color: #374151; }
 .icon-btn:hover:not(:disabled) { background: #f3f4f6; }

@@ -1,18 +1,21 @@
 <template>
   <div>
-    <SitePageShell :title="FINANCING_TITLE" :subtitle="FINANCING_SUBTITLE" wide bare>
-      <!-- Botón directo al simulador (ancla de esta misma página) -->
-      <template #actions>
-        <a href="#calculadora" data-testid="go-to-simulator" class="inline-flex items-center gap-3 bg-[#D3A76A] hover:bg-[#e0b97f] text-[#0C2619] px-8 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-          Simula tu financiación
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-        </a>
-      </template>
+    <div class="bg-[#F7F3EE] font-sans selection:bg-[#CBA36B] selection:text-[#111111]">
+      <!-- Cabecera con imagen a ancho completo (financiacion.png) y tarjeta oscura; el botón lleva al simulador (ancla de esta misma página). -->
+      <CommonImageHero image="/images/web/financiacion.png" eyebrow="Crediestética" :title="FINANCING_TITLE" :lead="FINANCING_SUBTITLE" title-id="fin-hero">
+        <template #actions>
+          <a href="#calculadora" data-testid="go-to-simulator" class="inline-flex items-center gap-3 bg-[#CBA36B] text-[#111111] rounded-full px-8 py-4 font-bold border-2 border-transparent hover:bg-white transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#CBA36B]">
+            Simula tu financiación
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+          </a>
+        </template>
+      </CommonImageHero>
+      <div class="h-12 md:h-16" aria-hidden="true"></div>
 
       <!-- Secciones de ancho completo que alternan fondo (blanco / verde corporativo) para marcar el paso de una a otra -->
 
       <!-- 1 · Cómo lo hacemos — blanco -->
-      <section aria-labelledby="fin-como" class="band bg-white">
+      <section aria-labelledby="fin-como" class="band bg-[#F7F3EE] border-b border-[#BBB2AA]/30">
         <div class="inner">
           <h2 id="fin-como" class="h2 text-center uppercase">Cómo lo hacemos</h2>
           <ol class="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
@@ -27,7 +30,7 @@
       </section>
 
       <!-- 2 · Qué necesitas — verde -->
-      <section aria-labelledby="fin-necesitas" class="band band-dark bg-[#0C2619]">
+      <section aria-labelledby="fin-necesitas" class="band band-dark bg-[#111111]">
         <div class="inner">
           <h2 id="fin-necesitas" class="h2 text-center uppercase">Qué necesitas</h2>
           <ul class="mt-10 grid md:grid-cols-3 gap-8 lg:gap-10">
@@ -43,19 +46,10 @@
         </div>
       </section>
 
-      <!-- 3 · ¿Cómo financiamos? (video) — blanco -->
-      <section aria-labelledby="fin-video" class="band bg-white">
-        <div class="inner">
-          <h2 id="fin-video" class="h2 text-center uppercase">¿Cómo financiamos?</h2>
-          <div class="video mt-8">
-            <iframe :src="aboutYoutubeEmbedUrl('NnAkWAmmK4A')" title="Planmed: requisitos de financiación" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>
-          </div>
-        </div>
-      </section>
 
       <!-- 4 · Simula tu financiación — verde (título y ventajas). El ancla #calculadora está en este contenedor, que se dibuja en el servidor:
            así /financiacion#calculadora funciona aunque el simulador (solo navegador) cargue después. -->
-      <section id="calculadora" aria-labelledby="fin-simulador" class="band band-dark bg-[#0C2619] scroll-mt-20 !pb-12 md:!pb-16" data-testid="financing-simulator">
+      <section id="calculadora" aria-labelledby="fin-simulador" class="band band-dark bg-[#111111] scroll-mt-20 !pb-12 md:!pb-16" data-testid="financing-simulator">
         <div class="inner">
           <h2 id="fin-simulador" class="h2 text-center uppercase">Simula tu financiación</h2>
           <p class="prose-p text-center mt-3">Explora opciones de financiación flexibles y encuentra el plan que se adapta a ti.</p>
@@ -69,27 +63,27 @@
       </section>
 
       <!-- El simulador, tal como estaba — blanco -->
-      <section aria-label="Simulador de cuota" class="band bg-white">
+      <section aria-label="Simulador de cuota" class="band bg-[#F7F3EE]">
         <div class="inner">
           <ClientOnly>
             <SimulatorPanel />
             <template #fallback>
-              <div class="h-96 bg-white border border-[#e5e2e1] animate-pulse" aria-hidden="true"></div>
+              <div class="h-96 bg-white border border-[#E7DDD1] rounded-[2rem] animate-pulse" aria-hidden="true"></div>
             </template>
           </ClientOnly>
         </div>
       </section>
 
       <!-- 5 · Preguntas frecuentes (las mismas de /nosotros, administradas en /admin/nosotros) — verde, con el acordeón sobre tarjeta blanca -->
-      <section v-if="faqs.length" aria-labelledby="fin-faq" class="band band-dark bg-[#0C2619]">
+      <section v-if="faqs.length" aria-labelledby="fin-faq" class="band band-dark bg-[#111111]">
         <div class="inner max-w-3xl">
           <h2 id="fin-faq" class="h2 text-center mb-8 md:mb-10 uppercase">Preguntas frecuentes</h2>
-          <div class="bg-white px-5 md:px-8 py-2">
+          <div class="bg-white rounded-[2rem] px-5 md:px-8 py-2">
             <AboutFaqAccordion :faqs="faqs" id-prefix="fin-faq" />
           </div>
         </div>
       </section>
-    </SitePageShell>
+    </div>
 
     <!-- Contacto: los mismos datos de /nosotros -->
     <AboutContactSection :contact="content.contact" />
@@ -97,10 +91,10 @@
 </template>
 
 <script setup lang="ts">
-// Página «Financiación»: texto y video entregados por Planmed (estático) + el simulador de cuota (antes /simulador). Preguntas frecuentes y contacto se comparten con /nosotros.
+// Página «Financiación»: texto y video entregados por Crediestética (estático) + el simulador de cuota (antes /simulador). Preguntas frecuentes y contacto se comparten con /nosotros.
 import { computed } from 'vue'
 import { useFetch, useSeoMeta, useHead, useSiteConfig } from '#imports'
-import { aboutDefaultContent, aboutPublicView, aboutYoutubeEmbedUrl, type AboutContent } from '#shared/utils/aboutContent'
+import { aboutDefaultContent, aboutPublicView, type AboutContent } from '#shared/utils/aboutContent'
 import { FINANCING_DESCRIPTION, FINANCING_PATH, FINANCING_SEO_TITLE, FINANCING_SUBTITLE, FINANCING_TITLE, financingStructuredData } from '#shared/utils/financingSeo'
 
 const steps = [
@@ -142,16 +136,14 @@ useHead({
 .band { padding: 4rem 1.5rem; }
 @media (min-width: 768px) { .band { padding: 6rem 3rem; } }
 .inner { max-width: 1200px; margin: 0 auto; }
-.h2 { font-family: var(--font-serif, serif); font-size: 1.75rem; line-height: 1.2; font-weight: 500; color: #0C2619; }
+.h2 { font-family: var(--font-serif, serif); font-size: 1.75rem; line-height: 1.2; font-weight: 700; color: #111111; }
 .h3 { font-size: .875rem; font-weight: 700; letter-spacing: .12em; color: #4c4546; margin-top: .25rem; }
-.step-n { font-size: 10px; font-weight: 700; letter-spacing: .2em; color: #D3A76A; margin-bottom: .5rem; }
-.icon { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; margin-top: 1rem; border: 1.5px solid #D3A76A; border-radius: 9999px; color: #0C2619; }
+.step-n { font-size: 10px; font-weight: 700; letter-spacing: .2em; color: #CBA36B; margin-bottom: .5rem; }
+.icon { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; margin-top: 1rem; border: 1.5px solid #CBA36B; border-radius: 9999px; color: #111111; }
 .prose-p { color: #4b5563; font-weight: 300; font-size: 1rem; line-height: 1.7; }
-.video { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden; box-shadow: 0 0 0 1px rgb(211 167 106 / .3); }
-.video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
 /* Variante sobre verde corporativo */
 .band-dark .h2, .band-dark .h3 { color: #fff; }
 .band-dark .prose-p { color: rgb(255 255 255 / .8); }
-.band-dark .icon { color: #D3A76A; }
+.band-dark .icon { color: #CBA36B; }
 </style>

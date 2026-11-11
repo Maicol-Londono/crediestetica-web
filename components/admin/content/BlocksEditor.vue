@@ -17,7 +17,7 @@
 
         <div v-for="(b, i) in slotBlocks(slot)" :key="b.key" class="border border-gray-200 rounded-lg p-3 mb-3 bg-gray-50/60" data-testid="content-block" :data-type="b.type">
           <div class="flex items-center justify-between gap-2 mb-2">
-            <span class="text-[11px] font-bold uppercase tracking-widest text-[#0C2619]">{{ TYPE_LABEL[b.type] }}</span>
+            <span class="text-[11px] font-bold uppercase tracking-widest text-[#111111]">{{ TYPE_LABEL[b.type] }}</span>
             <div class="flex items-center gap-1">
               <button type="button" class="icon-btn" :disabled="i === 0" aria-label="Subir bloque" @click="moveBlock(b, -1)">↑</button>
               <button type="button" class="icon-btn" :disabled="i === slotBlocks(slot).length - 1" aria-label="Bajar bloque" @click="moveBlock(b, 1)">↓</button>
@@ -29,7 +29,7 @@
           <AdminRichTextEditor v-if="b.type === 'text'" :key="`t-${b.key}`" v-model="b.content" min-height="8rem" placeholder="Escribe aquí el texto..." />
 
           <div v-else-if="b.type === 'image'" class="space-y-2">
-            <label class="block w-full max-w-xs aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#0C2619] bg-white relative">
+            <label class="block w-full max-w-xs aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-[#111111] bg-white relative">
               <img v-if="b.newImage || b.imageUrl" :src="b.newImage || b.imageUrl" alt="Imagen del bloque" class="w-full h-full object-contain">
               <span v-else class="absolute inset-0 flex items-center justify-center text-xs text-gray-400 text-center px-3">Haz clic para subir (JPG, PNG o WebP)</span>
               <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onBlockImage(b, $event)">
@@ -44,7 +44,7 @@
         </div>
 
         <div class="flex flex-wrap gap-2" data-testid="blocks-add">
-          <button v-for="t in BLOCK_TYPES" :key="t" type="button" class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest border border-gray-200 rounded hover:border-[#0C2619] cursor-pointer" :data-add="t" @click="addBlock(slot, t)">+ {{ TYPE_LABEL[t] }}</button>
+          <button v-for="t in BLOCK_TYPES" :key="t" type="button" class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest border border-gray-200 rounded hover:border-[#111111] cursor-pointer" :data-add="t" @click="addBlock(slot, t)">+ {{ TYPE_LABEL[t] }}</button>
         </div>
       </section>
     </div>
@@ -124,9 +124,9 @@ async function onBlockImage(b: DraftBlock, e: Event) {
 <style scoped>
 .label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #374151; margin-bottom: .4rem; }
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #fff; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .icon-btn { width: 2rem; height: 2rem; border: 1px solid #e5e7eb; border-radius: .375rem; font-weight: 700; background: #fff; cursor: pointer; }
-.icon-btn:hover:not(:disabled) { border-color: #0C2619; }
+.icon-btn:hover:not(:disabled) { border-color: #111111; }
 .icon-btn:disabled { opacity: .35; cursor: default; }
 .radio { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #fff; font-size: .875rem; font-weight: 600; cursor: pointer; }
 </style>

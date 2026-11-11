@@ -1,5 +1,7 @@
 import type { PrpLeadProvider } from './PrpLeadProvider'
+import { crmDestinationProblem, MSG_CRM_UNAVAILABLE } from '#shared/utils/crmDestination'
 import { PrpLeadError, type PrpLeadInput } from '~/types/prpPublic'
+import { PRP_ENABLED } from '#shared/utils/features'
 import { useRuntimeConfig } from '#imports'
 
 // Envío DIRECTO navegador -> CRM médico externo (sin Wellezy Hub ni proxy), con el contrato ya validado:
@@ -26,8 +28,11 @@ export function buildPrpLeadFormData(lead: PrpLeadInput): FormData {
 
 export class CrmPrpLeadProvider implements PrpLeadProvider {
   async submit(lead: PrpLeadInput): Promise<void> {
+    // PRP desactivado (shared/utils/features.ts): nada sale hacia el CRM aunque alguien invoque el proveedor. Va ANTES de leer la URL.
+    if (!PRP_ENABLED) throw new PrpLeadError('server', MSG_CRM_UNAVAILABLE)
     const url = String(useRuntimeConfig().public.crmPrpFormUrl || '')
-    if (!url) throw new PrpLeadError('unexpected', 'El envío no está configurado.')
+    // Defensa en profundidad (la autoridad es el servidor: /api/public/prp/[slug] no sirve el micrositio con un destino bloqueado).
+    if (crmDestinationProblem(url)) throw new PrpLeadError('server', MSG_CRM_UNAVAILABLE)
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)

@@ -200,7 +200,7 @@
               <input v-model="form.accepted_habeas_data" type="checkbox" id="habeas" class="w-5 h-5 accent-primary border-gray-300 rounded cursor-pointer" />
             </div>
             <div class="flex-1">
-              <label for="habeas" class="text-xs text-gray-600 cursor-pointer select-none" v-html="'Acepto la <a href=&quot;/recursos&quot; target=&quot;_blank&quot; class=&quot;text-primary font-bold hover:underline&quot;>política de tratamiento de datos personales</a> y autorizo ser contactado para recibir información sobre opciones de financiación. *'" @click="handleHabeasClick"></label>
+              <label for="habeas" class="text-xs text-gray-600 cursor-pointer select-none" v-html="habeasLabelHtml" @click="handleHabeasClick"></label>
               <p v-if="errors.accepted_habeas_data" class="text-red-500 text-xs mt-1 font-bold">{{ errors.accepted_habeas_data }}</p>
             </div>
           </div>
@@ -247,13 +247,18 @@
 </template>
 
 <script setup>
+import { legalDocLinkHtml } from '#shared/utils/legalDocuments'
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { WHATSAPP_URL } from '#shared/utils/contact'
 import { useRoute } from 'vue-router'
 import { useTracking } from '~/composables/useTracking'
 import { leadService } from '~/services/LeadService'
 import { quotationService } from '~/services/QuotationService'
 import { FinancingRateUnavailableError } from '~/services/FinancingRateService'
 import { formatPesos } from '#shared/utils/financing'
+
+// Etiqueta del consentimiento: el enlace sale del registro central de documentos legales (pendiente hasta que haya URL oficial).
+const habeasLabelHtml = `Acepto la política de tratamiento de datos personales ${legalDocLinkHtml('politicaDatos', 'text-primary font-bold hover:underline')} y autorizo ser contactado para recibir información sobre opciones de financiación. *`
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -268,7 +273,6 @@ const route = useRoute()
 
 // Configuración Constants
 // (En producción estos datos deberían venir del entorno o tenant base)
-const WHATSAPP_NUMBER = '573188043382' 
 
 const { getVisitorUuid, trackFormStart, trackFormSubmit, trackWhatsAppClick, trackPolicyView } = useTracking()
 
@@ -290,7 +294,7 @@ async function refreshQuote() {
   }
 }
 
-// Opciones PROVISIONALES de las listas del preaprobado (por confirmar con Planmed).
+// Opciones PROVISIONALES de las listas del preaprobado (por confirmar con Crediestética).
 const TIPOS_DOC = ['Cedula ciudadania', 'Tarjeta identidad', 'Numero identificacion personal', 'Pasaporte', 'Permiso permanencia temporal', 'Cedula extranjeria']
 const TIPOS_VIVIENDA = ['Propia', 'Arrendada', 'Familiar']
 const TIPOS_ACTIVIDAD = ['Empleado', 'Independiente']
@@ -471,8 +475,8 @@ const submitLead = async () => {
 
 const openWhatsApp = () => {
   trackWhatsAppClick(route.fullPath)
-  const text = `Nuevo lead generado desde Planmed\n\nNombre:\n${form.full_name}\n\nTeléfono:\n${form.phone}\n\nProcedimiento:\n${form.procedure}\n\nMonto:\n$${form.requested_amount.toLocaleString('es-CO')}`
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+  const text = `Nuevo lead generado desde Crediestética\n\nNombre:\n${form.full_name}\n\nTeléfono:\n${form.phone}\n\nProcedimiento:\n${form.procedure}\n\nMonto:\n$${form.requested_amount.toLocaleString('es-CO')}`
+  const url = `${WHATSAPP_URL}?text=${encodeURIComponent(text)}`
   window.open(url, '_blank')
   closeModal()
 }

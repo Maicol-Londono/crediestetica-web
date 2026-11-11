@@ -2,12 +2,12 @@
   <!-- Mismo layout que el resto del sitio público (menú, pie y chat): así las páginas de error ofrecen las MISMAS opciones de navegación.
        El menú tolera un Hub caído (cada consulta es independiente y su fallo no se propaga), por lo que no puede romper esta página. -->
   <NuxtLayout>
-    <div id="contenido" class="flex items-center justify-center px-6 py-16 md:py-24 bg-[#fcf9f8]">
+    <div id="contenido" class="flex items-center justify-center px-6 py-16 md:py-24 bg-[#F7F3EE]">
       <section class="w-full max-w-2xl text-center" aria-labelledby="error-titulo">
-        <p class="font-serif text-[7.5rem] sm:text-[10rem] leading-none text-[#D3A76A] select-none" aria-hidden="true">{{ view.code }}</p>
+        <p class="font-serif text-[7.5rem] sm:text-[10rem] leading-none text-[#CBA36B] select-none" aria-hidden="true">{{ view.code }}</p>
         <p class="mt-2 text-[11px] font-bold tracking-[0.2em] uppercase text-[#4c4546]">Error {{ view.code }}</p>
 
-        <h1 id="error-titulo" class="mt-6 font-serif text-3xl sm:text-4xl md:text-5xl uppercase text-[#0C2619] leading-tight">{{ view.title }}</h1>
+        <h1 id="error-titulo" class="mt-6 font-serif text-3xl sm:text-4xl md:text-5xl uppercase text-[#111111] leading-tight">{{ view.title }}</h1>
         <p class="mt-5 text-base md:text-lg leading-relaxed text-[#4c4546] max-w-xl mx-auto">{{ view.message }}</p>
 
         <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
@@ -19,7 +19,7 @@
         </div>
 
         <!-- Solo en desarrollo: el detalle técnico nunca llega a producción. -->
-        <details v-if="isDev && technical" class="mt-12 text-left text-xs text-[#4c4546] bg-white border border-[#e5e2e1] rounded-lg p-4">
+        <details v-if="isDev && technical" class="mt-12 text-left text-xs text-[#4c4546] bg-white border border-[#E7DDD1] rounded-lg p-4">
           <summary class="cursor-pointer font-bold uppercase tracking-widest">Detalle técnico (solo desarrollo)</summary>
           <pre class="mt-3 whitespace-pre-wrap break-words">{{ technical }}</pre>
         </details>
@@ -48,10 +48,10 @@ useHead({
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Inter:wght@400;500;600;700&display=swap' }
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Libre+Bodoni:ital,wght@0,400..700;1,400..700&family=Questrial&display=swap' }
   ]
 })
-useSeoMeta({ title: () => `${view.value.title} | Planmed`, robots: 'noindex, nofollow' })
+useSeoMeta({ title: () => `${view.value.title} | Crediestética`, robots: 'noindex, nofollow' })
 
 // «Volver atrás» solo si hay un destino razonable: una página previa del propio sitio (no al abrir la URL directamente).
 const canGoBack = ref(false)
@@ -90,10 +90,10 @@ const goBack = async () => {
   transition: background-color 0.2s, color 0.2s, border-color 0.2s;
   cursor: pointer;
 }
-.btn-primary { background: #0C2619; color: #fff; border: 1px solid #0C2619; }
-.btn-primary:hover { background: #153a28; }
-.btn-secondary { background: transparent; color: #0C2619; border: 1px solid #0C2619; }
-.btn-secondary:hover { background: #0C2619; color: #fff; }
+.btn-primary { background: #111111; color: #fff; border: 1px solid #111111; }
+.btn-primary:hover { background: #333333; }
+.btn-secondary { background: transparent; color: #111111; border: 1px solid #111111; }
+.btn-secondary:hover { background: #111111; color: #fff; }
 .btn-primary:focus-visible,
-.btn-secondary:focus-visible { outline: 2px solid #0C2619; outline-offset: 3px; }
+.btn-secondary:focus-visible { outline: 2px solid #111111; outline-offset: 3px; }
 </style>

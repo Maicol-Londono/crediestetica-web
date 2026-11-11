@@ -1,7 +1,7 @@
 <template>
   <div class="pb-24">
     <AdminRecommendationsTreeBreadcrumb :crumbs="[{ label: 'Recomendaciones', to: '/admin/recomendaciones/temas' }, { label: 'Tema', to: topicUrl }, { label: 'Subtema', to: subtopicUrl }, { label: 'Editar sección' }]" />
-    <h2 class="mb-6 text-3xl font-serif text-[#0C2619] uppercase">Editar sección</h2>
+    <h2 class="mb-6 text-3xl font-serif text-[#111111] uppercase">Editar sección</h2>
     <AdminRecommendationsTreeSectionForm v-if="valid" :subtopic-id="subId" :topic-id="topicId" :section-id="sectionId" />
     <p v-else class="text-sm text-red-700">La dirección no es válida.</p>
   </div>
@@ -11,7 +11,7 @@
 import { computed } from 'vue'
 import { useHead, useRoute } from '#imports'
 
-useHead({ title: 'Editar sección | Admin Planmed' })
+useHead({ title: 'Editar sección | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 const route = useRoute()

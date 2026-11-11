@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import { pickAllowed, pickQuery, resolveAdminRoute, type AdminRoute } from '#shared/utils/recommendationAdminApi'
 
-// Traducción de las respuestas de la API administrativa de Recomendaciones de Hub (/cms/recommendation-*) a errores HTTP de Planmed.
+// Traducción de las respuestas de la API administrativa de Recomendaciones de Hub (/cms/recommendation-*) a errores HTTP de la web.
 // A diferencia de `translate` (noticias), conserva el 409 de integridad con el mensaje real del Hub (p. ej. «el tema tiene subtemas»)
 // y marca como transitorios (503) los fallos de red/servidor. Ningún error se interpreta como guardado exitoso.
 

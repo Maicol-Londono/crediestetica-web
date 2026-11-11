@@ -5,7 +5,7 @@
       :key="item.to"
       :to="item.to"
       class="px-5 py-2.5 text-[11px] font-bold tracking-[0.15em] uppercase border transition-colors"
-      :class="$route.path === item.to ? 'bg-[#0C2619] text-white border-[#0C2619]' : 'bg-white text-[#0C2619] border-[#e5e2e1] hover:border-[#0C2619]'"
+      :class="$route.path === item.to ? 'bg-[#111111] text-white border-[#111111]' : 'bg-white text-[#111111] border-[#E7DDD1] hover:border-[#111111]'"
     >
       {{ item.label }}
     </NuxtLink>
@@ -13,10 +13,10 @@
 </template>
 
 <script setup lang="ts">
-import { publicTestimonialsService } from '~/services/PublicTestimonialsService'
+import { fetchPatientSection } from '~/services/PublicTestimonialsService'
 
 // Misma clave que las páginas: una sola petición a Hub por navegación y el menú ya sale correcto en el servidor.
-const { data } = await useAsyncData('patient-section', () => publicTestimonialsService.getContent())
+const { data } = await useAsyncData('patient-section', fetchPatientSection)
 const visibility = computed(() => data.value?.visibility ?? { videos: true, beforeAfter: true })
 
 const items = [

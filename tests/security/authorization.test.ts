@@ -26,8 +26,8 @@ const USERS = {
 }
 
 // Pertenencia a Planmed tal como la devuelve Hub (company.slug / line.slug del contexto del token).
-for (const u of Object.values(USERS)) Object.assign(u, { company: { slug: 'planmed' }, line: { slug: 'planmed' } })
-const OTRO_ROL = { id: 500, name: 'Otro rol', email: 'o@x.test', role: { id: 22, name: 'Asesora financiera' }, is_area_leader: false, is_global_admin: false, permissions: [], company: { slug: 'planmed' }, line: { slug: 'crediestetica' } }
+for (const u of Object.values(USERS)) Object.assign(u, { company: { slug: 'legalmed' }, line: { slug: 'crediestetica' } })
+const OTRO_ROL = { id: 500, name: 'Otro rol', email: 'o@x.test', role: { id: 22, name: 'Asesora financiera' }, is_area_leader: false, is_global_admin: false, permissions: [], company: { slug: 'legalmed' }, line: { slug: 'otra-linea' } }
 
 let dir, W, A, put
 const state = { me: 'asesora', session: true }
@@ -44,7 +44,7 @@ before(async () => {
   g.getRouterParam = (e, n) => e.params[n]
   g.setHeader = () => {}
   g.getQuery = e => e.query ?? {}
-  g.useRuntimeConfig = () => ({ planmedAdminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', planmedContentEditorRoleIds: '', planmedContentDir: dir })
+  g.useRuntimeConfig = () => ({ adminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', contentEditorRoleIds: '', contentDir: dir })
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
   g.authError = (statusCode, message) => g.createError({ statusCode, message, data: { message } })
   g.assertSameOrigin = () => {}
@@ -105,7 +105,76 @@ describe('identidad de Hub: permisos conservados solo en servidor', () => {
   })
 })
 
-describe('contenido local: solo perfiles editores (no basta estar en NUXT_PLANMED_ADMIN_ROLE_IDS)', () => {
+// D9.7-E: visibilidad de módulos en menú y dashboard. Solo interfaz: la autorización real sigue en Hub y en los endpoints.
+describe('visibilidad dinámica de módulos (banderas derivadas de permisos de Hub)', () => {
+  const base = { is_area_leader: false, company: { slug: 'legalmed' }, line: { slug: 'crediestetica' } }
+  const HUB_VER = ['cirugias.ver', 'blog.ver', 'pacientes_web.ver', 'recomendaciones.ver']
+  // Escenarios con permisos explícitos (no se asumen permisos de ningún usuario real más allá de lo verificado en D9.7).
+  const P = {
+    johanna: { id: 21, name: 'J', email: 'j@x.test', role: { id: 22, name: 'Asesora financiera' }, permissions: ['prp_referrers.ver', 'prp_referrers.crear', 'clientes.ver'], ...base },
+    disenador: { id: 22, name: 'D', email: 'd@x.test', role: { id: 19, name: 'Diseñador gráfico' }, permissions: [...HUB_VER], ...base },
+    sinPermisos: { id: 23, name: 'S', email: 's@x.test', role: { id: 99, name: 'Otro' }, permissions: [], ...base },
+    sinLista: { id: 24, name: 'N', email: 'n@x.test', role: { id: 99, name: 'Otro' }, ...base },
+    superGlobal: { id: 25, name: 'G', email: 'g@x.test', role: null, is_global_admin: true, permissions: [], ...base },
+    soloVer: { id: 26, name: 'V', email: 'v@x.test', role: { id: 99, name: 'Otro' }, permissions: ['prp_referrers.ver'], ...base }
+  }
+  const FLAGS = ['canViewProcedures', 'canViewNews', 'canViewPatients', 'canViewRecommendations', 'canViewMicrosites', 'canCreateMicrosites', 'canEditContent', 'canAccessConfiguration']
+  const pick = u => Object.fromEntries(FLAGS.map(f => [f, A.toPublicUser(u, ev())[f]]))
+
+  test('Johanna (Asesora financiera): micrositios y crear; sin módulos de Hub, páginas ni configuración', () => {
+    assert.deepEqual(pick(P.johanna), { canViewProcedures: false, canViewNews: false, canViewPatients: false, canViewRecommendations: false, canViewMicrosites: true, canCreateMicrosites: true, canEditContent: false, canAccessConfiguration: false })
+  })
+  test('Diseñador gráfico: módulos de Hub según permisos, páginas sí; micrositios y configuración según permisos reales', () => {
+    const f = pick(P.disenador)
+    assert.deepEqual([f.canViewProcedures, f.canViewNews, f.canViewPatients, f.canViewRecommendations, f.canEditContent], [true, true, true, true, true])
+    assert.equal(f.canViewMicrosites, false) // sin prp_referrers.ver en este escenario: no se asume
+    assert.equal(f.canAccessConfiguration, A.toPublicUser(P.disenador, ev()).canEditRate) // misma regla existente: líder o rol de tasa
+  })
+  test('usuario sin permisos o sin lista: ningún módulo protegido', () => {
+    for (const u of [P.sinPermisos, P.sinLista]) {
+      const f = pick(u)
+      for (const k of ['canViewProcedures', 'canViewNews', 'canViewPatients', 'canViewRecommendations', 'canViewMicrosites', 'canCreateMicrosites', 'canEditContent']) assert.equal(f[k], false, k)
+    }
+  })
+  test('superadmin global: conserva acceso global a todos los módulos', () => {
+    const f = pick(P.superGlobal)
+    for (const k of ['canViewProcedures', 'canViewNews', 'canViewPatients', 'canViewRecommendations', 'canViewMicrosites', 'canEditContent']) assert.equal(f[k], true, k)
+  })
+  test('consultar no concede crear, editar ni eliminar micrositios', () => {
+    const u = A.toPublicUser(P.soloVer, ev())
+    assert.deepEqual([u.canViewMicrosites, u.canCreateMicrosites, u.canCreatePrp, u.canEditPrp, u.canDeletePrp], [true, false, false, false, false])
+    const j = A.toPublicUser(P.johanna, ev())
+    assert.deepEqual([j.canCreateMicrosites, j.canEditPrp, j.canDeletePrp], [true, false, false])
+  })
+  test('permisos mal formados (no arreglo de cadenas) no conceden visibilidad', () => {
+    assert.equal(A.toPublicUser({ ...P.sinPermisos, permissions: 'cirugias.ver' }, ev()).canViewProcedures, false)
+    assert.equal(A.toPublicUser({ ...P.sinPermisos, permissions: { 'cirugias.ver': true } }, ev()).canViewProcedures, false)
+  })
+  test('el usuario público sigue sin exponer la lista de permisos', () => {
+    assert.equal('permissions' in A.toPublicUser(P.johanna, ev()), false)
+  })
+
+  test('menú y dashboard usan las mismas banderas por módulo (sin reglas duplicadas)', () => {
+    const layout = read('layouts/admin.vue')
+    const dash = read('pages/admin/index.vue')
+    const mods = [['/admin/procedimientos', 'canViewProcedures'], ['/admin/noticias', 'canViewNews'], ['/admin/testimonios', 'canViewPatients'], ['/admin/recomendaciones/temas', 'canViewRecommendations'], ['/admin/micrositios', 'canViewMicrosites']]
+    for (const [path, flag] of mods) {
+      for (const [name, src] of [['layout', layout], ['dashboard', dash]]) assert.ok(src.includes(`v-if="user?.${flag}" to="${path}"`), `${name} ${path}`)
+    }
+    for (const src of [layout, dash]) assert.ok(src.includes('v-if="user?.canAccessConfiguration"'))
+    assert.ok(layout.includes('v-if="user?.canEditContent"'))
+    assert.match(read('pages/admin/micrositios/index.vue'), /canCreateMicrosites === true/)
+  })
+  test('sin sesión (user nulo) no se muestra nada protegido; la plantilla evalúa `user?.…` en cada render (sin instantánea)', () => {
+    for (const f of ['layouts/admin.vue', 'pages/admin/index.vue']) {
+      const src = read(f)
+      assert.ok(src.includes('const user = authService.getUser()'))
+      assert.doesNotMatch(src, /user\.value\?\.canView/)
+    }
+  })
+})
+
+describe('contenido local: solo perfiles editores (no basta estar en NUXT_ADMIN_ROLE_IDS)', () => {
   test('canEditLocalContent: contenido, diseñador, admin y superadmin sí; asesora, rol solo de lista y sin rol no', () => {
     const e = ev()
     for (const k of ['contenido', 'disenadora', 'admin', 'superadmin']) assert.equal(A.canEditLocalContent(e, USERS[k]), k !== 'admin' && k !== 'superadmin' ? true : A.isAuthorizedUser(e, USERS[k]) ? true : false, k)
@@ -150,11 +219,11 @@ describe('contenido local: solo perfiles editores (no basta estar en NUXT_PLANME
     state.session = true
   })
 
-  test('los ids opcionales NUXT_PLANMED_CONTENT_EDITOR_ROLE_IDS también habilitan, pero solo si el rol está en el panel', () => {
-    globalThis.useRuntimeConfig = () => ({ planmedAdminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', planmedContentEditorRoleIds: '30' })
+  test('los ids opcionales NUXT_CONTENT_EDITOR_ROLE_IDS también habilitan, pero solo si el rol está en el panel', () => {
+    globalThis.useRuntimeConfig = () => ({ adminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', contentEditorRoleIds: '30' })
     assert.equal(A.canEditLocalContent(ev(), USERS.soloLista), true)
     assert.equal(A.canEditLocalContent(ev(), { ...USERS.soloLista, role: { id: 99, name: 'Fuera' } }), false)
-    globalThis.useRuntimeConfig = () => ({ planmedAdminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', planmedContentEditorRoleIds: '', planmedContentDir: dir })
+    globalThis.useRuntimeConfig = () => ({ adminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', contentEditorRoleIds: '', contentDir: dir })
   })
 })
 
@@ -217,7 +286,7 @@ describe('normalización de la identidad de Hub', () => {
     assert.equal('password' in res.data.user, false)
     assert.equal('extra' in res.data.user, false)
     // Restaura la configuración base: las pruebas siguientes dependen de los slugs de Planmed.
-    globalThis.useRuntimeConfig = () => ({ wellezyApiBaseUrl: 'https://hub.test/api', planmedAdminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', planmedContentEditorRoleIds: '', planmedContentDir: dir })
+    globalThis.useRuntimeConfig = () => ({ wellezyApiBaseUrl: 'https://hub.test/api', adminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', contentEditorRoleIds: '', contentDir: dir })
   })
 
   test('si Hub no envía permissions, queda una lista vacía (falla cerrado)', async () => {
@@ -250,7 +319,7 @@ describe('superadmin global (verificado por Hub) vs admin', () => {
     assert.equal(await me(true), true)
     for (const bad of ['true', 1, 'yes', null, undefined]) assert.equal(await me(bad), false, String(bad))
     globalThis.$fetch = origFetch
-    globalThis.useRuntimeConfig = () => ({ planmedAdminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', planmedContentEditorRoleIds: '', planmedContentDir: dir })
+    globalThis.useRuntimeConfig = () => ({ adminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', contentEditorRoleIds: '', contentDir: dir })
   })
 
   test('el navegador no puede falsificar is_global_admin: el login usa solo la respuesta de Hub', async () => {
@@ -274,14 +343,14 @@ describe('superadmin global (verificado por Hub) vs admin', () => {
 
   test('el superadmin no es líder de línea: requireAreaLeader lo rechaza y no gana permisos de micrositios por entrar', async () => {
     const origFetch = globalThis.$fetch
-    globalThis.useRuntimeConfig = () => ({ wellezyApiBaseUrl: 'https://hub.test/api', planmedAdminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', sessionPassword: 'x'.repeat(40) })
+    globalThis.useRuntimeConfig = () => ({ wellezyApiBaseUrl: 'https://hub.test/api', adminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', sessionPassword: 'x'.repeat(40) })
     globalThis.useSession = async () => ({ data: { token: 'hub-token' }, clear: async () => {}, update: async () => {} })
     globalThis.$fetch = { raw: async () => ({ status: 200, _data: { user: USERS.superGlobal } }) }
     state.me = 'superGlobal'
     const { error } = await run(A.requireAreaLeader, ev())
     delete globalThis.useSession
     globalThis.$fetch = origFetch
-    globalThis.useRuntimeConfig = () => ({ planmedAdminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', planmedContentEditorRoleIds: '', planmedContentDir: dir })
+    globalThis.useRuntimeConfig = () => ({ adminRoleIds: PANEL_ROLE_IDS, wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', contentEditorRoleIds: '', contentDir: dir })
     assert.equal(error?.statusCode, 403)
     const pub = A.toPublicUser(USERS.superGlobal, ev())
     assert.deepEqual([pub.canCreatePrp, pub.canEditPrp, pub.canDeletePrp, pub.isAreaLeader], [false, false, false, false])

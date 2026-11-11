@@ -2,7 +2,7 @@
 // Política única de acceso al panel (isAuthorizedUser) y su aplicación en POST /api/auth/login y GET /api/auth/me:
 //  A. superadmin global (`is_global_admin === true`): único acceso sin pertenecer a la empresa y línea de Planmed.
 //  B. cualquier otro usuario —con cualquier rol, incluido `admin`—: debe pertenecer a la empresa y línea de Planmed (company.slug / line.slug
-//     de Hub contra la configuración del servidor). El rol `admin` no concede acceso global y NUXT_PLANMED_ADMIN_ROLE_IDS no interviene.
+//     de Hub contra la configuración del servidor). El rol `admin` no concede acceso global y NUXT_ADMIN_ROLE_IDS no interviene.
 // Se ejecutan las funciones y rutas REALES con auto-imports de Nitro simulados.
 import { test, describe, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
@@ -13,12 +13,12 @@ import { pathToFileURL } from 'node:url'
 import { ROOT } from '../recommendations/harness.ts'
 
 const imp = rel => import(pathToFileURL(join(ROOT, rel)).href)
-const PLANMED = { company: { slug: 'planmed' }, line: { slug: 'planmed' } }
-const OTRA_LINEA = { company: { slug: 'planmed' }, line: { slug: 'crediestetica' } }
+const PLANMED = { company: { slug: 'legalmed' }, line: { slug: 'crediestetica' } }
+const OTRA_LINEA = { company: { slug: 'legalmed' }, line: { slug: 'otra-linea' } }
 const base = (over = {}) => ({ id: 1, name: 'U', email: 'u@x.test', role: { id: 19, name: 'Diseñador gráfico' }, is_area_leader: false, is_global_admin: false, permissions: [], ...PLANMED, ...over })
 
 const state = { config: {}, loginUser: null, meUser: null, meStatus: 200, loggedOut: 0, cleared: 0, updated: 0 }
-const defaults = { planmedAdminRoleIds: '19,22', wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', sessionPassword: 'x'.repeat(40), wellezyApiBaseUrl: 'https://hub.test/api' }
+const defaults = { adminRoleIds: '19,22', wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', sessionPassword: 'x'.repeat(40), wellezyApiBaseUrl: 'https://hub.test/api' }
 const run = async (fn, e) => { try { return { value: await fn(e) } } catch (error) { return { error } } }
 const ev = (extra = {}) => ({ method: 'POST', body: {}, headers: {}, ...extra })
 
@@ -78,25 +78,25 @@ describe('isAuthorizedUser: política A (superadmin global) / B (pertenencia a P
   test('B · admin de otra línea o de otra empresa: DENEGADO (el rol admin no concede acceso global)', () => {
     for (const name of ['admin', 'ADMIN', ' Admin ', 'aDmIn']) {
       assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 1, name }, ...OTRA_LINEA })), false, JSON.stringify(name))
-      assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 1, name }, company: { slug: 'otra' }, line: { slug: 'planmed' } })), false, JSON.stringify(name))
+      assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 1, name }, company: { slug: 'otra' }, line: { slug: 'crediestetica' } })), false, JSON.stringify(name))
     }
   })
   test('B · admin sin datos de empresa/línea: denegado', () => {
     assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 1, name: 'admin' }, company: null, line: null })), false)
   })
-  test('B · usuario normal de Planmed: permitido, esté o no su id de rol en NUXT_PLANMED_ADMIN_ROLE_IDS', () => {
+  test('B · usuario normal de Planmed: permitido, esté o no su id de rol en NUXT_ADMIN_ROLE_IDS', () => {
     assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 19, name: 'Diseñador gráfico' } })), true)
     assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 500, name: 'Ventas' } })), true)
-    state.config = { planmedAdminRoleIds: '' }
+    state.config = { adminRoleIds: '' }
     assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 500, name: 'Ventas' } })), true)
     assert.equal(A.isAuthorizedUser(e(), base({ role: null })), true, 'la pertenencia verificada por Hub basta; el rol no interviene')
   })
   test('B · slugs de Planmed sin distinguir mayúsculas ni espacios', () => {
-    assert.equal(A.isAuthorizedUser(e(), base({ company: { slug: ' PLANMED ' }, line: { slug: 'Planmed' } })), true)
+    assert.equal(A.isAuthorizedUser(e(), base({ company: { slug: ' LEGALMED ' }, line: { slug: 'Crediestetica' } })), true)
   })
   test('B · usuario normal de otra línea u otra empresa: denegado', () => {
     assert.equal(A.isAuthorizedUser(e(), base(OTRA_LINEA)), false)
-    assert.equal(A.isAuthorizedUser(e(), base({ company: { slug: 'otra' }, line: { slug: 'planmed' } })), false)
+    assert.equal(A.isAuthorizedUser(e(), base({ company: { slug: 'otra' }, line: { slug: 'crediestetica' } })), false)
     assert.equal(A.isAuthorizedUser(e(), base({ role: { id: 19, name: 'Diseñador gráfico' }, ...OTRA_LINEA })), false, 'el id en la lista no salta la pertenencia')
   })
   test('B · empresa o línea incompletas, o configuración sin slugs: denegado', () => {
@@ -113,12 +113,12 @@ describe('isAuthorizedUser: política A (superadmin global) / B (pertenencia a P
 describe('wellezy.ts conserva el contexto que Hub verifica', () => {
   test('wellezyMe conserva is_global_admin y company/line (solo slug, en minúsculas); descarta lo demás', async () => {
     const orig = globalThis.$fetch
-    globalThis.$fetch = { raw: async () => ({ status: 200, _data: { user: { id: 3, name: 'N', email: 'n@x.test', role: null, is_global_admin: true, company: { id: 1, name: 'X', slug: ' Planmed ' }, line: { id: 2, slug: 'PLANMED', secreto: 'no' } } } }) }
+    globalThis.$fetch = { raw: async () => ({ status: 200, _data: { user: { id: 3, name: 'N', email: 'n@x.test', role: null, is_global_admin: true, company: { id: 1, name: 'X', slug: ' Legalmed ' }, line: { id: 2, slug: 'CREDIESTETICA', secreto: 'no' } } } }) }
     const u = (await W.wellezyMe({}, 'tok')).data.user
     globalThis.$fetch = orig
     assert.equal(u.is_global_admin, true)
-    assert.deepEqual(u.company, { slug: 'planmed' })
-    assert.deepEqual(u.line, { slug: 'planmed' })
+    assert.deepEqual(u.company, { slug: 'legalmed' })
+    assert.deepEqual(u.line, { slug: 'crediestetica' })
   })
   test('sin company/line en la respuesta de Hub => null (contexto no verificable)', async () => {
     const orig = globalThis.$fetch
@@ -167,7 +167,7 @@ describe('POST /api/auth/login', () => {
 
   test('el navegador no puede aportar empresa, línea, rol ni superadmin: solo cuenta la respuesta de Hub', async () => {
     state.loginUser = base({ role: { id: 1, name: 'admin' }, ...OTRA_LINEA })
-    const r = await run(login, ev({ body: { email: 'u@x.test', password: 'x', company_id: 1, linea_id: 1, company: { slug: 'planmed' }, line: { slug: 'planmed' }, is_global_admin: true, role: { id: 1, name: 'admin' } }, headers: { 'x-company': 'planmed', 'x-is-global-admin': '1' } }))
+    const r = await run(login, ev({ body: { email: 'u@x.test', password: 'x', company_id: 1, linea_id: 1, company: { slug: 'legalmed' }, line: { slug: 'crediestetica' }, is_global_admin: true, role: { id: 1, name: 'admin' } }, headers: { 'x-company': 'planmed', 'x-is-global-admin': '1' } }))
     assert.equal(r.error?.statusCode, 403)
     assert.equal(state.loggedOut, 1)
   })

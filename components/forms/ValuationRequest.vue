@@ -5,30 +5,31 @@
       ref="trigger"
       type="button"
       data-testid="valuation-fab"
-      class="fixed bottom-[5.25rem] right-4 md:bottom-28 md:right-8 z-40 bg-[#0C2619] text-white pl-4 pr-5 py-3 rounded-full shadow-2xl border border-[#D3A76A]/60 flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase hover:bg-[#153a28] hover:scale-105 active:scale-95 transition-all"
+      class="fixed bottom-[5.25rem] right-[1.375rem] md:bottom-28 md:right-8 z-40 bg-[#111111] text-white w-11 h-11 justify-center md:w-auto md:h-auto md:justify-start md:pl-4 md:pr-5 md:py-3 rounded-full shadow-2xl border border-[#CBA36B]/60 flex items-center md:gap-2 text-[11px] font-bold tracking-[0.12em] uppercase hover:bg-[#333333] hover:scale-105 active:scale-95 transition-all"
       aria-haspopup="dialog"
+      title="Pide tu cita"
       @click="open"
     >
-      <svg class="w-4 h-4 text-[#D3A76A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-      Pide tu cita
+      <svg class="w-4 h-4 text-[#CBA36B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+      <span class="sr-only md:not-sr-only">Pide tu cita</span>
     </button>
 
     <div v-if="isOpen" class="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4" @click.self="close" @keydown.esc="close">
-      <div ref="dialog" role="dialog" aria-modal="true" aria-labelledby="valuation-title" tabindex="-1" class="relative bg-white w-full max-w-md max-h-[92dvh] flex flex-col shadow-2xl border border-[#e5e2e1] focus:outline-none">
+      <div ref="dialog" role="dialog" aria-modal="true" aria-labelledby="valuation-title" tabindex="-1" class="relative bg-white w-full max-w-md max-h-[92dvh] flex flex-col shadow-2xl border border-[#E7DDD1] focus:outline-none">
         <button type="button" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" aria-label="Cerrar formulario" @click="close">✕</button>
 
-        <div class="px-6 pt-6 pb-4 border-b border-[#e5e2e1] shrink-0">
-          <h2 id="valuation-title" class="font-serif text-2xl text-[#0C2619] pr-8">Pide tu cita de valoración</h2>
+        <div class="px-6 pt-6 pb-4 border-b border-[#E7DDD1] shrink-0">
+          <h2 id="valuation-title" class="font-serif text-2xl text-[#111111] pr-8">Pide tu cita de valoración</h2>
         </div>
 
         <!-- Éxito: solo cuando el CRM confirma el registro -->
         <div v-if="status === 'success'" role="status" data-testid="valuation-success" class="px-6 py-10 text-center">
-          <div class="w-14 h-14 mx-auto mb-5 rounded-full bg-[#0C2619] text-[#D3A76A] flex items-center justify-center">
+          <div class="w-14 h-14 mx-auto mb-5 rounded-full bg-[#111111] text-[#CBA36B] flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
           </div>
-          <p class="font-serif text-xl text-[#0C2619] mb-2">¡Gracias! Recibimos tu solicitud.</p>
-          <p class="text-sm text-gray-600 leading-relaxed mb-6">Una asesora de Planmed se pondrá en contacto contigo muy pronto para agendar tu valoración.</p>
-          <button type="button" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-10 py-3 text-xs font-bold tracking-widest uppercase transition-colors" @click="close">Cerrar</button>
+          <p class="font-serif text-xl text-[#111111] mb-2">¡Gracias! Recibimos tu solicitud.</p>
+          <p class="text-sm text-gray-600 leading-relaxed mb-6">Una asesora de Crediestética se pondrá en contacto contigo muy pronto para agendar tu valoración.</p>
+          <button type="button" class="bg-[#111111] hover:bg-[#333333] text-white px-10 py-3 text-xs font-bold tracking-widest uppercase transition-colors" @click="close">Cerrar</button>
         </div>
 
         <form v-else novalidate class="flex flex-col min-h-0" data-testid="valuation-form" @submit.prevent="onSubmit">
@@ -54,15 +55,15 @@
 
             <div class="pt-1">
               <div class="flex items-start gap-3">
-                <input id="vr-habeas" v-model="values.accept" type="checkbox" class="mt-1 w-4 h-4 accent-[#0C2619]" :aria-invalid="!!errors.accept" />
-                <label for="vr-habeas" class="text-sm text-gray-600 leading-relaxed">He leído y acepto <a :href="PRIVACY_POLICY_URL" target="_blank" rel="noopener noreferrer" class="text-[#0C2619] font-semibold underline underline-offset-2">las Políticas de Tratamiento de Datos Personales</a></label>
+                <input id="vr-habeas" v-model="values.accept" type="checkbox" class="mt-1 w-4 h-4 accent-[#111111]" :aria-invalid="!!errors.accept" />
+                <label for="vr-habeas" class="text-sm text-gray-600 leading-relaxed">He leído y acepto las Políticas de Tratamiento de Datos Personales <LegalDocLink doc="politicaDatos" class="text-[#111111] font-semibold underline underline-offset-2" /></label>
               </div>
               <p v-if="errors.accept" class="text-red-600 text-xs mt-1 font-bold" data-testid="vr-error-accept">{{ errors.accept }}</p>
             </div>
           </div>
 
-          <div class="px-6 py-4 border-t border-[#e5e2e1] bg-[#fcf9f8] shrink-0 flex justify-center">
-            <button type="submit" :disabled="status === 'submitting'" data-testid="valuation-submit" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-10 py-3 text-xs font-bold tracking-widest uppercase transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-3">
+          <div class="px-6 py-4 border-t border-[#E7DDD1] bg-[#F7F3EE] shrink-0 flex justify-center">
+            <button type="submit" :disabled="status === 'submitting'" data-testid="valuation-submit" class="bg-[#111111] hover:bg-[#333333] text-white px-10 py-3 text-xs font-bold tracking-widest uppercase transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-3">
               <span v-if="status === 'submitting'" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
               {{ status === 'submitting' ? 'Enviando...' : 'Enviar' }}
             </button>
@@ -74,15 +75,13 @@
 </template>
 
 <script setup lang="ts">
-// «Pide tu cita de valoración»: botón flotante + ventana emergente. Envía a POST /api/forms/valuation (servidor de Planmed → CRM médico).
+import LegalDocLink from '~/components/legal/LegalDocLink.vue'
+// «Pide tu cita de valoración»: botón flotante + ventana emergente. Envía a POST /api/forms/valuation (servidor de Crediestética → CRM médico).
 // Los datos personales solo viven en memoria mientras el formulario está abierto: no se guardan en el almacenamiento del navegador ni se registran.
 import { ref, reactive, nextTick, watch, onBeforeUnmount } from 'vue'
 import { normalizeValuation, validateValuation, PAYMENT_OPTIONS, type ValuationErrors, type ValuationInput } from '#shared/utils/valuation'
 import { valuationService, ValuationError } from '~/services/ValuationService'
 import { publicProcedureService } from '~/services/PublicProcedureService'
-
-// Política de tratamiento de datos personales (PDF del CRM), en una pestaña nueva.
-const PRIVACY_POLICY_URL = 'https://pdtclientsolutions.com/crm-public/Politica_Tratamiento_Personal.pdf'
 
 type FieldKey = Exclude<keyof ValuationInput, 'accept'>
 interface F { id: string, key: FieldKey, label: string, type?: string, inputmode?: 'text' | 'numeric' | 'tel' | 'email', autocomplete?: string, maxlength?: number, options?: string[] }
@@ -109,7 +108,7 @@ const isOpen = ref(false)
 const trigger = ref<HTMLButtonElement | null>(null)
 const dialog = ref<HTMLElement | null>(null)
 
-// Procedimientos de la línea Planmed desde Hub (activos y habilitados); sin lista estática.
+// Procedimientos de la línea Crediestética desde Hub (activos y habilitados); sin lista estática.
 const procedures = ref<string[]>([])
 const procLoading = ref(false)
 const procError = ref(false)
@@ -189,6 +188,6 @@ onBeforeUnmount(() => { document.body.style.overflow = ''; document.removeEventL
 
 <style scoped>
 .field { width: 100%; min-height: 2.5rem; padding: 0 .75rem; background: #fff; border: 1px solid #cfc4c5; border-radius: 3px; font-size: .875rem; color: #1c1b1b; }
-.field:focus { outline: 2px solid #0C2619; outline-offset: 0; border-color: #0C2619; }
+.field:focus { outline: 2px solid #111111; outline-offset: 0; border-color: #111111; }
 .field[aria-invalid="true"] { border-color: #dc2626; }
 </style>

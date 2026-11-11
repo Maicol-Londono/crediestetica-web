@@ -3,12 +3,12 @@
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 md:p-8">
       <div class="flex flex-wrap items-end justify-between gap-4 border-b border-gray-100 pb-4 mb-6">
         <div>
-          <h3 id="line-users-title" class="text-xs font-bold tracking-widest text-[#0C2619] uppercase">Colaboradores de la línea Planmed</h3>
+          <h3 id="line-users-title" class="text-xs font-bold tracking-widest text-[#111111] uppercase">Colaboradores de la línea Crediestética</h3>
           <p class="text-sm text-gray-500 mt-1">Personas con usuario que pertenecen a la misma empresa y línea que tu usuario. Datos tomados de Wellezy Hub.</p>
         </div>
         <div class="flex items-center gap-4">
           <p v-if="page" class="text-sm text-gray-600" aria-live="polite"><strong class="text-gray-900">{{ page.meta.total }}</strong> colaborador{{ page.meta.total === 1 ? '' : 'es' }}</p>
-          <button v-if="!showForm && !credentials" type="button" class="px-4 py-2 rounded-lg bg-[#0C2619] text-white text-xs font-bold tracking-wider uppercase" data-testid="new-line-user" @click="showForm = true">Nuevo colaborador</button>
+          <button v-if="!showForm && !credentials" type="button" class="px-4 py-2 rounded-lg bg-[#111111] text-white text-xs font-bold tracking-wider uppercase" data-testid="new-line-user" @click="showForm = true">Nuevo colaborador</button>
         </div>
       </div>
 
@@ -46,11 +46,11 @@ Contraseña temporal: ${credentials.password}`, 'all')">Copiar usuario y contras
       <form class="flex flex-col sm:flex-row gap-3 mb-6" role="search" @submit.prevent="applyNow">
         <label class="sr-only" for="lu-search">Buscar por nombre o correo</label>
         <div class="relative flex-1">
-          <input id="lu-search" v-model="search" type="search" placeholder="Buscar por nombre o correo" autocomplete="off" class="w-full px-3 py-2 pr-9 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#0C2619]" />
-          <span v-if="loading && page" class="absolute right-3 top-1/2 -translate-y-1/2 inline-block w-4 h-4 border-2 border-gray-300 border-t-[#0C2619] rounded-full animate-spin" role="status" aria-label="Actualizando resultados"></span>
+          <input id="lu-search" v-model="search" type="search" placeholder="Buscar por nombre o correo" autocomplete="off" class="w-full px-3 py-2 pr-9 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#111111]" />
+          <span v-if="loading && page" class="absolute right-3 top-1/2 -translate-y-1/2 inline-block w-4 h-4 border-2 border-gray-300 border-t-[#111111] rounded-full animate-spin" role="status" aria-label="Actualizando resultados"></span>
         </div>
         <label class="sr-only" for="lu-status">Estado</label>
-        <select id="lu-status" v-model="status" class="px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#0C2619]">
+        <select id="lu-status" v-model="status" class="px-3 py-2 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#111111]">
           <option value="">Todos los estados</option>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
@@ -70,7 +70,7 @@ Contraseña temporal: ${credentials.password}`, 'all')">Copiar usuario y contras
 
         <div v-else class="overflow-x-auto" :class="{ 'opacity-60 transition-opacity': loading }">
           <table class="w-full text-sm text-left">
-            <caption class="sr-only">Colaboradores de la línea Planmed</caption>
+            <caption class="sr-only">Colaboradores de la línea Crediestética</caption>
             <thead>
               <tr class="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th scope="col" class="py-3 pr-4">Colaborador</th>

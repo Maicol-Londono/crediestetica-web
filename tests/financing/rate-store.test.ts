@@ -20,9 +20,11 @@ const LEADER = { id: 7, name: 'Líder Planmed', email: 'lider@x.test', role: { i
 const DESIGNER = { id: 20, name: 'Diseñadora Planmed', email: 'disenadoraplanmed@gmail.com', role: { id: 19, name: 'Diseñador gráfico' }, is_area_leader: false }
 const OTHER_CMS = { id: 21, name: 'Editora', email: 'e@x.test', role: { id: 25, name: 'Editor' }, is_area_leader: false }
 const OUTSIDER = { id: 22, name: 'Otra', email: 'o@x.test', role: { id: 99, name: 'Ventas' }, is_area_leader: false }
-const PLANMED = { company: { slug: 'planmed' }, line: { slug: 'planmed' } }
+const PLANMED = { company: { slug: 'legalmed' }, line: { slug: 'crediestetica' } }
 for (const u of [LEADER, DESIGNER, OTHER_CMS, OUTSIDER]) Object.assign(u, PLANMED)
-const hubUsers = { 'tk-leader': LEADER, 'tk-designer': DESIGNER, 'tk-other': OTHER_CMS, 'tk-outsider': OUTSIDER }
+const SUPER = { id: 1, name: 'Superadmin Hub', email: 'super@x.test', role: null, is_area_leader: false, is_global_admin: true, company: null, line: null }
+const FAKE_SUPER = { ...OTHER_CMS, id: 23, is_global_admin: 'true' } // no estricto: no cuenta
+const hubUsers = { 'tk-leader': LEADER, 'tk-designer': DESIGNER, 'tk-other': OTHER_CMS, 'tk-outsider': OUTSIDER, 'tk-super': SUPER, 'tk-fake-super': FAKE_SUPER }
 
 let getAdmin, putAdmin, getPublic, access, F
 
@@ -35,6 +37,10 @@ const ev = (method, { token = 'tk-designer', body, origin = true, session = true
 const run = async (fn, e) => { try { return { value: await fn(e) } } catch (error) { return { error } } }
 const file = () => join(state.dir, 'financing-rate.json')
 const stored = () => JSON.parse(readFileSync(file(), 'utf8'))
+const seedRate = (rate = '2.0000') => {
+  const entry = { rate, updatedAt: new Date(Date.now() - 60_000).toISOString(), updatedBy: { id: 1, name: 'Configuración de prueba' }, source: 'admin' }
+  writeFileSync(file(), JSON.stringify({ version: 1, ...entry, history: [entry] }, null, 2))
+}
 const wait = () => new Promise(r => setTimeout(r, 3)) // updatedAt distinto entre cambios consecutivos
 
 before(async () => {
@@ -43,7 +49,7 @@ before(async () => {
   g.setHeader = () => {}
   g.readBody = async e => e.body
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
-  g.useRuntimeConfig = () => ({ sessionPassword: 'x'.repeat(40), wellezyApiBaseUrl: 'https://hub.test/api', planmedAdminRoleIds: '19,25', planmedRateEditorRoleIds: '19', wellezyCompanySlug: 'planmed', wellezyLineSlug: 'planmed', ...state.config })
+  g.useRuntimeConfig = () => ({ sessionPassword: 'x'.repeat(40), wellezyApiBaseUrl: 'https://hub.test/api', adminRoleIds: '19,25', rateEditorRoleIds: '19', wellezyCompanySlug: 'legalmed', wellezyLineSlug: 'crediestetica', ...state.config })
   g.useSession = async (e) => ({ data: e.session ?? {}, clear: async () => { state.cleared = true }, update: async () => {} })
   g.getRequestHeader = (e, name) => e.headers[name.toLowerCase()]
   g.aboutContentDir = () => state.dir
@@ -77,22 +83,37 @@ beforeEach(() => {
 })
 after(() => { for (const d of dirs) rmSync(d, { recursive: true, force: true }) })
 
-describe('valor de arranque y persistencia', () => {
-  test('sin archivo: se crea 2.0000 una sola vez, con historial «Arranque», y la API pública lo devuelve', async () => {
+describe('tasa no configurada y persistencia', () => {
+  test('sin archivo: la tasa NO está configurada, no se crea ningún archivo y no hay valor por defecto', async () => {
     assert.ok(!existsSync(file()))
-    const { value } = await run(getPublic, ev('GET', { session: false }))
-    assert.deepEqual(Object.keys(value).sort(), ['rate', 'updatedAt'], 'la vista pública no expone quién la cambió')
-    assert.equal(value.rate, '2.0000')
-    const s = stored()
-    assert.equal(s.rate, '2.0000')
-    assert.equal(s.source, 'initial')
-    assert.equal(s.history.length, 1)
-    assert.equal(s.history[0].updatedBy.name, 'Valor inicial del sistema')
+    const pub = await run(getPublic, ev('GET', { session: false }))
+    assert.equal(pub.value, undefined)
+    assert.equal(pub.error.statusCode, 503)
+    assert.equal(pub.error.data.code, 'rate_not_configured')
+    const adm = await run(getAdmin, ev('GET'))
+    assert.equal(adm.value.configured, false)
+    assert.equal(adm.value.rate, '')
+    assert.deepEqual(adm.value.history, [])
+    assert.ok(!existsSync(file()), 'ninguna lectura crea el archivo')
+    assert.ok(!JSON.stringify([pub.error.data, adm.value]).includes('2.0000'))
+  })
+
+  test('la primera tasa real se configura desde el panel (sin versión previa) y queda como único elemento del historial', async () => {
+    const stale = await run(putAdmin, ev('PUT', { token: 'tk-leader', body: { rate: '2.2', expectedUpdatedAt: '2020-01-01T00:00:00.000Z' } }))
+    assert.equal(stale.error.statusCode, 409, 'con una versión inexistente no se guarda')
+    assert.ok(!existsSync(file()))
+    const first = await run(putAdmin, ev('PUT', { token: 'tk-leader', body: { rate: '2.2', expectedUpdatedAt: null } }))
+    assert.equal(first.error, undefined)
+    assert.equal(first.value.configured, true)
+    assert.equal(first.value.rate, '2.2000')
+    assert.equal(stored().history.length, 1)
+    assert.equal(stored().source, 'admin')
+    assert.equal((await run(getPublic, ev('GET', { session: false }))).value.rate, '2.2000')
     assert.deepEqual(readdirSync(state.dir).filter(n => n.endsWith('.tmp')), [], 'no quedan temporales')
   })
 
-  test('el valor de arranque no se vuelve a crear ni pisa una tasa modificada (reinicio / reconstrucción / redespliegue)', async () => {
-    await run(getPublic, ev('GET', { session: false }))
+  test('una tasa modificada persiste (reinicio / reconstrucción / redespliegue)', async () => {
+    seedRate()
     const first = stored().updatedAt
     const saved = await run(putAdmin, ev('PUT', { token: 'tk-leader', body: { rate: '2.0126', expectedUpdatedAt: first } }))
     assert.equal(saved.value.rate, '2.0126')
@@ -102,13 +123,14 @@ describe('valor de arranque y persistencia', () => {
     assert.equal(stored().source, 'admin')
   })
 
-  test('lecturas concurrentes del primer arranque: un solo archivo inicial', async () => {
+  test('lecturas concurrentes sin configurar: todas responden «no configurada» y no se crea archivo', async () => {
     const all = await Promise.all(Array.from({ length: 8 }, () => run(getPublic, ev('GET', { session: false }))))
-    assert.ok(all.every(r => r.value?.rate === '2.0000'))
-    assert.equal(stored().history.length, 1)
+    assert.ok(all.every(r => r.error?.data?.code === 'rate_not_configured'))
+    assert.ok(!existsSync(file()))
   })
 
   test('actualiza y recupera la tasa con cuatro decimales sin perder precisión (2, 2.12, 2.0126)', async () => {
+    seedRate()
     let version = (await run(getAdmin, ev('GET'))).value.updatedAt
     for (const [input, expected] of [['2.5', '2.5000'], [2.12, '2.1200'], ['2.0126', '2.0126'], ['0.0001', '0.0001'], ['5', '5.0000'], ['2', '2.0000']]) {
       await wait()
@@ -123,12 +145,13 @@ describe('valor de arranque y persistencia', () => {
   })
 
   test('historial: tasa, fecha y usuario, el más reciente primero; guardar la misma tasa no agrega una entrada', async () => {
+    seedRate()
     const v0 = (await run(getAdmin, ev('GET'))).value.updatedAt
     const a = await run(putAdmin, ev('PUT', { token: 'tk-designer', body: { rate: '2.5', expectedUpdatedAt: v0 } }))
     await wait()
     const b = await run(putAdmin, ev('PUT', { token: 'tk-leader', body: { rate: '2.75', expectedUpdatedAt: a.value.updatedAt } }))
     assert.deepEqual(b.value.history.map(h => [h.rate, h.updatedBy.name, h.source]), [
-      ['2.7500', 'Líder Planmed', 'admin'], ['2.5000', 'Diseñadora Planmed', 'admin'], ['2.0000', 'Valor inicial del sistema', 'initial']
+      ['2.7500', 'Líder Planmed', 'admin'], ['2.5000', 'Diseñadora Planmed', 'admin'], ['2.0000', 'Configuración de prueba', 'admin']
     ])
     assert.equal(b.value.updatedBy.id, 7)
     const same = await run(putAdmin, ev('PUT', { token: 'tk-leader', body: { rate: '2.75', expectedUpdatedAt: b.value.updatedAt } }))
@@ -139,6 +162,7 @@ describe('valor de arranque y persistencia', () => {
 
 describe('validación de formato y rango (servidor)', () => {
   test('rechaza coma decimal, más de 4 decimales, texto, vacío, cero, negativos, exponentes y fuera de rango, sin guardar nada', async () => {
+    seedRate()
     const v = (await run(getAdmin, ev('GET'))).value.updatedAt
     const before = readFileSync(file(), 'utf8')
     for (const bad of ['2,5', '2.12345', 'abc', '', '   ', '0', '0.0000', '0.00001', '-1', '+2', '5.0001', '6', '100', '1e1', '2.', '.5', '2.0.1', '2 %', '1.000,5', null, undefined, NaN, {}, [], true]) {
@@ -172,6 +196,7 @@ describe('permisos: líder y diseñadora; nadie más', () => {
   })
 
   test('un rol del CMS que no es líder ni diseño, y un rol ajeno al CMS, reciben 403 y no escriben', async () => {
+    seedRate()
     const v = (await run(getAdmin, ev('GET'))).value.updatedAt
     const before = readFileSync(file(), 'utf8')
     for (const token of ['tk-other', 'tk-outsider']) {
@@ -181,11 +206,11 @@ describe('permisos: líder y diseñadora; nadie más', () => {
     assert.equal(readFileSync(file(), 'utf8'), before)
   })
 
-  test('el permiso de la diseñadora sale de NUXT_PLANMED_RATE_EDITOR_ROLE_IDS: sin su rol listado, 403; el líder conserva el acceso', async () => {
-    state.config = { planmedRateEditorRoleIds: '' }
+  test('el permiso de la diseñadora sale de NUXT_RATE_EDITOR_ROLE_IDS: sin su rol listado, 403; el líder conserva el acceso', async () => {
+    state.config = { rateEditorRoleIds: '' }
     assert.equal((await run(getAdmin, ev('GET', { token: 'tk-designer' }))).error?.statusCode, 403)
     assert.equal((await run(getAdmin, ev('GET', { token: 'tk-leader' }))).error, undefined)
-    state.config = { planmedRateEditorRoleIds: '25' }
+    state.config = { rateEditorRoleIds: '25' }
     assert.equal((await run(getAdmin, ev('GET', { token: 'tk-other' }))).error, undefined)
     assert.equal((await run(getAdmin, ev('GET', { token: 'tk-designer' }))).error?.statusCode, 403)
   })
@@ -221,7 +246,7 @@ describe('permisos: líder y diseñadora; nadie más', () => {
     assert.equal(globalThis.toPublicUser(LEADER, e).canEditRate, true)
     assert.equal(globalThis.toPublicUser(DESIGNER, e).canEditRate, true)
     assert.equal(globalThis.toPublicUser(OTHER_CMS, e).canEditRate, false)
-    assert.deepEqual(Object.keys(globalThis.toPublicUser(DESIGNER, e)).sort(), ['canCreatePrp', 'canDeletePrp', 'canEditContent', 'canEditPrp', 'canEditRate', 'email', 'id', 'isAreaLeader', 'mustChangePassword', 'name', 'role'])
+    assert.deepEqual(Object.keys(globalThis.toPublicUser(DESIGNER, e)).sort(), ['canAccessConfiguration', 'canCreateMicrosites', 'canCreatePrp', 'canDeletePrp', 'canEditContent', 'canEditPrp', 'canEditRate', 'canViewMicrosites', 'canViewNews', 'canViewPatients', 'canViewProcedures', 'canViewRecommendations', 'email', 'id', 'isAreaLeader', 'mustChangePassword', 'name', 'role'])
   })
 
   test('colaboradores sigue siendo solo del líder (la diseñadora no lo gana)', async () => {
@@ -242,6 +267,7 @@ describe('concurrencia', () => {
   })
 
   test('dos guardados simultáneos con la misma versión: exactamente uno gana', async () => {
+    seedRate()
     const v0 = (await run(getAdmin, ev('GET'))).value.updatedAt
     await wait()
     const [x, y] = await Promise.all([
@@ -253,6 +279,7 @@ describe('concurrencia', () => {
   })
 
   test('sin expectedUpdatedAt no se guarda (409)', async () => {
+    seedRate()
     await run(getAdmin, ev('GET'))
     assert.equal((await run(putAdmin, ev('PUT', { body: { rate: '2.4' } }))).error?.statusCode, 409)
   })
@@ -279,13 +306,100 @@ describe('configuración no disponible: error explícito, nunca un 2 % silencios
     })
   }
 
-  test('primer arranque sin poder crear el directorio: 503 explícito, sin tasa inventada', async () => {
+  test('directorio inaccesible (ruta real): el resultado depende del código de error del sistema y es determinista en cada plataforma', async () => {
     const blocker = join(state.dir, 'archivo-no-directorio')
     writeFileSync(blocker, 'x')
-    state.dir = join(blocker, 'contenido') // un archivo en medio del camino impide crear el directorio
+    state.dir = join(blocker, 'contenido') // un archivo en medio del camino impide leer/crear el directorio
+    // Linux/macOS: ENOTDIR => lectura imposible => rate_unavailable. Windows: ENOENT => «no configurada» => rate_not_configured. Se sondea el código real.
+    let code = ''
+    try { readFileSync(file()) } catch (e) { code = e.code }
+    const expected = code === 'ENOENT' ? 'rate_not_configured' : 'rate_unavailable'
     const p = await run(getPublic, ev('GET', { session: false }))
     assert.equal(p.error?.statusCode, 503)
-    assert.equal(p.error.data.code, 'rate_unavailable')
+    assert.equal(p.error.data.code, expected, `código del sistema: ${code}`)
+    assert.ok(!existsSync(file()))
+    // Guardar tampoco puede crear un directorio bajo un archivo: error explícito, nunca una tasa inventada.
+    const w = await run(putAdmin, ev('PUT', { token: 'tk-leader', body: { rate: '2.2', expectedUpdatedAt: null } }))
+    assert.equal(w.error?.statusCode, 500)
+  })
+
+  test('error de lectura distinto de «no existe» (EACCES/EIO/ENOTDIR): SIEMPRE rate_unavailable, en cualquier sistema operativo', async (t) => {
+    for (const code of ['EACCES', 'EIO', 'ENOTDIR']) {
+      t.mock.method(fsp, 'readFile', async () => { throw Object.assign(new Error(code), { code }) })
+      syncBuiltinESMExports()
+      let p, a
+      try {
+        p = await run(getPublic, ev('GET', { session: false }))
+        a = await run(getAdmin, ev('GET', { token: 'tk-leader' }))
+      } finally { t.mock.restoreAll(); syncBuiltinESMExports() }
+      assert.equal(p.error?.statusCode, 503, code)
+      assert.equal(p.error.data.code, 'rate_unavailable', code)
+      assert.equal(a.error?.statusCode, 503, `admin ${code}`)
+    }
+    assert.ok(!existsSync(file()))
+  })
+
+  test('«no existe» (ENOENT) SIEMPRE es rate_not_configured, en cualquier sistema operativo', async (t) => {
+    t.mock.method(fsp, 'readFile', async () => { throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' }) })
+    syncBuiltinESMExports()
+    let p
+    try { p = await run(getPublic, ev('GET', { session: false })) } finally { t.mock.restoreAll(); syncBuiltinESMExports() }
+    assert.equal(p.error?.statusCode, 503)
+    assert.equal(p.error.data.code, 'rate_not_configured')
+  })
+})
+
+describe('vista pública y primera tasa (autorización)', () => {
+  test('financingRatePublicView solo expone rate y updatedAt: nunca quién modificó la tasa, el origen ni el historial', () => {
+    const entry = { rate: '2.2000', updatedAt: '2026-11-01T10:00:00.000Z', updatedBy: { id: 4242, name: 'Nombre Secreto' }, source: 'admin' }
+    const view = globalThis.financingRatePublicView({ version: 1, ...entry, history: [entry] })
+    assert.deepEqual(Object.keys(view).sort(), ['rate', 'updatedAt'])
+    assert.ok(!JSON.stringify(view).includes('Nombre Secreto') && !JSON.stringify(view).includes('4242'))
+  })
+
+  test('la respuesta HTTP pública tampoco filtra el autor (ruta real)', async () => {
+    const entry = { rate: '2.2000', updatedAt: new Date().toISOString(), updatedBy: { id: 4242, name: 'Nombre Secreto' }, source: 'admin' }
+    writeFileSync(file(), JSON.stringify({ version: 1, ...entry, history: [entry] }))
+    const { value } = await run(getPublic, ev('GET', { session: false }))
+    assert.deepEqual(Object.keys(value).sort(), ['rate', 'updatedAt'])
+    assert.ok(!JSON.stringify(value).includes('Nombre Secreto'))
+  })
+
+  test('superadmin global verificado por Hub (is_global_admin === true) puede configurar la PRIMERA tasa', async () => {
+    const r = await run(putAdmin, ev('PUT', { token: 'tk-super', body: { rate: '2.2', expectedUpdatedAt: null } }))
+    assert.equal(r.error, undefined)
+    assert.equal(r.value.configured, true)
+    assert.equal(stored().updatedBy.name, 'Superadmin Hub')
+    assert.equal((await run(getPublic, ev('GET', { session: false }))).value.rate, '2.2000')
+  })
+
+  test('un valor NO estricto de is_global_admin ("true", 1) no concede nada', async () => {
+    const r = await run(putAdmin, ev('PUT', { token: 'tk-fake-super', body: { rate: '2.2', expectedUpdatedAt: null } }))
+    assert.equal(r.error?.statusCode, 403)
+    assert.ok(!existsSync(file()))
+  })
+
+  test('sin ningún perfil autorizado (sin IDs de rol, usuario no líder): 403 al crear la primera tasa, no se crea archivo y el público sigue sin tasa', async () => {
+    state.config = { rateEditorRoleIds: '' }
+    for (const token of ['tk-designer', 'tk-other', 'tk-outsider']) {
+      assert.equal((await run(getAdmin, ev('GET', { token }))).error?.statusCode, 403, `GET ${token}`)
+      assert.equal((await run(putAdmin, ev('PUT', { token, body: { rate: '2.2', expectedUpdatedAt: null } }))).error?.statusCode, 403, `PUT ${token}`)
+    }
+    assert.ok(!existsSync(file()))
+    assert.equal((await run(getPublic, ev('GET', { session: false }))).error.data.code, 'rate_not_configured')
+  })
+
+  test('sin sesión no se crea la primera tasa (401)', async () => {
+    const r = await run(putAdmin, ev('PUT', { session: false, body: { rate: '2.2', expectedUpdatedAt: null } }))
+    assert.equal(r.error?.statusCode, 401)
+    assert.ok(!existsSync(file()))
+  })
+
+  test('el superadmin también modifica una tasa existente (con la versión vigente) y no con una versión vieja', async () => {
+    seedRate()
+    const v = (await run(getAdmin, ev('GET', { token: 'tk-super' }))).value.updatedAt
+    assert.equal((await run(putAdmin, ev('PUT', { token: 'tk-super', body: { rate: '2.9', expectedUpdatedAt: '2020-01-01T00:00:00.000Z' } }))).error?.statusCode, 409)
+    assert.equal((await run(putAdmin, ev('PUT', { token: 'tk-super', body: { rate: '2.9', expectedUpdatedAt: v } }))).value.rate, '2.9000')
   })
 })
 
@@ -318,6 +432,7 @@ describe('escritura robusta', () => {
 
   for (const [label, fn] of [['rename', 'rename'], ['writeFile', 'writeFile']]) {
     test(`si falla ${label} al guardar: 500, sin .tmp huérfano y el archivo vigente intacto`, async (t) => {
+      seedRate()
       const v0 = (await run(getAdmin, ev('GET'))).value.updatedAt
       const before = readFileSync(file(), 'utf8')
       t.mock.method(fsp, fn, async (...args) => {

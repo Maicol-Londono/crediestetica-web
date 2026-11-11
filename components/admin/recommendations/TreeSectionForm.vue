@@ -75,14 +75,14 @@
         </div>
 
         <label class="flex items-center gap-2 text-sm text-gray-700">
-          <input v-model="draft.visible" type="checkbox" class="h-4 w-4 accent-[#0C2619]"> Sección visible en la página
+          <input v-model="draft.visible" type="checkbox" class="h-4 w-4 accent-[#111111]"> Sección visible en la página
         </label>
 
         <AdminRecommendationsTreeNotice :error="action.error.value" :hide-fields="shownFields" :title="action.error.value?.kind === 'conflict' ? 'No se puede completar la acción' : 'No se pudo guardar la sección'" @dismiss="action.clear" />
 
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 pt-5">
           <NuxtLink :to="backUrl" class="text-xs font-bold tracking-widest uppercase text-gray-500 hover:text-gray-800">← Volver al subtema</NuxtLink>
-          <button type="submit" :disabled="action.busy.value" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 shadow-lg w-full sm:w-auto" data-testid="save-section">
+          <button type="submit" :disabled="action.busy.value" class="bg-[#111111] hover:bg-[#333333] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50 shadow-lg w-full sm:w-auto" data-testid="save-section">
             {{ action.busy.value ? 'Guardando...' : sectionId ? 'Guardar sección' : 'Crear sección' }}
           </button>
         </div>
@@ -302,7 +302,7 @@ onMounted(init)
 <style scoped>
 .label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #374151; margin-bottom: .4rem; }
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #f9fafb; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .field[aria-invalid="true"] { border-color: #dc2626; }
 .err { margin-top: .35rem; font-size: .75rem; color: #b91c1c; }
 .hint { margin-top: .35rem; font-size: .65rem; color: #6b7280; }

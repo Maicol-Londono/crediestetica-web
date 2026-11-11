@@ -1,22 +1,22 @@
 <template>
-  <section v-if="hasContact" class="bg-[#fcf9f8] border-t border-[#e5e2e1]" aria-labelledby="about-contact-title">
+  <section v-if="hasContact" class="bg-[#F7F3EE] border-t border-[#E7DDD1]" aria-labelledby="about-contact-title">
     <div class="max-w-[1200px] mx-auto px-6 md:px-12 py-16 md:py-24">
-      <h2 id="about-contact-title" class="font-serif text-3xl md:text-4xl font-medium text-[#0C2619] uppercase mb-10 md:mb-14 text-center md:text-left">
+      <h2 id="about-contact-title" class="font-serif text-3xl md:text-4xl font-medium text-[#111111] uppercase mb-10 md:mb-14 text-center md:text-left">
         Contacto
       </h2>
       <div class="grid gap-10" :class="mapQuery && c.map.enabled ? 'lg:grid-cols-2' : ''">
-        <ul class="grid sm:grid-cols-2 gap-px bg-[#e5e2e1] border border-[#e5e2e1]" :class="mapQuery && c.map.enabled ? '' : 'lg:grid-cols-4'">
+        <ul class="grid sm:grid-cols-2 gap-px bg-[#E7DDD1] border border-[#E7DDD1]" :class="mapQuery && c.map.enabled ? '' : 'lg:grid-cols-4'">
           <li v-if="addressLines.length" class="bg-white p-6 md:p-8">
             <p class="label">Dirección</p>
             <p v-for="line in addressLines" :key="line" class="text-gray-800 leading-relaxed break-words">{{ line }}</p>
           </li>
           <li v-if="c.phone" class="bg-white p-6 md:p-8">
             <p class="label">Teléfono</p>
-            <a :href="aboutPhoneHref(c.phone)" class="text-gray-800 hover:text-[#0C2619] underline-offset-4 hover:underline break-words">{{ c.phone }}</a>
+            <a :href="aboutPhoneHref(c.phone)" class="text-gray-800 hover:text-[#111111] underline-offset-4 hover:underline break-words">{{ c.phone }}</a>
           </li>
           <li v-if="c.email" class="bg-white p-6 md:p-8">
             <p class="label">Correo electrónico</p>
-            <a :href="`mailto:${c.email}`" class="text-gray-800 hover:text-[#0C2619] underline-offset-4 hover:underline break-all">{{ c.email }}</a>
+            <a :href="`mailto:${c.email}`" class="text-gray-800 hover:text-[#111111] underline-offset-4 hover:underline break-all">{{ c.email }}</a>
           </li>
           <li v-if="c.schedule" class="bg-white p-6 md:p-8">
             <p class="label">Horario de atención</p>
@@ -24,15 +24,15 @@
           </li>
           <li v-if="socials.length" class="bg-white p-6 md:p-8">
             <p class="label">Redes sociales</p>
-            <div class="flex items-center gap-4 text-[#0C2619]">
+            <div class="flex items-center gap-4 text-[#111111]">
               <a
                 v-for="s in socials"
                 :key="s.network"
                 :href="s.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="w-10 h-10 rounded-full border border-[#D3A76A] flex items-center justify-center hover:bg-[#0C2619] hover:text-[#D3A76A] transition-colors"
-                :aria-label="`${s.label} de Planmed`"
+                class="w-10 h-10 rounded-full border border-[#CBA36B] flex items-center justify-center hover:bg-[#111111] hover:text-[#CBA36B] transition-colors"
+                :aria-label="`${s.label} de Crediestética`"
                 :title="s.label"
               >
                 <svg class="w-[18px] h-[18px] fill-current" viewBox="0 0 24 24" aria-hidden="true"><path :d="s.icon" /></svg>
@@ -42,7 +42,7 @@
         </ul>
 
         <div v-if="mapQuery && c.map.enabled" class="flex flex-col gap-3">
-          <div class="relative w-full aspect-[4/3] lg:aspect-auto lg:h-full lg:min-h-[320px] border border-[#e5e2e1] bg-white overflow-hidden">
+          <div class="relative w-full aspect-[4/3] lg:aspect-auto lg:h-full lg:min-h-[320px] border border-[#E7DDD1] bg-white overflow-hidden">
             <iframe
               :src="aboutMapEmbedUrl(mapQuery)"
               class="absolute inset-0 w-full h-full"
@@ -51,7 +51,7 @@
               referrerpolicy="no-referrer-when-downgrade"
             ></iframe>
           </div>
-          <a :href="aboutMapLinkUrl(mapQuery)" target="_blank" rel="noopener noreferrer" class="self-start text-[11px] font-bold tracking-[0.15em] uppercase text-[#0C2619] hover:underline underline-offset-4">
+          <a :href="aboutMapLinkUrl(mapQuery)" target="_blank" rel="noopener noreferrer" class="self-start text-[11px] font-bold tracking-[0.15em] uppercase text-[#111111] hover:underline underline-offset-4">
             Abrir en Google Maps
           </a>
         </div>

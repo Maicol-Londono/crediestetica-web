@@ -1,4 +1,4 @@
-// Páginas informativas simples administradas en la web de Planmed (no en Wellezy Hub): título, subtítulo y un cuerpo con texto enriquecido.
+// Páginas informativas simples administradas en la web de Crediestética (no en Wellezy Hub): título, subtítulo y un cuerpo con texto enriquecido.
 // Módulo PURO (sin imports), compartido por el navegador, el servidor Nitro y las pruebas. El HTML del cuerpo lo sanea el servidor
 // (server/utils/sitePages.ts) y lo vuelve a sanear CommonRichContent al mostrarlo. No hay contenido inicial inventado: cuerpo vacío.
 

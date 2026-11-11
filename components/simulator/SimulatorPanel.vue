@@ -2,30 +2,20 @@
   <div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Controls -->
-    <div class="lg:col-span-2 bg-white p-6 md:p-10 border border-[#e5e2e1]">
-      <h3 class="font-serif text-2xl md:text-3xl font-medium text-[#0C2619] mb-10">Calcula tu plan de pago</h3>
+    <div class="lg:col-span-2 bg-white p-6 md:p-10 border border-[#E7DDD1] rounded-[2rem] shadow-sm">
+      <h3 class="font-serif text-2xl md:text-3xl text-[#111111] mb-10">Calcula tu plan de pago</h3>
   
       <div class="space-y-12">
         <!-- Selectors -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="flex flex-col gap-4">
-            <label class="text-[11px] font-bold uppercase tracking-wider text-[#4c4546]">Procedimiento</label>
-            <select v-model="procedure" class="w-full bg-white border border-[#cfc4c5] p-3 text-base focus:outline-none focus:border-[#0C2619] transition-colors">
-              <option v-for="proc in availableProcedures" :key="proc.id" :value="proc.id">
-                {{ proc.name }}
-              </option>
-            </select>
-          </div>
-
-          <div class="flex flex-col gap-4">
-            <label class="text-[11px] font-bold uppercase tracking-wider text-[#4c4546]">Ciudad de Operación</label>
-            <select v-model="city" class="w-full bg-white border border-[#cfc4c5] p-3 text-base focus:outline-none focus:border-[#0C2619] transition-colors">
-              <option value="Medellín">Medellín</option>
-              <option value="Cali">Cali</option>
-              <option value="Barranquilla">Barranquilla</option>
-              <option value="Por Definir">Por Definir</option>
-            </select>
-          </div>
+        <!-- Sin selector de ciudad: la lista fija heredada no aplica a Crediestética; la ciudad se pide en el formulario de solicitud. -->
+        <div class="flex flex-col gap-4">
+          <label for="sim-procedure" class="text-[11px] font-bold uppercase tracking-wider text-[#4c4546]">Procedimiento</label>
+          <select id="sim-procedure" v-model="procedure" data-testid="simulator-procedure" class="w-full bg-white border border-[#BBB2AA] rounded-xl p-3 text-base focus:outline-none focus:border-[#111111] focus-visible:ring-2 focus-visible:ring-[#CBA36B] transition-colors">
+            <option v-if="!availableProcedures.length" value="" disabled>Sin procedimientos disponibles</option>
+            <option v-for="proc in availableProcedures" :key="proc.id" :value="proc.id">
+              {{ proc.name }}
+            </option>
+          </select>
         </div>
 
         <!-- Financing Amount Slider -->
@@ -33,12 +23,12 @@
           <div class="flex justify-between items-end">
             <label class="text-[11px] font-bold uppercase tracking-wider text-[#4c4546]">Monto a financiar</label>
             <div class="relative">
-              <span class="absolute left-2 top-1/2 -translate-y-1/2 text-2xl font-bold text-[#0C2619]">$</span>
+              <span class="absolute left-2 top-1/2 -translate-y-1/2 text-2xl font-bold text-[#111111]">$</span>
               <input 
                 type="text" 
                 v-model="displayAmount"
                 @blur="handleAmountBlur"
-                class="bg-transparent pl-8 text-2xl md:text-3xl font-bold text-[#0C2619] w-[180px] md:w-[220px] text-right focus:outline-none border-b border-transparent focus:border-[#0C2619] transition-colors"
+                class="bg-transparent pl-8 text-2xl md:text-3xl font-bold text-[#111111] w-[180px] md:w-[220px] text-right focus:outline-none border-b border-transparent focus:border-[#111111] transition-colors"
               />
             </div>
           </div>
@@ -48,9 +38,9 @@
             :min="MIN_AMOUNT" 
             :max="MAX_AMOUNT" 
             :step="STEP_AMOUNT" 
-            class="w-full h-2 bg-[#BBB2AA]/30 appearance-none cursor-pointer accent-[#D3A76A]"
+            class="w-full h-2 rounded-full bg-[#BBB2AA]/30 appearance-none cursor-pointer accent-[#CBA36B]"
           />
-          <div class="flex justify-between text-xs text-[#0C2619]/60 font-bold mt-2">
+          <div class="flex justify-between text-xs text-[#111111]/60 font-bold mt-2">
             <span>${{ MIN_AMOUNT / 1000000 }}M</span>
             <span>${{ MAX_AMOUNT / 1000000 }}M</span>
           </div>
@@ -65,10 +55,10 @@
               v-for="term in [12, 18, 24, 36, 48, 60, 72]" :key="term"
               @click="months = term"
               :class="[
-                'p-3 font-bold text-base transition-all',
+                'p-3 rounded-full font-bold text-base transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CBA36B]',
                 months === term 
-                  ? 'border-2 border-[#D3A76A] bg-[#D3A76A]/20 text-[#0C2619]' 
-                  : 'border border-[#cfc4c5] text-[#4c4546] hover:bg-white hover:border-[#0C2619]'
+                  ? 'border-2 border-[#CBA36B] bg-[#CBA36B]/20 text-[#111111]' 
+                  : 'border border-[#BBB2AA] text-[#4c4546] hover:bg-white hover:border-[#111111]'
               ]"
             >
               {{ term }}
@@ -80,11 +70,11 @@
 
     <!-- Result Card Component -->
     <div class="w-full">
-      <div class="bg-[#0C2619] text-white p-8 md:p-10 shadow-xl lg:sticky lg:top-28">
+      <div class="bg-[#111111] text-white rounded-[2rem] p-8 md:p-10 shadow-xl lg:sticky lg:top-28">
         <h3 class="text-xs font-bold tracking-widest text-[#848484] uppercase mb-8">CUOTA ESTIMADA</h3>
     
-        <div v-if="quoteError" role="alert" data-testid="simulator-unavailable" class="text-sm text-white/90 leading-relaxed border border-[#D3A76A]/60 bg-black/30 p-5">
-          <p class="font-bold text-[#D3A76A] uppercase tracking-wider text-xs mb-2">Simulación no disponible</p>
+        <div v-if="quoteError" role="alert" data-testid="simulator-unavailable" class="text-sm text-white/90 leading-relaxed border border-[#CBA36B]/60 rounded-xl bg-black/30 p-5">
+          <p class="font-bold text-[#CBA36B] uppercase tracking-wider text-xs mb-2">Simulación no disponible</p>
           <p>{{ quoteError }}</p>
           <button type="button" class="mt-4 underline text-xs font-bold tracking-widest uppercase" @click="submitSimulation">Reintentar</button>
         </div>
@@ -114,7 +104,7 @@
               <span class="font-medium text-white">{{ months }} meses</span>
             </div>
         
-            <div class="flex items-start gap-3 mt-4 p-4 bg-black/40 border border-[#313030]">
+            <div class="flex items-start gap-3 mt-4 p-4 bg-black/40 border border-[#313030] rounded-xl">
               <p class="text-xs text-[#848484] leading-relaxed">
                 {{ currentQuote.disclaimer }}
               </p>
@@ -122,7 +112,7 @@
           </div>
       
           <div class="flex flex-col gap-4">
-            <button @click="isLeadFormOpen = true" class="w-full bg-[#D3A76A] text-[#0C2619] py-4 font-bold text-xs tracking-widest uppercase hover:bg-[#e0b97f] transition-colors flex justify-center items-center gap-3">
+            <button @click="isLeadFormOpen = true" class="w-full bg-[#CBA36B] text-[#111111] rounded-full py-4 font-bold text-xs tracking-widest uppercase hover:bg-white transition-colors active:scale-95 flex justify-center items-center gap-3">
               SOLICITAR FINANCIACIÓN
             </button>
             <p class="text-[11px] text-[#848484] text-center leading-relaxed">
@@ -146,13 +136,12 @@
       :procedure="procedure"
       :amount="amount"
       :installments="months"
-      :city="city"
     />
   </div>
 </template>
 
 <script setup>
-// Simulador de cuota (antes en /simulador; hoy dentro de /financiacion). Misma lógica de useSimulator: procedimiento, ciudad, monto y plazo.
+// Simulador de cuota (antes en /simulador; hoy dentro de /financiacion). Misma lógica de useSimulator: procedimiento, monto y plazo.
 import { useSimulator } from '~/composables/useSimulator'
 import { watch, ref, onMounted, onBeforeUnmount } from 'vue'
 
@@ -162,7 +151,6 @@ const {
   amount,
   months,
   procedure,
-  city,
   currentQuote,
   quoteError,
   isLoading,
@@ -182,7 +170,7 @@ onMounted(() => {
 })
 
 let simulatorDebounceTimer = null
-watch([amount, months, procedure, city], () => {
+watch([amount, months, procedure], () => {
   if (simulatorDebounceTimer) clearTimeout(simulatorDebounceTimer)
   // Nueva cotización tras una breve pausa
   simulatorDebounceTimer = setTimeout(() => {

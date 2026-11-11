@@ -1,4 +1,4 @@
 User-agent: *
 Disallow: /api/
 
-Sitemap: https://planmed.com.co/sitemap.xml
+Sitemap: https://crediestetica.com/sitemap.xml

@@ -75,6 +75,10 @@ export async function setup(hub: FakeHub) {
   Object.assign(g, await load('server/utils/publicErrors.ts'))
   const proc = await load('server/utils/procedures.ts')
   Object.assign(g, proc)
+  // `withOrientation` (auto-import de Nitro) lo usan los handlers públicos y de administración de procedimientos. Lee un archivo local
+  // (aboutContentDir): sin directorio configurado en las pruebas se usa uno inexistente => orientación por defecto, sin tocar disco real.
+  Object.assign(g, await load('server/utils/procedureOrientation.ts'))
+  g.aboutContentDir ??= () => resolve(ROOT, '.harness-sin-contenido')
 
   return {
     news,

@@ -1,4 +1,4 @@
-// Menú público de páginas de recomendaciones (GET /api/v1/web/recommendation-pages): solo publicadas de la línea de Planmed,
+// Menú público de páginas de recomendaciones (GET /api/v1/web/recommendation-pages): solo publicadas de la línea configurada,
 // sin contenido. Hub resuelve la línea con X-Tenant-Linea (configuración del servidor); nada del tenant viaja desde el navegador.
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')

@@ -4,10 +4,10 @@
 
     <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div class="min-w-0">
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-1 uppercase">Temas de recomendaciones</h2>
+        <h2 class="text-3xl font-serif text-[#111111] mb-1 uppercase">Temas de recomendaciones</h2>
         <p class="text-gray-500 font-light max-w-2xl">Cada tema es una opción del menú público de Recomendaciones. Dentro de un tema se crean los subtemas (las páginas), sus secciones y las recomendaciones individuales.</p>
       </div>
-      <button type="button" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors shadow-lg" data-testid="create-topic" @click="openCreate">
+      <button type="button" class="bg-[#111111] hover:bg-[#333333] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors shadow-lg" data-testid="create-topic" @click="openCreate">
         Crear tema
       </button>
     </div>
@@ -23,7 +23,7 @@
     <template v-else>
       <!-- Crear / editar tema -->
       <form v-if="form" class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4" data-testid="topic-form" @submit.prevent="save">
-        <h3 class="text-sm font-bold tracking-widest uppercase text-[#0C2619]">{{ form.id ? 'Editar tema' : 'Nuevo tema' }}</h3>
+        <h3 class="text-sm font-bold tracking-widest uppercase text-[#111111]">{{ form.id ? 'Editar tema' : 'Nuevo tema' }}</h3>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
             <label class="label" for="t-title">Título del tema *</label>
@@ -42,12 +42,12 @@
             <p class="hint">Solo minúsculas, números y guiones. No se puede cambiar después: la web enlaza a él.</p>
           </div>
           <label v-if="!form.id" class="flex items-center gap-2 text-sm text-gray-700 md:self-end">
-            <input v-model="form.published" type="checkbox" class="h-4 w-4 accent-[#0C2619]"> Publicar al crear
+            <input v-model="form.published" type="checkbox" class="h-4 w-4 accent-[#111111]"> Publicar al crear
           </label>
         </div>
         <AdminRecommendationsTreeNotice :error="action.error.value" :hide-fields="['title', 'menu_label', 'slug']" @dismiss="action.clear" />
         <div class="flex flex-wrap items-center gap-3">
-          <button type="submit" :disabled="action.busy.value" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50">
+          <button type="submit" :disabled="action.busy.value" class="bg-[#111111] hover:bg-[#333333] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors disabled:opacity-50">
             {{ action.busy.value ? 'Guardando...' : form.id ? 'Guardar tema' : 'Crear tema' }}
           </button>
           <button type="button" class="text-xs font-bold tracking-widest uppercase text-gray-500 hover:text-gray-800" :disabled="action.busy.value" @click="form = null">Cancelar</button>
@@ -71,7 +71,7 @@
               <button type="button" class="icon-btn" aria-label="Subir" :disabled="i === 0 || action.busy.value" @click="move(i, -1)">↑</button>
               <button type="button" class="icon-btn" aria-label="Bajar" :disabled="i === topics.length - 1 || action.busy.value" @click="move(i, 1)">↓</button>
             </div>
-            <NuxtLink :to="`/admin/recomendaciones/temas/${t.id}`" class="min-w-0 break-words font-semibold text-[#0C2619] hover:text-[#D3A76A]">{{ t.title }}</NuxtLink>
+            <NuxtLink :to="`/admin/recomendaciones/temas/${t.id}`" class="min-w-0 break-words font-semibold text-[#111111] hover:text-[#CBA36B]">{{ t.title }}</NuxtLink>
             <span class="min-w-0 break-words text-sm text-gray-600"><span class="md:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400">Menú: </span>{{ t.menu_label }}</span>
             <span class="text-sm text-gray-600"><span class="md:hidden text-[10px] font-bold uppercase tracking-widest text-gray-400">Subtemas: </span>{{ t.subtopics_count }}<span v-if="t.subtopics_count" class="text-xs text-gray-400"> ({{ t.published_subtopics_count }} publ.)</span></span>
             <span><AdminRecommendationsStatusBadge :label="t.published ? 'Publicado' : 'Oculto'" :tone="t.published ? 'green' : 'gray'" /></span>
@@ -95,7 +95,7 @@ import { describeTreeError, moveId, type TreeErrorInfo } from '#shared/utils/rec
 import { recommendationTreeAdmin as api } from '~/providers/HubRecommendationTreeAdminProvider'
 import type { TreeTopic } from '~/types/recommendationTree'
 
-useHead({ title: 'Temas de recomendaciones | Admin Planmed' })
+useHead({ title: 'Temas de recomendaciones | Admin Crediestética' })
 definePageMeta({ layout: 'admin' })
 
 const notify = useNotify()
@@ -180,12 +180,12 @@ onMounted(load)
 <style scoped>
 .label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #374151; margin-bottom: .4rem; }
 .field { width: 100%; padding: .65rem .9rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: #f9fafb; font-size: .875rem; }
-.field:focus { outline: none; box-shadow: 0 0 0 2px #0C2619; border-color: transparent; }
+.field:focus { outline: none; box-shadow: 0 0 0 2px #111111; border-color: transparent; }
 .field[aria-invalid="true"] { border-color: #dc2626; }
 .err { margin-top: .35rem; font-size: .75rem; color: #b91c1c; }
 .hint { margin-top: .35rem; font-size: .65rem; color: #6b7280; }
-.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0C2619; }
-.link:hover:not(:disabled) { color: #D3A76A; }
+.link { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #111111; }
+.link:hover:not(:disabled) { color: #CBA36B; }
 .link:disabled { opacity: .5; }
 .icon-btn { width: 1.6rem; height: 1.6rem; border: 1px solid #e5e7eb; border-radius: .4rem; font-size: .8rem; color: #374151; }
 .icon-btn:hover:not(:disabled) { background: #f3f4f6; }

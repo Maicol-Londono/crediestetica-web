@@ -195,7 +195,7 @@ describe('detalle del subtema: introducción y secciones', () => {
 describe('SEO del subtema', () => {
   test('título, descripción de la introducción, imagen y ruta canónica jerárquica', () => {
     const d = t.fromPublicSubtopic(page({ intro: { content: '<p>La abdominoplastia &amp; sus <strong>cuidados</strong>.</p>', image: { url: 'https://cdn.example.com/i.jpg', alt: null }, video: null } }))
-    assert.deepEqual(t.subtopicSeo(d), { title: 'Título abdominoplastia | Planmed', description: 'La abdominoplastia & sus cuidados .', image: 'https://cdn.example.com/i.jpg', canonicalPath: '/recomendaciones/cuidados-de-cirugias/abdominoplastia' })
+    assert.deepEqual(t.subtopicSeo(d), { title: 'Título abdominoplastia | Crediestética', description: 'La abdominoplastia & sus cuidados .', image: 'https://cdn.example.com/i.jpg', canonicalPath: '/recomendaciones/cuidados-de-cirugias/abdominoplastia' })
   })
 
   test('descripción larga se recorta a 160 caracteres; sin introducción usa la primera sección con texto; sin nada, un texto de respaldo', () => {
@@ -206,7 +206,7 @@ describe('SEO del subtema', () => {
     assert.equal(t.subtopicSeo(fromSection).description, 'Del cuerpo')
     assert.equal(t.subtopicSeo(fromSection).image, 'https://cdn.example.com/s.jpg')
     const bare = t.fromPublicSubtopic(page({ intro: { content: '' }, sections: [] }))
-    assert.equal(t.subtopicSeo(bare).description, 'Recomendaciones de Planmed: Título abdominoplastia.')
+    assert.equal(t.subtopicSeo(bare).description, 'Recomendaciones de Crediestética: Título abdominoplastia.')
     assert.equal(t.subtopicSeo(bare).image, null)
   })
 })

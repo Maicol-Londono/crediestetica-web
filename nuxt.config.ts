@@ -2,32 +2,37 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
   runtimeConfig: {
-    // Solo servidor (nunca expuestos al cliente). Se sobrescriben con NUXT_WELLEZY_*, NUXT_PLANMED_ADMIN_ROLE_IDS
+    // Solo servidor (nunca expuestos al cliente). Se sobrescriben con NUXT_WELLEZY_*, NUXT_ADMIN_ROLE_IDS
     // y NUXT_SESSION_PASSWORD (mínimo 32 caracteres aleatorios).
     // Autenticación contra Wellezy Hub: p. ej. https://wellezyhub.com/api (local: http://localhost:8000/api).
     wellezyApiBaseUrl: '',
-    wellezyCompanySlug: 'planmed',
-    wellezyLineSlug: 'planmed',
-    // IDs de rol (users.role.id de Wellezy) autorizados para el CMS, separados por coma.
-    planmedAdminRoleIds: '19',
-    // IDs de rol que, además del líder de la línea, pueden ver y modificar la tasa de interés del simulador (rol «Diseñador gráfico» = 19 en
-    // Wellezy Hub según el repositorio; confirmar en el Hub real). Separados por coma. NUXT_PLANMED_RATE_EDITOR_ROLE_IDS. Deben seguir siendo roles del CMS.
-    planmedRateEditorRoleIds: '19',
+    // Tenant por SLUG (nunca por id). Referencia verificada en la copia local de PD (D5.5): Legalmed = companies.id 16, Crediestética = lineas.id 4
+    // (lineas.company_id 16). Esos ids NO se usan en el código: el login envía los slugs y las lecturas públicas envían X-Tenant-Linea.
+    wellezyCompanySlug: 'legalmed',
+    wellezyLineSlug: 'crediestetica',
+    // IDs de rol (users.role.id de Wellezy) autorizados para el CMS, separados por coma. Hoy NO intervienen en el acceso (ver auth.ts) y no hay
+    // ids verificados para Crediestética: se dejan vacíos.
+    adminRoleIds: '',
+    // IDs de rol que, además del superadmin global y del líder de la línea, pueden ver y modificar la tasa de interés del simulador. Separados por
+    // coma. NUXT_RATE_EDITOR_ROLE_IDS. Vacío a propósito: falta que el responsable decida qué rol adicional la edita (en la copia de PD existen
+    // «Diseñador gráfico» = 19 y «Administrador de contenido de línea» = 20, pero ningún usuario de la línea los tiene; los ids pueden variar por entorno).
+    rateEditorRoleIds: '',
     // IDs de rol adicionales (opcional) que pueden ESCRIBIR el contenido local (Nosotros, Clínicas aliadas, páginas). Los perfiles se reconocen
-    // también por nombre (ver auth.ts). NUXT_PLANMED_CONTENT_EDITOR_ROLE_IDS, separados por coma. Vacío = solo por nombre.
-    planmedContentEditorRoleIds: '',
+    // también por nombre (ver auth.ts). NUXT_CONTENT_EDITOR_ROLE_IDS, separados por coma. Vacío = solo por nombre.
+    contentEditorRoleIds: '',
     sessionPassword: '',
     // Proxies de confianza delante de la aplicación para resolver la IP del cliente (límite de peticiones del PRP). 0 = ignorar X-Forwarded-For
     // y usar la IP del socket (seguro, pero tras un proxy todos comparten una sola IP). NUXT_TRUSTED_PROXY_HOPS; subir a 1 SOLO tras confirmar la infraestructura.
     trustedProxyHops: 0,
-    // Directorio persistente del contenido administrado localmente en la web (página «Nosotros»). NUXT_PLANMED_CONTENT_DIR.
-    // Vacío => `<directorio de trabajo>/.data/planmed-content`. Debe quedar FUERA de `.output/` para sobrevivir a los despliegues.
-    planmedContentDir: '',
+    // Directorio persistente del contenido administrado localmente en la web (página «Nosotros»). NUXT_CONTENT_DIR.
+    // Vacío => `<directorio de trabajo>/.data/crediestetica-content`. Debe quedar FUERA de `.output/` para sobrevivir a los despliegues.
+    contentDir: '',
     // Formulario de valoración → CRM médico (POST multipart desde el SERVIDOR; el navegador nunca lo llama). NUXT_CRM_VALUATION_URL.
     crmValuationUrl: 'https://pdtclientsolutions.com/crm-public/api/clients/forms',
     public: {
-      appName: 'Planmed',
-      localDomain: 'planmed.com.co',
+      appName: 'Crediestética',
+      // Valor informativo del dominio público: ningún código lo lee hoy. No es dominio de la API ni se envía a Hub (no se usa X-Tenant-Domain).
+      localDomain: 'crediestetica.com',
       // Formulario público de PRP del CRM médico externo (POST directo desde el navegador). Se sobrescribe con NUXT_PUBLIC_CRM_PRP_FORM_URL.
       crmPrpFormUrl: 'https://pdtclientsolutions.com/crm-public/api/forms-px-prp',
       // Wellezy Hub settings removed/disabled for now
@@ -45,17 +50,18 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap'
   ],
   site: {
-    // Dominio público que se posiciona (confirmado por el responsable del sitio; coincide con documentacion/plan_implementacion_paginas_referido_y_noticias.md).
+    // URL PÚBLICA del sitio (canonical, sitemap, Open Graph). Confirmada por el responsable y coincide con el dominio primario activo de la línea 4 en
+    // `linea_domains` de la copia de PD (crediestetica.com). No es la URL de la API del Hub (wellezyApiBaseUrl) ni se usa para resolver el tenant.
     // Se puede sobrescribir por entorno con NUXT_PUBLIC_SITE_URL (nuxt-site-config); si el despliegue lo define, esa variable manda.
-    url: 'https://planmed.com.co'
+    url: 'https://crediestetica.com'
   },
   // El sitemap solo lista páginas públicas: el panel (/admin/**) no debe ofrecerse a los buscadores.
   sitemap: {
-    exclude: ['/admin', '/admin/**']
+    exclude: ['/admin', '/admin/**', '/prp/**']
   },
   app: {
     head: {
-      title: 'FINANCIACIÓN DE CIRUGÍAS PLÁSTICAS | PLANMED',
+      title: 'FINANCIACIÓN DE CIRUGÍAS PLÁSTICAS | CREDIESTÉTICA',
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/images/branding/logo-ico.ico' }
       ]

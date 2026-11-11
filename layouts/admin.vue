@@ -2,50 +2,52 @@
   <div class="h-screen overflow-hidden bg-gray-50 flex font-sans text-gray-900">
     
     <!-- SIDEBAR -->
-    <aside class="w-64 bg-[#0C2619] text-white flex-col hidden md:flex shrink-0 shadow-xl z-20 relative h-full overflow-y-auto">
+    <aside class="w-64 bg-[#111111] text-white flex-col hidden md:flex shrink-0 shadow-xl z-20 relative h-full overflow-y-auto">
       <div class="p-8 border-b border-white/10">
-        <h1 class="font-serif text-3xl font-medium tracking-tight text-white uppercase">Planmed</h1>
-        <p class="text-[10px] text-[#D3A76A] tracking-[0.2em] font-bold uppercase mt-2">Panel Administrativo</p>
+        <h1 class="m-0">
+          <img src="/images/branding/logo.png" alt="Crediestética" class="w-full h-auto rounded-lg object-cover aspect-[3/2]" />
+        </h1>
+        <p class="text-[10px] text-[#CBA36B] tracking-[0.2em] font-bold uppercase mt-4 text-center">Panel Administrativo</p>
       </div>
 
       <nav class="flex-grow p-4 space-y-8 mt-4">
         
         <div>
-          <NuxtLink to="/admin" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]">
+          <NuxtLink to="/admin" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]">
             Dashboard
           </NuxtLink>
         </div>
 
         <div>
           <p class="px-4 text-[10px] tracking-[0.15em] text-white/50 uppercase font-bold mb-2">Contenido</p>
-          <NuxtLink to="/admin/procedimientos" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]">
+          <NuxtLink v-if="user?.canViewProcedures" to="/admin/procedimientos" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]">
             Procedimientos
           </NuxtLink>
-          <NuxtLink to="/admin/noticias" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]">
-            Noticias
-          </NuxtLink>
-          <NuxtLink to="/admin/testimonios" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]">
+          <NuxtLink v-if="user?.canViewPatients" to="/admin/testimonios" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]">
             Nuestros Pacientes
           </NuxtLink>
-          <NuxtLink to="/admin/recomendaciones/temas" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]" data-testid="nav-recommendation-topics">
+          <NuxtLink v-if="user?.canViewNews" to="/admin/noticias" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]">
+            Noticias
+          </NuxtLink>
+          <NuxtLink v-if="user?.canViewRecommendations" to="/admin/recomendaciones/temas" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]" data-testid="nav-recommendation-topics">
             Recomendaciones
           </NuxtLink>
           <!-- Submenú «Nosotros»: solo las páginas administrables; solo perfiles editores de contenido -->
-          <button v-if="user?.canEditContent" type="button" class="w-full flex items-center justify-between px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" :class="isPagesRoute ? 'text-[#D3A76A]' : ''" :aria-expanded="pagesOpen ? 'true' : 'false'" aria-controls="admin-pages-submenu" @click="pagesOpen = !pagesOpen">
+          <button v-if="user?.canEditContent" type="button" class="w-full flex items-center justify-between px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" :class="isPagesRoute ? 'text-[#CBA36B]' : ''" :aria-expanded="pagesOpen ? 'true' : 'false'" aria-controls="admin-pages-submenu" @click="pagesOpen = !pagesOpen">
             <span>Nosotros</span>
             <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': pagesOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
           </button>
           <div v-if="user?.canEditContent" v-show="pagesOpen" id="admin-pages-submenu" class="ml-3 pl-3 border-l border-white/10 space-y-1 mt-1">
-            <NuxtLink v-for="l in pageLinks" :key="l.to" :to="l.to" class="block px-4 py-2 rounded-lg text-sm transition-colors hover:bg-white/10" exact-active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]">{{ l.label }}</NuxtLink>
+            <NuxtLink v-for="l in pageLinks" :key="l.to" :to="l.to" class="block px-4 py-2 rounded-lg text-sm transition-colors hover:bg-white/10" exact-active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]">{{ l.label }}</NuxtLink>
           </div>
-          <NuxtLink to="/admin/micrositios" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]">
+          <NuxtLink v-if="user?.canViewMicrosites" to="/admin/micrositios" class="block px-4 py-2 mt-1 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" exact-active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]">
             Micrositios
           </NuxtLink>
         </div>
 
-        <div v-if="user?.isAreaLeader || user?.canEditRate">
+        <div v-if="user?.canAccessConfiguration">
           <p class="px-4 text-[10px] tracking-[0.15em] text-white/50 uppercase font-bold mb-2">Administración</p>
-          <NuxtLink to="/admin/configuracion" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" active-class="bg-[#D3A76A] text-[#0C2619] hover:bg-[#D3A76A]">
+          <NuxtLink to="/admin/configuracion" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-white/10" active-class="bg-[#CBA36B] text-[#111111] hover:bg-[#CBA36B]">
             Configuración
           </NuxtLink>
         </div>
@@ -70,7 +72,7 @@
         <div class="flex items-center gap-6" v-if="user">
           <div class="text-right hidden sm:block">
             <p class="text-sm font-bold text-gray-900">{{ user.name }}</p>
-            <p class="text-[11px] font-medium text-[#D3A76A] uppercase tracking-wider">{{ user.role.name }}</p>
+            <p class="text-[11px] font-medium text-[#CBA36B] uppercase tracking-wider">{{ user.role.name }}</p>
           </div>
           
           <div class="h-8 w-px bg-gray-200 hidden sm:block"></div>

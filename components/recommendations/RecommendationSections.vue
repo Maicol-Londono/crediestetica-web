@@ -13,9 +13,9 @@
     :data-section-type="section.type"
     :class="shellClass(section.type)"
   >
-    <!-- Callout: bloque oscuro de la identidad de Planmed -->
+    <!-- Callout: bloque oscuro de la identidad de Crediestética -->
     <template v-if="section.type === 'callout'">
-      <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#D3A76A]/20 blur-3xl pointer-events-none"></div>
+      <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#CBA36B]/20 blur-3xl pointer-events-none"></div>
       <div class="relative">
         <h2 v-if="section.title" class="font-serif text-2xl md:text-3xl mb-4 break-words">{{ section.title }}</h2>
         <p v-if="section.subtitle" class="text-white/70 font-light mb-4">{{ section.subtitle }}</p>
@@ -40,7 +40,7 @@
     <!-- Resto de tipos: tarjeta blanca -->
     <template v-else>
       <header v-if="section.title || section.subtitle" class="mb-6">
-        <h2 v-if="section.title" class="reco-section-title font-serif text-2xl md:text-[1.75rem] font-medium leading-tight text-[#0C2619] break-words">{{ section.title }}</h2>
+        <h2 v-if="section.title" class="reco-section-title font-serif text-2xl md:text-[1.75rem] font-medium leading-tight text-[#111111] break-words">{{ section.title }}</h2>
         <p v-if="section.subtitle" class="mt-3 text-[#4c4546] font-light">{{ section.subtitle }}</p>
       </header>
 
@@ -92,18 +92,18 @@ const has = hasText
 const visible = computed(() => props.sections.filter(s => !sectionParts(s).isEmpty))
 
 function shellClass(type: TreeSection['type']) {
-  if (type === 'callout') return 'relative overflow-hidden rounded-2xl bg-[#0C2619] text-white p-8 md:p-12'
-  if (type === 'contact') return 'bg-white border border-[#D3A76A]/50 shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12'
-  return 'bg-white border border-[#e5e2e1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12'
+  if (type === 'callout') return 'relative overflow-hidden rounded-2xl bg-[#111111] text-white p-8 md:p-12'
+  if (type === 'contact') return 'bg-white border border-[#CBA36B]/50 shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12'
+  return 'bg-white border border-[#E7DDD1] shadow-xl shadow-black/5 rounded-2xl p-6 md:p-12'
 }
 </script>
 
 <style>
-.reco-section-title { padding-left: 1rem; border-left: 4px solid #D3A76A; }
+.reco-section-title { padding-left: 1rem; border-left: 4px solid #CBA36B; }
 
 .reco-callout-body { color: rgba(255, 255, 255, .8); font-weight: 300; font-size: 1.0625rem; line-height: 1.75; }
 .reco-callout-body p { margin: 0 0 1em; }
-.reco-callout-body a { color: #D3A76A; text-decoration: underline; text-underline-offset: 3px; }
+.reco-callout-body a { color: #CBA36B; text-decoration: underline; text-underline-offset: 3px; }
 .reco-callout-body strong { color: #fff; font-weight: 600; }
 .reco-callout-body > :last-child { margin-bottom: 0; }
 
@@ -113,10 +113,10 @@ function shellClass(type: TreeSection['type']) {
   font-weight: 300; line-height: 1.7; overflow-wrap: anywhere;
 }
 .reco-items > li::before {
-  content: ''; position: absolute; left: 1rem; top: 1.05rem; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: #0C2619 center / .9rem no-repeat;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D3A76A' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
+  content: ''; position: absolute; left: 1rem; top: 1.05rem; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: #111111 center / .9rem no-repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23CBA36B' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
 }
-.reco-item-title { display: block; font-weight: 600; color: #0C2619; }
+.reco-item-title { display: block; font-weight: 600; color: #111111; }
 .reco-item-body p { margin: 0; }
 .reco-item-body p + p { margin-top: .5em; }
 </style>

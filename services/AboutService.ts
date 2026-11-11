@@ -1,7 +1,7 @@
 import type { AboutContent, AboutErrors } from '#shared/utils/aboutContent'
 
 // Administración de «Nosotros» a través de las rutas internas de Nitro (/api/admin/about). El contenido se persiste en el servidor
-// de la web de Planmed (no en Wellezy Hub ni en el navegador). La sesión viaja en la cookie httpOnly; no se usa localStorage.
+// de la web de Crediestética (no en Wellezy Hub ni en el navegador). La sesión viaja en la cookie httpOnly; no se usa localStorage.
 
 export type Fetcher = <T>(url: string, options?: Record<string, unknown>) => Promise<T>
 export type AboutSaveError = Error & { statusCode?: number, errors: AboutErrors }

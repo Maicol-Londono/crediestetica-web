@@ -1,17 +1,17 @@
 <template>
-  <div class="min-h-screen bg-[#fcf9f8] flex items-center justify-center p-6 font-sans selection:bg-[#0C2619] selection:text-white">
+  <div class="min-h-screen bg-[#F7F3EE] flex items-center justify-center p-6 font-sans selection:bg-[#111111] selection:text-white">
     <div class="w-full max-w-md">
       
       <!-- Logo y Encabezado -->
       <div class="text-center mb-10">
-        <h1 class="font-serif text-[40px] font-medium text-[#0C2619] tracking-tight uppercase">Planmed.</h1>
-        <p class="mt-3 text-[11px] font-bold tracking-[0.2em] text-[#D3A76A] uppercase">
+        <h1 class="font-serif text-[40px] font-medium text-[#111111] tracking-tight uppercase">Crediestética.</h1>
+        <p class="mt-3 text-[11px] font-bold tracking-[0.2em] text-[#CBA36B] uppercase">
           Panel Administrativo
         </p>
       </div>
 
       <!-- Tarjeta de Login -->
-      <div class="bg-white rounded-xl shadow-2xl shadow-black/5 p-8 md:p-10 border border-[#e5e2e1]">
+      <div class="bg-white rounded-xl shadow-2xl shadow-black/5 p-8 md:p-10 border border-[#E7DDD1]">
         
         <form @submit.prevent="onSubmit" class="space-y-6">
           
@@ -32,7 +32,7 @@
               v-model="email"
               type="email" 
               required
-              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent transition-all"
+              class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all"
             />
           </div>
 
@@ -47,12 +47,12 @@
                 :type="showPassword ? 'text' : 'password'" 
                 required
                 autocomplete="current-password"
-                class="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent transition-all"
+                class="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all"
                 placeholder="••••••••"
               />
               <button
                 type="button"
-                class="absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 hover:text-[#0C2619] focus:outline-none focus-visible:text-[#0C2619]"
+                class="absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 hover:text-[#111111] focus:outline-none focus-visible:text-[#111111]"
                 :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 :aria-pressed="showPassword"
                 data-testid="toggle-password"
@@ -68,7 +68,7 @@
             <input
               v-model="remember"
               type="checkbox"
-              class="h-4 w-4 rounded border-gray-300 accent-[#0C2619]"
+              class="h-4 w-4 rounded border-gray-300 accent-[#111111]"
               data-testid="remember-me"
             />
             Recordarme en este equipo
@@ -77,7 +77,7 @@
           <button 
             type="submit" 
             :disabled="loading"
-            class="w-full bg-[#0C2619] text-white font-bold text-xs tracking-[0.15em] uppercase py-4 px-6 rounded-lg hover:bg-[#153a28] transition-colors disabled:opacity-70 disabled:cursor-not-allowed mt-4"
+            class="w-full bg-[#111111] text-white font-bold text-xs tracking-[0.15em] uppercase py-4 px-6 rounded-lg hover:bg-[#333333] transition-colors disabled:opacity-70 disabled:cursor-not-allowed mt-4"
           >
             <span v-if="loading">Iniciando sesión...</span>
             <span v-else>Iniciar sesión</span>
@@ -97,7 +97,7 @@ import { useRouter, useRoute, useHead, navigateTo } from '#imports'
 import { authService } from '~/services/AuthService'
 
 useHead({
-  title: 'Iniciar sesión | Admin Planmed'
+  title: 'Iniciar sesión | Admin Crediestética'
 })
 
 // Esta página usa su propio diseño
@@ -116,7 +116,7 @@ const showPassword = ref(false)
 const remember = ref(false)
 
 // «Recordarme» guarda únicamente el correo en este navegador (nunca la contraseña ni el token); la sesión sigue siendo la de Hub.
-const REMEMBER_KEY = 'planmed-admin-email'
+const REMEMBER_KEY = 'crediestetica-admin-email'
 
 onMounted(() => {
   try {

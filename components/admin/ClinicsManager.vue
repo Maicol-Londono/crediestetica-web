@@ -2,10 +2,10 @@
   <section class="space-y-6" aria-labelledby="clinics-title">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h3 id="clinics-title" class="text-xl font-serif text-[#0C2619] uppercase">Clínicas</h3>
+        <h3 id="clinics-title" class="text-xl font-serif text-[#111111] uppercase">Clínicas</h3>
         <p class="text-sm text-gray-500 font-light">Cada clínica se muestra como una tarjeta en la página pública. Las nuevas se agregan arriba. Se guardan con su propio botón.</p>
       </div>
-      <button type="button" class="px-4 py-2 border border-[#0C2619] text-[#0C2619] text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#0C2619]/5 disabled:opacity-50" :disabled="!form || form.clinics.length >= CLINIC_LIMITS.clinics" @click="addClinic">Agregar clínica</button>
+      <button type="button" class="px-4 py-2 border border-[#111111] text-[#111111] text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#111111]/5 disabled:opacity-50" :disabled="!form || form.clinics.length >= CLINIC_LIMITS.clinics" @click="addClinic">Agregar clínica</button>
     </div>
 
     <div v-if="loading" class="bg-white border border-gray-200 rounded-xl p-8 text-gray-500">Cargando clínicas…</div>
@@ -22,11 +22,12 @@
         <p class="mt-1 text-xs opacity-80">Tus cambios siguen en pantalla.</p>
       </div>
 
-      <p v-if="!form.clinics.length" class="bg-white border border-dashed border-gray-300 rounded-xl p-8 text-center text-sm text-gray-500">Aún no hay clínicas. Usa «Agregar clínica». Mientras no haya ninguna, la página pública no muestra la sección.</p>
+      <p v-if="!form.clinics.length" class="bg-white border border-dashed border-gray-300 rounded-xl p-8 text-center text-sm text-gray-500">Aún no hay clínicas. Usa «Agregar clínica». Mientras no haya ninguna clínica activa, la página pública muestra un mensaje neutro («Pronto compartiremos aquí nuestras clínicas aliadas») y el inicio no muestra la sección.</p>
 
       <article v-for="(c, i) in form.clinics" :key="c.id" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 md:p-8 space-y-6" :aria-label="`Clínica ${i + 1}`">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-          <h4 class="text-xs font-bold tracking-widest uppercase text-[#0C2619]">Clínica {{ i + 1 }}<span v-if="c.name" class="text-gray-400 normal-case tracking-normal font-normal"> — {{ c.name }}</span></h4>
+          <h4 class="text-xs font-bold tracking-widest uppercase text-[#111111]">Clínica {{ i + 1 }}<span v-if="c.name" class="text-gray-400 normal-case tracking-normal font-normal"> — {{ c.name }}</span>
+            <span :class="c.active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'" class="ml-2 inline-block rounded px-2 py-0.5 text-[10px] font-bold tracking-widest" :data-testid="`clinic-state-${i}`">{{ c.active ? 'VISIBLE' : 'OCULTA' }}</span></h4>
           <div class="flex flex-wrap gap-2">
             <button type="button" class="btn-sm" :disabled="i === 0" :aria-label="`Subir clínica ${i + 1}`" @click="move(i, -1)">Subir</button>
             <button type="button" class="btn-sm" :disabled="i === form.clinics.length - 1" :aria-label="`Bajar clínica ${i + 1}`" @click="move(i, 1)">Bajar</button>
@@ -41,10 +42,43 @@
         </div>
 
         <div>
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input v-model="c.active" type="checkbox" class="h-4 w-4 accent-[#111111]" :data-testid="`clinic-active-${i}`" />
+            Mostrar esta clínica en la web pública
+          </label>
+          <p class="hint">Si la desmarcas, la clínica se conserva aquí pero no aparece al público (ni en la página ni en el inicio).</p>
+        </div>
+
+        <div>
           <label class="lbl">Descripción *</label>
           <AdminRichTextEditor v-model="c.description" min-height="8rem" />
           <p v-if="err(i, 'description')" class="msg">{{ err(i, 'description') }}</p>
         </div>
+
+        <!-- Datos de contacto (opcionales): solo se muestran los que se completen -->
+        <fieldset class="grid gap-4 md:grid-cols-2">
+          <legend class="lbl">Datos de contacto (opcionales)</legend>
+          <div>
+            <label class="lbl" :for="`cl-web-${c.id}`">Sitio web (https)</label>
+            <input :id="`cl-web-${c.id}`" v-model="c.website" class="inp" inputmode="url" maxlength="200" placeholder="https://" :aria-invalid="!!err(i, 'website')" />
+            <p v-if="err(i, 'website')" class="msg">{{ err(i, 'website') }}</p>
+          </div>
+          <div>
+            <label class="lbl" :for="`cl-phone-${c.id}`">Teléfono</label>
+            <input :id="`cl-phone-${c.id}`" v-model="c.phone" class="inp" inputmode="tel" maxlength="40" :aria-invalid="!!err(i, 'phone')" />
+            <p v-if="err(i, 'phone')" class="msg">{{ err(i, 'phone') }}</p>
+          </div>
+          <div>
+            <label class="lbl" :for="`cl-email-${c.id}`">Correo electrónico</label>
+            <input :id="`cl-email-${c.id}`" v-model="c.email" class="inp" type="email" maxlength="200" :aria-invalid="!!err(i, 'email')" />
+            <p v-if="err(i, 'email')" class="msg">{{ err(i, 'email') }}</p>
+          </div>
+          <div>
+            <label class="lbl" :for="`cl-address-${c.id}`">Dirección</label>
+            <input :id="`cl-address-${c.id}`" v-model="c.address" class="inp" maxlength="200" :aria-invalid="!!err(i, 'address')" />
+            <p v-if="err(i, 'address')" class="msg">{{ err(i, 'address') }}</p>
+          </div>
+        </fieldset>
 
         <!-- Imagen principal -->
         <div>
@@ -85,7 +119,7 @@
           </template>
           <template v-else>
             <ul class="space-y-4">
-              <li v-for="(d, di) in c.documents" :key="d.id" class="border border-gray-200 rounded-lg p-4 space-y-3 bg-[#fcf9f8]">
+              <li v-for="(d, di) in c.documents" :key="d.id" class="border border-gray-200 rounded-lg p-4 space-y-3 bg-[#F7F3EE]">
                 <div class="flex items-center justify-between gap-3">
                   <p class="text-xs font-bold uppercase tracking-widest text-gray-500">Documento {{ di + 1 }}</p>
                   <button type="button" class="btn-sm text-red-700" @click="removeDoc(c, di)">Eliminar documento</button>
@@ -99,7 +133,7 @@
                   <p class="lbl">Documentos o imágenes *</p>
                   <ul v-if="d.files.length" class="space-y-1 mb-2">
                     <li v-for="(f, fi) in d.files" :key="f.url" class="flex items-center justify-between gap-3 text-sm bg-white border border-gray-200 rounded px-3 py-2">
-                      <a :href="f.url" target="_blank" rel="noopener noreferrer" class="truncate text-[#0C2619] underline underline-offset-2">{{ f.name || 'Archivo' }}</a>
+                      <a :href="f.url" target="_blank" rel="noopener noreferrer" class="truncate text-[#111111] underline underline-offset-2">{{ f.name || 'Archivo' }}</a>
                       <button type="button" class="text-red-700 text-xs font-bold shrink-0" :aria-label="`Quitar ${f.name || 'archivo'}`" @click="d.files.splice(fi, 1)">Quitar</button>
                     </li>
                   </ul>
@@ -126,7 +160,7 @@
           <span v-else-if="savedAt" class="text-emerald-700">Clínicas guardadas a las {{ savedAt }}. Ya son visibles en la página pública.</span>
           <span v-else class="text-gray-400">Sin cambios en las clínicas.</span>
         </p>
-        <button type="button" :disabled="!dirty || saving || uploading" class="bg-[#0C2619] hover:bg-[#153a28] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 shadow" @click="save">
+        <button type="button" :disabled="!dirty || saving || uploading" class="bg-[#111111] hover:bg-[#333333] text-white px-8 py-3 rounded-lg font-bold text-xs tracking-widest uppercase disabled:opacity-50 shadow" @click="save">
           {{ saving ? 'Guardando…' : 'Guardar clínicas' }}
         </button>
       </div>
@@ -181,7 +215,7 @@ const newId = (prefix: string, used: string[]) => {
 async function addClinic() {
   if (!form.value) return
   const id = newId('clinica', form.value.clinics.map(c => c.id))
-  form.value.clinics.unshift({ id, name: '', description: '', image: '', gallery: [], documents: [] })
+  form.value.clinics.unshift({ id, name: '', description: '', image: '', gallery: [], documents: [], active: true, website: '', phone: '', email: '', address: '' })
   docsOpen[id] = false
   await nextTick()
   const input = document.getElementById(`cl-name-${id}`)
@@ -340,13 +374,13 @@ onMounted(load)
 <style scoped>
 .lbl { display: block; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #6b7280; margin-bottom: .5rem; }
 .inp { width: 100%; padding: .5rem .75rem; background: #fff; border: 1px solid #e5e7eb; border-radius: .375rem; font-size: .875rem; }
-.inp:focus { outline: none; box-shadow: 0 0 0 1px #0C2619; }
+.inp:focus { outline: none; box-shadow: 0 0 0 1px #111111; }
 .inp[aria-invalid='true'] { border-color: #dc2626; }
 .msg { margin-top: .375rem; font-size: .75rem; color: #b91c1c; }
 .hint { margin-top: .5rem; font-size: 10px; color: #6b7280; }
 .btn-sm { padding: .375rem .75rem; border: 1px solid #e5e7eb; border-radius: .5rem; font-size: .75rem; font-weight: 600; color: #374151; background: #fff; }
 .btn-sm:hover:not(:disabled) { background: #f9fafb; }
 .btn-sm:disabled { opacity: .4; }
-.btn-primary { display: inline-block; padding: .625rem 1.25rem; background: #0C2619; color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; border-radius: .5rem; }
-.btn-primary:hover { background: #153a28; }
+.btn-primary { display: inline-block; padding: .625rem 1.25rem; background: #111111; color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; border-radius: .5rem; }
+.btn-primary:hover { background: #333333; }
 </style>

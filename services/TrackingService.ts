@@ -9,10 +9,10 @@ export class TrackingService {
 
   getVisitorUuid(): string | null {
     if (!import.meta.client) return null;
-    let uuid = localStorage.getItem('planmed_session_id');
+    let uuid = localStorage.getItem('crediestetica_session_id');
     if (!uuid) {
       uuid = crypto.randomUUID();
-      localStorage.setItem('planmed_session_id', uuid);
+      localStorage.setItem('crediestetica_session_id', uuid);
     }
     return uuid;
   }

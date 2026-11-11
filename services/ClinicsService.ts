@@ -1,7 +1,7 @@
 import type { ClinicsContent } from '#shared/utils/clinics'
 import { toAboutError, type Fetcher } from '~/services/AboutService'
 
-// Administración de «Clínicas aliadas» (/api/admin/clinics). El contenido y los archivos se guardan en el servidor de la web de Planmed.
+// Administración de «Clínicas aliadas» (/api/admin/clinics). El contenido y los archivos se guardan en el servidor de la web de Crediestética.
 const requestFetch: Fetcher = (url, options) => (useRequestFetch() as any)(url, options)
 
 export class ClinicsService {

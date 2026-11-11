@@ -120,7 +120,7 @@ export function validateEnrollment(v: EnrollmentInput, today: Date = new Date())
     else if (!/^\d{6,20}$/.test(v.bank_account_number)) e.bank_account_number = 'El número de cuenta solo debe tener números (entre 6 y 20).'
   }
 
-  if (!v.accepted_contract) e.accepted_contract = 'Debes aceptar las condiciones del contrato de remisión de pacientes para continuar.'
+  if (!v.accepted_contract) e.accepted_contract = 'Debes aceptar las condiciones del programa de referidos para continuar.'
   return e
 }
 

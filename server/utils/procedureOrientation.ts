@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 // Orientación de la imagen de portada de cada procedimiento («vertical» 1080 × 1920 u «horizontal» 1920 × 1080).
-// Wellezy Hub no tiene ese dato, así que se guarda LOCALMENTE en Planmed (`<NUXT_PLANMED_CONTENT_DIR>/procedure-image-orientation.json`,
+// Wellezy Hub no tiene ese dato, así que se guarda LOCALMENTE en esta web (`<NUXT_CONTENT_DIR>/procedure-image-orientation.json`,
 // mapa slug → orientación), igual que «Nosotros» y «Clínicas aliadas». Sin dato, la portada es vertical.
 // Helpers de Nitro (aboutContentDir, createError) son auto-imports.
 

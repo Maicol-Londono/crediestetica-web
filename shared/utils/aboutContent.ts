@@ -1,6 +1,6 @@
 // Página «Nosotros»: modelo, contenido inicial y validación. Módulo PURO (sin imports) compartido por el navegador (formulario
 // del administrador), el servidor Nitro (rutas /api/{admin,public}/about) y las pruebas de Node.
-// Este contenido se administra SOLO en la web de Planmed (no en Wellezy Hub): ver server/utils/aboutStore.ts.
+// Este contenido se administra SOLO en esta web (no en Wellezy Hub): ver server/utils/aboutStore.ts.
 // Los textos largos (legal, párrafos, respuestas y horario) admiten texto enriquecido: el servidor los sanea con la lista blanca de
 // utils/richText.ts (aboutStore.parseAboutBody) y la página los renderiza con CommonRichContent, que vuelve a sanear. El resto es texto plano.
 
@@ -40,49 +40,32 @@ const SOCIAL_HOSTS: Record<AboutSocialNetwork, RegExp> = {
   tiktok: /^(www\.)?tiktok\.com$/i
 }
 
-// Contenido inicial: el texto institucional validado por Planmed y los datos de contacto verificados.
-// Las redes sociales son las que ya publica el sitio (components/layout/Footer.vue). No hay horario ni mapa verificados: quedan vacíos.
+// Contenido inicial NEUTRO: esta web aún no tiene contenido propio configurado. No se hereda ningún texto, imagen, contacto ni red social
+// de otra marca: todo queda vacío y las páginas muestran un estado «sin configurar». El contenido real se carga desde /admin/nosotros.
 export function aboutDefaultContent(): AboutContent {
   return {
-    hero: {
-      title: 'NUESTRO EQUIPO',
-      image: '/images/web/nosotros-hero.jpg',
-      imageAlt: 'Equipo de atención y asesoría de Planmed'
-    },
-    institutional: {
-      title: 'PLAN MÉDICO Y QUIRÚRGICO S.A.S.',
-      legal: 'PLANMED. Entidad especializada en la suscripción y otorgamiento de préstamos de carácter privado permitidos y regulados por el artículo 45 de la Ley 1480 de 2011 y el Decreto 1368 de 2014. Se encuentra bajo la inspección y vigilancia realizada por la Superintendencia de Industria y Comercio.',
-      paragraphs: [
-        'En PLAN MÉDICO Y QUIRÚRGICO, entendemos que el costo de la cirugía puede ser un factor importante a la hora de tomar decisiones. Es por eso que ofrecemos opciones de financiación diseñadas para hacer que tus procedimientos sean financieramente viables. Nuestro equipo está aquí para ayudarte a explorar diferentes planes de pago, encontrar la mejor opción para ti y garantizar que puedas realizar tu transformación sin preocupaciones financieras.',
-        'Además de nuestra atención personalizada en materia financiera, nos enorgullece ofrecer una experiencia integral en cirugía plástica. Trabajamos con cirujanos plásticos altamente calificados y con amplia experiencia, utilizando las técnicas más avanzadas y las últimas innovaciones en cirugía estética y reconstructiva.',
-        'Desde procedimientos faciales hasta intervenciones corporales, en PLANMED nos comprometemos a proporcionarte resultados excepcionales que mejoren tu bienestar y autoestima.'
-      ]
-    },
-    video: { url: 'https://www.youtube.com/watch?v=zsNBJjsvjMg' },
-    faqs: [
-      { id: 'faq-aprobacion', question: '¿Cuánto tiempo se tarda la aprobación?', answer: 'El tiempo máximo de aprobación es de 24 horas a partir de la entrega de la documentación correspondiente.', active: true },
-      { id: 'faq-ciudades', question: '¿Están en todas las ciudades de Colombia?', answer: 'Nuestras sedes principales están en Medellín y Cali, pero puedes financiar desde cualquier parte de Colombia.', active: true },
-      { id: 'faq-cuota-inicial', question: '¿Debo dar cuota inicial?', answer: 'Todo depende del porcentaje final que se te apruebe.', active: true },
-      { id: 'faq-independiente', question: '¿Me prestan si soy independiente?', answer: 'En PLANMED financiamos a todo tipo de personas: empleadas, independientes y reportadas.', active: true },
-      { id: 'faq-cirugias', question: '¿Qué cirugías financian?', answer: 'Financiamos todo tipo de procedimiento estético.', active: true }
-    ],
+    hero: { title: '', image: '', imageAlt: '' },
+    institutional: { title: '', legal: '', paragraphs: ['', '', ''] },
+    video: { url: '' },
+    faqs: [],
     contact: {
-      address: 'Av. El Poblado #5A-113',
-      building: 'One Plaza',
-      city: 'Medellín',
-      region: 'Antioquia, Colombia',
-      phone: '+57 318 8043382',
-      email: 'planmedequipodetrabajo@gmail.com',
+      address: '',
+      building: '',
+      city: '',
+      region: '',
+      phone: '',
+      email: '',
       schedule: '',
-      socials: {
-        instagram: 'https://www.instagram.com/planmed_financia_cirugia',
-        facebook: 'https://www.facebook.com/Financicioncirugiaplastica',
-        tiktok: 'https://www.tiktok.com/@financiacioncirugia'
-      },
+      socials: { instagram: '', facebook: '', tiktok: '' },
       map: { enabled: false }
     },
     updatedAt: ''
   }
+}
+
+/** ¿Aún no hay contenido de «Nosotros» configurado? (nada guardado: se muestra el estado «sin configurar»). */
+export function aboutIsEmpty(c: AboutContent): boolean {
+  return !c.hero.title && !c.institutional.title && !c.institutional.legal && !c.institutional.paragraphs.some(Boolean) && !c.faqs.length
 }
 
 // ── YouTube: solo se guarda una URL canónica con un id válido; el reproductor se construye a partir del id (nunca HTML del usuario).
@@ -187,8 +170,8 @@ export function validateAboutContent(c: AboutContent): AboutErrors {
   if (c.institutional.paragraphs.length !== ABOUT_LIMITS.paragraphs) e['institutional.paragraphs'] = 'Deben existir tres párrafos.'
   c.institutional.paragraphs.forEach((p, i) => req(`institutional.paragraphs.${i}`, p, `El párrafo ${i + 1}`, ABOUT_LIMITS.paragraph))
 
-  if (!c.video.url) e['video.url'] = 'El enlace del video es obligatorio.'
-  else if (!aboutYoutubeId(c.video.url)) e['video.url'] = 'Usa un enlace válido de YouTube (youtube.com/watch?v=…, youtu.be/…, /shorts/… o /embed/…).'
+  // El video es opcional: sin enlace, la sección de video no se muestra en la página pública.
+  if (c.video.url && !aboutYoutubeId(c.video.url)) e['video.url'] = 'Usa un enlace válido de YouTube (youtube.com/watch?v=…, youtu.be/…, /shorts/… o /embed/…).'
 
   if (c.faqs.length > ABOUT_LIMITS.faqs) e.faqs = `Máximo ${ABOUT_LIMITS.faqs} preguntas.`
   c.faqs.forEach((f, i) => {

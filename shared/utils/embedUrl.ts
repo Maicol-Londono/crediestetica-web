@@ -1,5 +1,5 @@
 // Validación de enlaces de YouTube e Instagram para los bloques de las secciones de noticias. Módulo PURO. Espejo de la regla del Hub
-// (App\Support\Embeds\EmbedUrl): host en lista blanca + identificador reconocible; devuelve la URL canónica (siempre https). Planmed lo
+// (App\Support\Embeds\EmbedUrl): host en lista blanca + identificador reconocible; devuelve la URL canónica (siempre https). Crediestética lo
 // vuelve a aplicar al recibir el contrato público: no confía en que una respuesta remota traiga una URL o un embed seguros.
 
 const YOUTUBE_HOSTS = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com', 'youtu.be']

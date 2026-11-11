@@ -1,21 +1,21 @@
 <template>
   <section aria-labelledby="ref-form-title" class="mt-14 border-t border-black pt-10">
     <!-- Resultado: «completed» solo cuando el CRM médico confirmó; «received» = guardada, pendiente de procesar. -->
-    <div v-if="status === 'completed' || status === 'received'" role="status" :data-testid="`referral-${status}`" class="bg-white border border-[#e5e2e1] p-8 md:p-12 text-center">
-      <div class="w-14 h-14 mx-auto mb-5 rounded-full bg-[#0C2619] text-[#D3A76A] flex items-center justify-center">
+    <div v-if="status === 'completed' || status === 'received'" role="status" :data-testid="`referral-${status}`" class="bg-white border border-[#E7DDD1] p-8 md:p-12 text-center">
+      <div class="w-14 h-14 mx-auto mb-5 rounded-full bg-[#111111] text-[#CBA36B] flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
       </div>
-      <h2 class="font-serif text-2xl md:text-3xl font-medium text-[#0C2619] mb-3">{{ status === 'completed' ? '¡Gracias! Quedaste inscrita en el programa' : 'Recibimos tu inscripción' }}</h2>
+      <h2 class="font-serif text-2xl md:text-3xl font-medium text-[#111111] mb-3">{{ status === 'completed' ? '¡Gracias! Quedaste inscrita en el programa' : 'Recibimos tu inscripción' }}</h2>
       <p class="text-gray-600 leading-relaxed max-w-md mx-auto">
-        <template v-if="status === 'completed'">Tu inscripción quedó registrada. Una asesora de Planmed se pondrá en contacto contigo.</template>
-        <template v-else>La estamos procesando y aún no está confirmada del todo. No necesitas enviarla de nuevo; una asesora de Planmed se pondrá en contacto contigo.</template>
+        <template v-if="status === 'completed'">Tu inscripción quedó registrada. Una asesora de Crediestética se pondrá en contacto contigo.</template>
+        <template v-else>La estamos procesando y aún no está confirmada del todo. No necesitas enviarla de nuevo; una asesora de Crediestética se pondrá en contacto contigo.</template>
       </p>
     </div>
 
-    <form v-else novalidate class="bg-white border border-[#e5e2e1] border-t-4 border-t-[#0C2619] p-5 sm:p-8 md:p-12 space-y-6" data-testid="referral-form" @submit.prevent="onSubmit">
+    <form v-else novalidate class="bg-white border border-[#E7DDD1] border-t-4 border-t-[#111111] p-5 sm:p-8 md:p-12 space-y-6" data-testid="referral-form" @submit.prevent="onSubmit">
       <div>
         <p class="text-[11px] font-bold tracking-[0.15em] text-[#848484] uppercase mb-3">Inscripción</p>
-        <h2 id="ref-form-title" class="font-serif text-3xl md:text-4xl font-medium text-[#0C2619]">Regístrate en el programa</h2>
+        <h2 id="ref-form-title" class="font-serif text-3xl md:text-4xl font-medium text-[#111111]">Regístrate en el programa</h2>
       </div>
 
       <div v-if="status === 'error'" role="alert" data-testid="referral-error" class="border border-red-300 border-l-4 border-l-red-600 bg-red-50 text-red-800 px-4 py-3 text-sm leading-relaxed">
@@ -59,7 +59,7 @@
       </fieldset>
 
       <!-- Datos bancarios: SOLO con transferencia. Al cambiar a efectivo se vacían y no se envían. -->
-      <fieldset v-if="transfer" class="space-y-4 border border-[#e5e2e1] bg-[#fcf9f8] p-5" data-testid="referral-bank">
+      <fieldset v-if="transfer" class="space-y-4 border border-[#E7DDD1] bg-[#F7F3EE] p-5" data-testid="referral-bank">
         <legend class="lbl px-2">Si elegiste pago por transferencia ingresa</legend>
         <div v-for="f in bankFields" :key="f.id">
           <label :for="`rf-${f.id}`" class="block text-sm text-[#4c4546] mb-1.5">{{ f.label }}</label>
@@ -76,14 +76,14 @@
 
       <div>
         <div class="flex items-start gap-3">
-          <input id="rf-acepto" v-model="values.accepted_contract" type="checkbox" class="mt-1 w-4 h-4 accent-[#0C2619]" :aria-invalid="!!errors.accepted_contract" />
-          <label for="rf-acepto" class="text-sm text-[#4c4546] uppercase leading-snug">Entiendo y acepto las condiciones del contrato de remisión de pacientes</label>
+          <input id="rf-acepto" v-model="values.accepted_contract" type="checkbox" class="mt-1 w-4 h-4 accent-[#111111]" :aria-invalid="!!errors.accepted_contract" />
+          <label for="rf-acepto" class="text-sm text-[#4c4546] uppercase leading-snug">Entiendo y acepto las condiciones del programa de referidos publicadas en esta página</label>
         </div>
         <p v-if="errors.accepted_contract" class="err font-bold" data-testid="rf-error-accepted_contract">{{ errors.accepted_contract }}</p>
       </div>
 
       <div>
-        <button type="submit" :disabled="status === 'submitting'" data-testid="referral-submit" class="w-full bg-[#0C2619] hover:bg-[#153a28] text-white py-4 text-xs font-bold tracking-widest uppercase transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+        <button type="submit" :disabled="status === 'submitting'" data-testid="referral-submit" class="w-full bg-[#111111] hover:bg-[#333333] text-white py-4 text-xs font-bold tracking-widest uppercase transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3">
           <span v-if="status === 'submitting'" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
           {{ status === 'submitting' ? 'Enviando...' : 'Enviar' }}
         </button>
@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-// Inscripción al Programa de referidos (PRP). Envía a POST /api/forms/prp-enrollment (servidor de Planmed → Hub). Los datos
+// Inscripción al Programa de referidos (PRP). Envía a POST /api/forms/prp-enrollment (servidor de Crediestética → Hub). Los datos
 // (incluidos los bancarios) solo viven en memoria: no se guardan en el almacenamiento del navegador ni se registran.
 import { ref, reactive, computed, watch } from 'vue'
 import { DOCUMENT_TYPES, PAYMENT_METHODS, isTransfer, normalizeEnrollment, validateEnrollment, type EnrollmentErrors, type EnrollmentInput } from '#shared/utils/prpEnrollment'
@@ -183,9 +183,9 @@ async function onSubmit() {
 <style scoped>
 .lbl { display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9a7a45; margin-bottom: .5rem; }
 .field { width: 100%; height: 2.75rem; padding: 0 .75rem; background: #fff; border: 1px solid #cfc4c5; border-radius: 2px; font-size: .9375rem; color: #1c1b1b; }
-.field:focus { outline: 2px solid #0C2619; outline-offset: 0; border-color: #0C2619; }
+.field:focus { outline: 2px solid #111111; outline-offset: 0; border-color: #111111; }
 .field[aria-invalid="true"] { border-color: #dc2626; }
 .err { margin-top: .35rem; font-size: .75rem; color: #b91c1c; }
 .radio { display: inline-flex; align-items: center; gap: .5rem; font-size: .9375rem; color: #4c4546; cursor: pointer; }
-.radio input { accent-color: #0C2619; width: 1rem; height: 1rem; }
+.radio input { accent-color: #111111; width: 1rem; height: 1rem; }
 </style>

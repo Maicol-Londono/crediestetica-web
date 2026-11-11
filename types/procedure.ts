@@ -36,7 +36,7 @@ export interface Procedure {
   shortDescription: string;
   whatIsIt: string;
   image: string;
-  /** Orientación de la portada: vertical (1080 × 1920, por defecto) u horizontal (1920 × 1080). Se guarda en Planmed, no en Hub. */
+  /** Orientación de la portada: vertical (1080 × 1920, por defecto) u horizontal (1920 × 1080). Se guarda en Crediestética, no en Hub. */
   imageOrientation?: 'vertical' | 'horizontal';
   secondaryImage?: string;
   galeria?: Array<string | ProcedureImage>;
@@ -57,7 +57,7 @@ export interface Procedure {
   // Solo administración (Wellezy Hub es la fuente de verdad; el público solo ve los activos).
   /** Procedimiento activo y visible en la web (propio: su estado; maestro: habilitado en la línea). */
   activo?: boolean;
-  /** Maestro del Hub: contenido global, no editable desde Planmed (solo habilitar/deshabilitar/destacar). */
+  /** Maestro del Hub: contenido global, no editable desde Crediestética (solo habilitar/deshabilitar/destacar). */
   isMaster?: boolean;
   editable?: boolean;
   galeriaAssets?: Array<{ id: number; url: string }>;

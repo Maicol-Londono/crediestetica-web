@@ -8,7 +8,7 @@
 //               intro: { content, image: { url, alt } | null, video: { provider, url, embed_url } | null },
 //               sections[] = { type, orden, title, subtitle, content, layout, image, video, cta: { label, url } | null,
 //                              items[] = { slug, title, content, orden } } }
-// `path` NO se usa: depende de la configuración de la línea (puede ser null o la ruta histórica). Las URLs de Planmed se construyen
+// `path` NO se usa: depende de la configuración de la línea (puede ser null o la ruta histórica). Las URLs de Crediestética se construyen
 // siempre con los slugs: /recomendaciones/{tema}/{subtema}. Todo valor que no cumple el contrato se descarta; nunca se inventa.
 
 // @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions (las pruebas de Node no usan los alias de Nuxt).
@@ -234,7 +234,7 @@ function section(d: unknown): TreeSection | null {
   }
 }
 
-/** Detalle del subtema del Hub → modelo de Planmed. null si no cumple el contrato mínimo (slug, título y tema). */
+/** Detalle del subtema del Hub → modelo de Crediestética. null si no cumple el contrato mínimo (slug, título y tema). */
 export function fromPublicSubtopic(data: unknown): TreeSubtopic | null {
   const d = obj(data)
   const base = summary(d)
@@ -253,7 +253,7 @@ export function fromPublicSubtopic(data: unknown): TreeSubtopic | null {
 
 // ── Rutas y utilidades del árbol ───────────────────────────────────────────────────────────────────────────────────────────────
 
-/** Rutas de Planmed: siempre construidas con los slugs (el campo `path` del Hub no se usa). */
+/** Rutas de Crediestética: siempre construidas con los slugs (el campo `path` del Hub no se usa). */
 export const topicPath = (topicSlug: string) => `/recomendaciones/${topicSlug}`
 export const subtopicPath = (topicSlug: string, subtopicSlug: string) => `/recomendaciones/${topicSlug}/${subtopicSlug}`
 
@@ -316,9 +316,9 @@ export function subtopicSeo(sub: TreeSubtopic): SubtopicSeo {
   const firstText = hasText(sub.intro.content) ? sub.intro.content : sub.sections.map(sectionText).find(t => t !== '') ?? ''
   let description = plainText(firstText)
   if (description.length > 160) description = description.slice(0, 157).replace(/\s+\S*$/, '') + '...'
-  if (!description) description = `Recomendaciones de Planmed: ${sub.title}.`
+  if (!description) description = `Recomendaciones de Crediestética: ${sub.title}.`
   const image = sub.intro.image?.url ?? sub.sections.map(sectionImageUrl).find(u => !!u) ?? null
-  return { title: `${sub.title} | Planmed`, description, image, canonicalPath: subtopicPath(sub.topic.slug, sub.slug) }
+  return { title: `${sub.title} | Crediestética`, description, image, canonicalPath: subtopicPath(sub.topic.slug, sub.slug) }
 }
 
 // ── Compatibilidad de rutas antiguas ───────────────────────────────────────────────────────────────────────────────────────────

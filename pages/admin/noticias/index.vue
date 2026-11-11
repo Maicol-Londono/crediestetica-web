@@ -3,10 +3,10 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
-        <h2 class="text-3xl font-serif text-[#0C2619] mb-2 uppercase">Noticias</h2>
+        <h2 class="text-3xl font-serif text-[#111111] mb-2 uppercase">Noticias</h2>
         <p class="text-gray-500 font-light">Gestiona los artículos del blog y contenido editorial.</p>
       </div>
-      <NuxtLink to="/admin/noticias/nuevo" class="bg-[#D3A76A] hover:bg-[#c29659] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors inline-flex items-center gap-2">
+      <NuxtLink to="/admin/noticias/nuevo" class="bg-[#CBA36B] hover:bg-[#c29659] text-white px-6 py-3 rounded-lg font-bold text-xs tracking-widest uppercase transition-colors inline-flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
         Nueva Noticia
       </NuxtLink>
@@ -22,10 +22,10 @@
           v-model="searchQuery" 
           type="text" 
           placeholder="Buscar por título o extracto..." 
-          class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] focus:border-transparent transition-all"
+          class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent transition-all"
         />
       </div>
-      <select v-model="statusFilter" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0C2619] text-sm text-gray-700 md:w-48">
+      <select v-model="statusFilter" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#111111] text-sm text-gray-700 md:w-48">
         <option value="all">Todos los estados</option>
         <option value="published">Publicados</option>
         <option value="draft">Borradores</option>
@@ -34,10 +34,11 @@
 
     <!-- Lista -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div v-if="pending" class="p-12 text-center text-gray-500">
+      <div v-if="listState === 'loading'" class="p-12 text-center text-gray-500">
         Cargando noticias...
       </div>
-      <div v-else-if="filteredNews.length === 0" class="p-12 text-center text-gray-500">
+      <AdminListNotice v-else-if="listState === 'unauthorized' || listState === 'forbidden' || listState === 'error'" :state="listState" @retry="refresh()" />
+      <div v-else-if="listState === 'empty'" class="p-12 text-center text-gray-500">
         No se encontraron noticias.
       </div>
       <div v-else class="overflow-x-auto">
@@ -81,7 +82,7 @@
               </td>
               <td class="p-4 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <NuxtLink :to="`/admin/noticias/${item.slug}`" class="p-2 text-gray-400 hover:text-[#0C2619] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg" title="Editar">
+                  <NuxtLink :to="`/admin/noticias/${item.slug}`" class="p-2 text-gray-400 hover:text-[#111111] transition-colors bg-gray-50 hover:bg-gray-100 rounded-lg" title="Editar">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                   </NuxtLink>
                   <button @click="confirmDelete(item)" class="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 hover:bg-red-50 rounded-lg" title="Eliminar">
@@ -94,7 +95,7 @@
         </table>
       </div>
 
-      <AdminPagination v-if="!pending" v-model:page="page" v-model:per-page="perPage" :last-page="lastPage" :total="filteredNews.length" label="noticias" />
+      <AdminPagination v-if="listState === 'list' || listState === 'empty'" v-model:page="page" v-model:per-page="perPage" :last-page="lastPage" :total="filteredNews.length" label="noticias" />
     </div>
 
     <!-- Modal Eliminar -->
@@ -122,6 +123,7 @@
 import { ref, computed, watch } from 'vue'
 import { clearNuxtData } from '#app'
 import { richHtmlToText } from '~/utils/richText'
+import { adminListState } from '#shared/utils/adminListState'
 
 const notify = useNotify()
 import { useHead, useAsyncData } from '#imports'
@@ -129,7 +131,7 @@ import { newsService } from '~/services/NewsService'
 import type { NewsArticle } from '~/types/news'
 
 useHead({
-  title: 'Noticias | Admin Planmed'
+  title: 'Noticias | Admin Crediestética'
 })
 definePageMeta({
   layout: 'admin'
@@ -139,7 +141,11 @@ const searchQuery = ref('')
 const statusFilter = ref('all')
 const deletingNews = ref<NewsArticle | null>(null)
 
-const { data: newsList, pending } = await useAsyncData('admin-news-list', () => newsService.getNews(), { default: () => [], server: false })
+const { data: newsList, pending, error, refresh } = await useAsyncData('admin-news-list', () => newsService.getNews(), { default: () => [], server: false })
+// «Cargando» según un estado igual en servidor y navegador (con server:false `pending` difiere y provocaba un desajuste de hidratación).
+const mounted = ref(false)
+onMounted(() => { mounted.value = true })
+const listState = computed(() => adminListState({ loading: !mounted.value || pending.value, error: error.value, count: filteredNews.value.length }))
 
 const filteredNews = computed(() => {
   if (!newsList.value) return []
