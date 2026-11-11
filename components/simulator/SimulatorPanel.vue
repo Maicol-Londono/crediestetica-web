@@ -57,7 +57,7 @@
               :class="[
                 'p-3 rounded-full font-bold text-base transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CBA36B]',
                 months === term 
-                  ? 'border-2 border-[#CBA36B] bg-[#CBA36B]/20 text-[#111111]' 
+                  ? 'border-2 border-[#CBA36B] bg-[#CBA36B]/20 text-[#111111]'
                   : 'border border-[#BBB2AA] text-[#4c4546] hover:bg-white hover:border-[#111111]'
               ]"
             >

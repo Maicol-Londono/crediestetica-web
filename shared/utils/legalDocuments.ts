@@ -185,4 +185,3 @@ export function publicResourceDocuments(docs: PublicResourceDocument[] = PUBLIC_
   }
   return out
 }
-

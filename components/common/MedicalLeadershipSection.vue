@@ -22,8 +22,8 @@ defineProps({
         <div class="lg:col-span-5 relative order-2 lg:order-1">
           <div class="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10">
             <img 
-              src="/images/team/equipo-crediestetica.png" 
-              alt="Equipo Crediestética" 
+              src="/images/team/equipo-crediestetica.png"
+              alt="Equipo Crediestética"
               class="w-full h-[320px] sm:h-[400px] md:h-[450px] object-cover"
             />
             <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
