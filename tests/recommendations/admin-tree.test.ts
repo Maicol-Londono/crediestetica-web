@@ -381,7 +381,7 @@ describe('pantallas del panel de Recomendaciones', () => {
       assert.equal(existsSync(join(ROOT, file)), true, file)
       assert.match(read(file), /definePageMeta\(\{ layout: 'admin' \}\)/)
     }
-    assert.match(read('middleware/admin-auth.global.ts'), /to\.path\.startsWith\('\/admin'\)/)
+    assert.match(read('middleware/admin-auth.global.ts'), /isAdminPath\(to\.path\)/)
   })
 
   test('lista de temas: título, texto del menú, subtemas, estado, orden y acciones, con «Crear tema»', () => {
