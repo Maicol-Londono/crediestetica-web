@@ -4,12 +4,57 @@
 // Contrato de la petición observada del CRM (multipart/form-data): nombres, apellidos, identificacion, fecha_nacimiento, direccion,
 // telefono, email, name_surgery, forma_pago, state, origen, id_user, id_line, id_user_asesora, accept. `_token` y `_method` NO se envían:
 // el endpoint hermano de PRP funciona sin ellos y no hay evidencia de que este los exija (ver informe: se confirma en la prueba real).
+//
+// `state`, `origen`, `id_user`, `id_line` e `id_user_asesora` identifican a Crediestética dentro del CRM y los define el responsable del CRM:
+// NO hay valores por defecto (los 73/16 de Planmed ya no existen aquí). Llegan por configuración del servidor (NUXT_CRM_VALUATION_*) y se
+// pasan como parámetro a `buildCrmFields`. Este módulo es puro: no lee variables de entorno ni la configuración de Nuxt.
 
-export const VALUATION_STATE = 'No Contactada'
-export const VALUATION_ORIGIN = 'Formulario Web'
+/** Valores del CRM propios de Crediestética (configuración del SERVIDOR). */
+export interface ValuationCrmConfig {
+  userId: string
+  lineId: string
+  advisorId: string
+  state: string
+  origin: string
+}
 
-/** Identificadores del CRM médico indicados por el responsable (formulario de referencia). Se envían desde el SERVIDOR. */
-export const VALUATION_CRM_IDS = { id_user: '73', id_line: '16', id_user_asesora: '73' } as const
+/** Variable de entorno que alimenta cada valor (solo para mensajes de diagnóstico: nunca se registran los valores). */
+export const VALUATION_CRM_ENV: Record<keyof ValuationCrmConfig, string> = {
+  userId: 'NUXT_CRM_VALUATION_USER_ID',
+  lineId: 'NUXT_CRM_VALUATION_LINE_ID',
+  advisorId: 'NUXT_CRM_VALUATION_ADVISOR_ID',
+  state: 'NUXT_CRM_VALUATION_STATE',
+  origin: 'NUXT_CRM_VALUATION_ORIGIN'
+}
+
+// Los ids del CRM son enteros positivos sin ceros a la izquierda. Estado y origen: texto corto sin caracteres de control.
+const CRM_ID_RE = /^[1-9]\d{0,9}$/
+const CRM_LABEL_MAX = 100
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f]/
+
+// Nitro convierte los valores numéricos del entorno (un id numérico llega como número): se normaliza a texto antes de validar.
+const asText = (v: unknown) => (typeof v === 'string' ? v.trim() : (typeof v === 'number' && Number.isFinite(v) ? String(v) : ''))
+
+/**
+ * Valida la configuración del CRM. Devuelve la configuración normalizada o la lista de claves ausentes/inválidas (nunca valores).
+ * Cualquier clave ausente o inválida => la valoración no debe enviarse.
+ */
+export function resolveValuationCrmConfig(input: Partial<Record<keyof ValuationCrmConfig, unknown>> | null | undefined):
+{ ok: true, config: ValuationCrmConfig } | { ok: false, invalid: Array<keyof ValuationCrmConfig> } {
+  const src = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>
+  const config: ValuationCrmConfig = {
+    userId: asText(src.userId),
+    lineId: asText(src.lineId),
+    advisorId: asText(src.advisorId),
+    state: asText(src.state),
+    origin: asText(src.origin)
+  }
+  const invalid: Array<keyof ValuationCrmConfig> = []
+  for (const k of ['userId', 'lineId', 'advisorId'] as const) if (!CRM_ID_RE.test(config[k])) invalid.push(k)
+  for (const k of ['state', 'origin'] as const) if (!config[k] || config[k].length > CRM_LABEL_MAX || CONTROL_CHARS_RE.test(config[k])) invalid.push(k)
+  return invalid.length ? { ok: false, invalid } : { ok: true, config }
+}
 
 /**
  * Forma de pago: opciones visibles → valor que recibe el CRM. La única convención observada en la petición real es
@@ -109,7 +154,7 @@ export function validateValuation(v: ValuationInput, today: Date = new Date()): 
 }
 
 /** Campos EXACTOS (nombre → valor) que recibe el CRM, ya validado el formulario. Los datos personales vienen solo del formulario. */
-export function buildCrmFields(v: ValuationInput): Array<[string, string]> {
+export function buildCrmFields(v: ValuationInput, crm: ValuationCrmConfig): Array<[string, string]> {
   const pago = PAYMENT_OPTIONS.find(o => o.label === v.forma_pago)
   if (!pago || !v.accept) throw new Error('Formulario no validado.')
   return [
@@ -122,11 +167,11 @@ export function buildCrmFields(v: ValuationInput): Array<[string, string]> {
     ['email', v.email],
     ['name_surgery', v.name_surgery],
     ['forma_pago', pago.value],
-    ['state', VALUATION_STATE],
-    ['origen', VALUATION_ORIGIN],
-    ['id_user', VALUATION_CRM_IDS.id_user],
-    ['id_line', VALUATION_CRM_IDS.id_line],
-    ['id_user_asesora', VALUATION_CRM_IDS.id_user_asesora],
+    ['state', crm.state],
+    ['origen', crm.origin],
+    ['id_user', crm.userId],
+    ['id_line', crm.lineId],
+    ['id_user_asesora', crm.advisorId],
     ['accept', '1']
   ]
 }

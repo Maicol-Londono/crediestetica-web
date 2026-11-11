@@ -1,13 +1,19 @@
 import type { H3Event } from 'h3'
 import { createHash } from 'node:crypto'
+import { resolveClientIp } from '#shared/utils/clientIp'
 import { crmDestinationProblem, MSG_CRM_UNAVAILABLE } from '#shared/utils/crmDestination'
-import { buildCrmFields, crmConfirmed, normalizeValuation, validateValuation, VALUATION_FIELDS } from '#shared/utils/valuation'
+import { buildCrmFields, crmConfirmed, normalizeValuation, resolveValuationCrmConfig, validateValuation, VALUATION_CRM_ENV, VALUATION_FIELDS } from '#shared/utils/valuation'
 
 // Solicitud de valoración → CRM médico (POST multipart a /crm-public/api/clients/forms). Solo servidor.
 //  · Valida TODO antes de llamar al CRM (una petición inválida nunca llega a él).
 //  · Sin reintentos: un timeout o una respuesta ambigua puede haber creado el registro; repetirlo duplicaría.
 //  · No se registra ningún dato personal ni el payload (solo el resultado: estado HTTP del CRM o el tipo de fallo).
 //  · Límite por IP y bloqueo de doble envío (huella SHA-256 de cédula + teléfono + cirugía, sin guardar los datos).
+//  · La IP sale de resolveClientIp (shared/utils/clientIp.ts), igual que la inscripción de Referidos: X-Forwarded-For solo cuenta con
+//    `trustedProxyHops` > 0; con 0 se usa la dirección del socket y la cabecera se IGNORA (un cliente no puede falsearla para evadir el límite).
+//  · Estado, origen y los tres ids del CRM son configuración del servidor (NUXT_CRM_VALUATION_*), sin valores por defecto: si falta o es inválida
+//    cualquiera, responde 503 `not_configured` antes de leer el cuerpo y de consumir el límite, y no sale ninguna petición al CRM.
+//  · Los guardas de límite y duplicados viven en la memoria de ESTE proceso: la aplicación debe ejecutarse como una sola instancia.
 
 const TIMEOUT_MS = 15_000
 const RATE = { max: 8, windowMs: 10 * 60_000 }
@@ -54,8 +60,23 @@ export async function handleValuation(event: H3Event) {
     fail(503, MSG_CRM_UNAVAILABLE, { reason: 'not_configured' })
   }
 
+  // Identificadores del CRM de Crediestética (sin valores por defecto). Se evalúa ANTES de leer el cuerpo y del límite por IP.
+  const config = useRuntimeConfig(event)
+  const crm = resolveValuationCrmConfig({
+    userId: config.crmValuationUserId,
+    lineId: config.crmValuationLineId,
+    advisorId: config.crmValuationAdvisorId,
+    state: config.crmValuationState,
+    origin: config.crmValuationOrigin
+  })
+  if (!crm.ok) {
+    // Solo los NOMBRES de las variables: nunca sus valores.
+    console.error(`[valuation] configuración del CRM incompleta o inválida (${crm.invalid.map(k => VALUATION_CRM_ENV[k]).join(', ')}): la valoración permanece bloqueada.`)
+    fail(503, MSG_CRM_UNAVAILABLE, { reason: 'not_configured' })
+  }
+
   const now = Date.now()
-  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
+  const ip = resolveClientIp(getRequestIP(event), getRequestHeader(event, 'x-forwarded-for'), Number(config.trustedProxyHops) || 0)
   if (rateLimited(ip, now)) fail(429, 'Recibimos demasiados intentos. Espera unos minutos e inténtalo de nuevo.', { reason: 'rate_limited' })
 
   const value = normalizeValuation(await readBody(event).catch(() => null))
@@ -69,7 +90,7 @@ export async function handleValuation(event: H3Event) {
   }
 
   const form = new FormData()
-  for (const [name, val] of buildCrmFields(value)) form.append(name, val)
+  for (const [name, val] of buildCrmFields(value, crm.config)) form.append(name, val)
 
   inflight.add(print)
   const controller = new AbortController()

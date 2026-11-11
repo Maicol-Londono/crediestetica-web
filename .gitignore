@@ -4,6 +4,8 @@ node_modules
 .env
 .env.*
 !.env.example
+# Plantilla de producción SIN secretos: es la única excepción; cualquier otro .env.* sigue ignorado.
+!.env.production.example
 
 # Artefactos generados
 .nuxt/

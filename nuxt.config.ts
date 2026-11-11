@@ -29,6 +29,14 @@ export default defineNuxtConfig({
     contentDir: '',
     // Formulario de valoración → CRM médico (POST multipart desde el SERVIDOR; el navegador nunca lo llama). NUXT_CRM_VALUATION_URL.
     crmValuationUrl: 'https://pdtclientsolutions.com/crm-public/api/clients/forms',
+    // Identificadores del CRM de Crediestética para la valoración (SOLO servidor, nunca en `public`). SIN valor por defecto a propósito: los que traía
+    // el clon (73/16) eran de Planmed. Los confirma el responsable del CRM. Mientras falte o sea inválido cualquiera, la valoración responde 503
+    // `not_configured`. NUXT_CRM_VALUATION_USER_ID / _LINE_ID / _ADVISOR_ID (enteros positivos) y NUXT_CRM_VALUATION_STATE / _ORIGIN (texto).
+    crmValuationUserId: '',
+    crmValuationLineId: '',
+    crmValuationAdvisorId: '',
+    crmValuationState: '',
+    crmValuationOrigin: '',
     public: {
       appName: 'Crediestética',
       // Valor informativo del dominio público: ningún código lo lee hoy. No es dominio de la API ni se envía a Hub (no se usa X-Tenant-Domain).

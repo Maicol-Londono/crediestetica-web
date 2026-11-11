@@ -35,6 +35,7 @@ before(async () => {
   g.setHeader = () => {}
   g.assertSameOrigin = () => {}
   g.getRequestIP = () => '203.0.113.9'
+  g.getRequestHeader = () => undefined
   g.readBody = async e => e.body
   g.getRouterParam = (e, n) => e.params?.[n]
   g.fetch = async (...args) => { state.fetchCalls.push(args); return { ok: true, status: 200, json: async () => ({}) } }
@@ -87,7 +88,8 @@ describe('POST /api/forms/valuation (handleValuation)', () => {
     assert.equal(state.fetchCalls.length, 0)
   })
   test('con un destino propio válido NO se bloquea (el cuerpo vacío llega a la validación: 422) y tampoco sale petición', async () => {
-    state.cfg = { crmValuationUrl: OWN_CRM }
+    // Con la configuración del CRM completa (ids ficticios de prueba): sin ella la valoración responde 503 not_configured (ver valuation.test.ts).
+    state.cfg = { crmValuationUrl: OWN_CRM, crmValuationUserId: '9101', crmValuationLineId: '9102', crmValuationAdvisorId: '9103', crmValuationState: 'Estado de prueba', crmValuationOrigin: 'Origen de prueba' }
     const r = await run(handleValuation, { method: 'POST', body: {}, headers: {} })
     assert.equal(r.error.statusCode, 422)
     assert.equal(state.fetchCalls.length, 0)
