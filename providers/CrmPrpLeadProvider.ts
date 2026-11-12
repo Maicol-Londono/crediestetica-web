@@ -1,7 +1,7 @@
 import type { PrpLeadProvider } from './PrpLeadProvider'
 import { crmDestinationProblem, MSG_CRM_UNAVAILABLE } from '#shared/utils/crmDestination'
 import { PrpLeadError, type PrpLeadInput } from '~/types/prpPublic'
-import { PRP_ENABLED } from '#shared/utils/features'
+import { PRP_SUBMIT_ENABLED } from '#shared/utils/features'
 import { useRuntimeConfig } from '#imports'
 
 // Envío DIRECTO navegador -> CRM médico externo (sin Wellezy Hub ni proxy), con el contrato ya validado:
@@ -13,6 +13,10 @@ const TIMEOUT_MS = 20_000
 const STATE = 'No Contactada'
 const ORIGIN = 'Formulario Web'
 
+// Identificador de la línea Crediestética en el CRM médico (compartido con Planmed, que usa otro). Es un id EXTERNO del CRM: no es `linea_id` (4) ni
+// `company_id` (16) de Wellezy Hub y no se deduce de ellos. Valor fijo confirmado por el responsable del CRM. `code_prp` sigue llegando de Hub.
+export const CRM_PRP_ID_LINE = '30'
+
 export function buildPrpLeadFormData(lead: PrpLeadInput): FormData {
   const form = new FormData()
   form.append('nombres', lead.fullName.trim())
@@ -23,13 +27,14 @@ export function buildPrpLeadFormData(lead: PrpLeadInput): FormData {
   form.append('origen', ORIGIN)
   form.append('code_prp', lead.codePrp)
   form.append('accept', '1')
+  form.append('id_line', CRM_PRP_ID_LINE)
   return form
 }
 
 export class CrmPrpLeadProvider implements PrpLeadProvider {
   async submit(lead: PrpLeadInput): Promise<void> {
-    // PRP desactivado (shared/utils/features.ts): nada sale hacia el CRM aunque alguien invoque el proveedor. Va ANTES de leer la URL.
-    if (!PRP_ENABLED) throw new PrpLeadError('server', MSG_CRM_UNAVAILABLE)
+    // Envío PRP desactivado (PRP_SUBMIT_ENABLED, shared/utils/features.ts): nada sale hacia el CRM aunque alguien invoque el proveedor. Va ANTES de leer la URL.
+    if (!PRP_SUBMIT_ENABLED) throw new PrpLeadError('server', MSG_CRM_UNAVAILABLE)
     const url = String(useRuntimeConfig().public.crmPrpFormUrl || '')
     // Defensa en profundidad (la autoridad es el servidor: /api/public/prp/[slug] no sirve el micrositio con un destino bloqueado).
     if (crmDestinationProblem(url)) throw new PrpLeadError('server', MSG_CRM_UNAVAILABLE)
