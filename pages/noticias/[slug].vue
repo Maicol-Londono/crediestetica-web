@@ -71,6 +71,7 @@
 import { useRoute, useSeoMeta, createError, useAsyncData } from '#imports'
 import { publicNewsService } from '~/services/PublicNewsService'
 import { richHtmlToText } from '~/utils/richText'
+useCanonicalUrl()
 
 const route = useRoute()
 const slug = route.params.slug as string

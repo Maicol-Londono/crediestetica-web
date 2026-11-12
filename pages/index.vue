@@ -60,6 +60,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useFetch } from '#imports'
+useCanonicalUrl()
 
 // Clínicas activas (el endpoint público ya excluye las ocultas); misma clave de caché que la página /clinicas-aliadas.
 const { data } = await useFetch('/api/public/clinics', { key: 'clinics-public', default: () => ({ clinics: [], updatedAt: '' }) })

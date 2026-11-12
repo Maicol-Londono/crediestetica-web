@@ -21,13 +21,26 @@ const SRC = ['components', 'pages', 'layouts', 'shared', 'server', 'services', '
 const norm = s => s.replace(/<[^>]+>|\{\{[^}]*\}\}/g, ' ').replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim()
 
 describe('PDF heredados', () => {
-  const PDFS = { 'PAGARE-CLINIPLANES.pdf': '882eb44841de', '2.-AUTORIZACION-CENTRALES-CLINIPLANES.pdf': 'a68d3de83b18' }
-  test('ya no están en public/ (no se sirven) y se conservan intactos fuera de la carpeta pública', () => {
-    for (const [f, h] of Object.entries(PDFS)) {
-      assert.equal(existsSync(join(ROOT, 'public/documents', f)), false, `${f} sigue público`)
-      assert.ok(md5(`archivo-legal-heredado/${f}`).startsWith(h), `${f}: contenido alterado`)
+  // Los PDF de Cliniplanes NO forman parte del repositorio (decisión de negocio): el test no exige que existan ni depende de su contenido,
+  // así que pasa igual en un clon limpio. Solo vigila que no se publiquen.
+  const PDFS = ['PAGARE-CLINIPLANES.pdf', '2.-AUTORIZACION-CENTRALES-CLINIPLANES.pdf']
+  const pdfsEn = dir => (existsSync(join(ROOT, dir)) ? walkAll(dir).filter(f => /\.pdf$/i.test(f)) : [])
+  function walkAll(dir, out = []) {
+    for (const n of readdirSync(join(ROOT, dir))) {
+      const rel = `${dir}/${n}`
+      if (statSync(join(ROOT, rel)).isDirectory()) walkAll(rel, out); else out.push(rel)
     }
-    assert.equal(existsSync(join(ROOT, 'public/documents')) ? readdirSync(join(ROOT, 'public/documents')).filter(n => /\.pdf$/i.test(n)).length : 0, 0)
+    return out
+  }
+  test('no están en public/documents/ ni en ningún otro lugar de public/ (no se sirven)', () => {
+    for (const f of PDFS) assert.equal(existsSync(join(ROOT, 'public/documents', f)), false, `${f} sigue público`)
+    assert.deepEqual(pdfsEn('public/documents'), [], 'public/documents no contiene PDF')
+    assert.deepEqual(pdfsEn('public').filter(f => /cliniplanes|pagare|autorizacion-centrales/i.test(f)), [], 'ningún PDF de Cliniplanes en public/')
+  })
+  test('no se exponen mediante rutas activas (ni rutas de servidor ni archivos de .output/public del build, si existe)', () => {
+    const routes = ['server/api', 'server/routes', 'server/middleware'].flatMap(d => (existsSync(join(ROOT, d)) ? walkAll(d) : []))
+    for (const f of routes) assert.ok(!/cliniplanes|archivo-legal-heredado/i.test(`${f}\n${read(f)}`), f)
+    assert.deepEqual(pdfsEn('.output/public').filter(f => /cliniplanes|pagare|autorizacion-centrales/i.test(f)), [])
   })
   test('ningún componente, página ni utilidad enlaza esos documentos', () => {
     for (const f of SRC) if (f !== 'shared/utils/legalDocuments.ts') assert.ok(!/CLINIPLANES|\/documents\/|archivo-legal-heredado/i.test(read(f)), f) // legalDocuments.ts solo contiene la lista de bloqueo

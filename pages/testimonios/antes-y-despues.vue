@@ -1,10 +1,32 @@
 <template>
   <div class="bg-[#F7F3EE] min-h-screen font-sans selection:bg-[#111111] selection:text-white pt-6 md:pt-10 pb-24">
     <div class="max-w-[1200px] mx-auto px-6">
+      <!-- Escritorio/tableta: la imagen ya trae el título y el texto de la cabecera (se conserva el h1 para lectores de pantalla). En móvil el texto
+           de la imagen sería ilegible por su tamaño, así que se mantiene la cabecera de texto. -->
+      <div class="hidden md:block mb-10 md:mb-14">
+        <h1 class="sr-only">Resultados reales: antes y después</h1>
+        <picture>
+          <!-- Móvil: este bloque está oculto (hidden md:block) y una imagen oculta con display:none SE DESCARGA igual. Por eso en pantallas estrechas la fuente es un GIF
+               transparente en data URI (sin petición de red) y la imagen real solo se elige desde 768 px (breakpoint md). El PNG es el respaldo
+               de navegadores sin WebP. -->
+          <source media="(max-width: 767.98px)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />
+          <source media="(min-width: 768px)" srcset="/images/web/antes_y_despues.webp" type="image/webp" />
+          <img
+            src="/images/web/antes_y_despues.png"
+            alt="Resultados reales: antes y después. Descubre la transformación de nuestros pacientes y visualiza los resultados de su procedimiento."
+            width="1920"
+            height="819"
+            decoding="async"
+            fetchpriority="high"
+            class="w-full h-auto rounded-[2rem] shadow-sm"
+          />
+        </picture>
+      </div>
       <CommonPageHero
-        eyebrow="RESULTADOS REALES"
-        :lines="['ANTES', 'Y DESPUÉS.']"
-        lead="Casos de pacientes de Crediestética, publicados con su autorización."
+        class="md:hidden"
+        eyebrow="ANTES Y DESPUÉS"
+        :lines="['RESULTADOS', 'REALES']"
+        lead="Descubre la transformación de nuestros pacientes y visualiza los resultados de su procedimiento."
       />
       <TestimonialsNav />
 
@@ -66,6 +88,7 @@
 <script setup lang="ts">
 import { useSeoMeta } from '#imports'
 import { fetchPatientSection } from '~/services/PublicTestimonialsService'
+useCanonicalUrl()
 
 // Se lee de Wellezy Hub (vía Nitro) también en el servidor. Hub solo entrega casos publicados con ambas imágenes.
 const { data, status, error, refresh } = await useAsyncData('patient-section', fetchPatientSection)
@@ -76,6 +99,6 @@ const visibility = computed(() => data.value?.visibility.beforeAfter ?? true)
 // Según los datos (no el estado del fetch, que difiere entre servidor e hidratación y provocaba un desajuste).
 const loaded = computed(() => data.value != null || error.value != null)
 
-const description = 'Casos de antes y después de pacientes de Crediestética.'
-useSeoMeta({ title: 'Antes y después | Crediestética', description, ogTitle: 'Antes y después | Crediestética', ogDescription: description })
+const description = 'Resultados reales: descubre la transformación de pacientes de Crediestética con casos de antes y después.'
+useSeoMeta({ title: 'Resultados reales: antes y después | Crediestética', description, ogTitle: 'Resultados reales: antes y después | Crediestética', ogDescription: description })
 </script>

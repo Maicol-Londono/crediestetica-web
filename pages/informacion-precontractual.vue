@@ -11,6 +11,7 @@
 // shared/utils/precontractualContent.ts; identificación en shared/utils/legalIdentity.ts, razón social y PQRS pendientes).
 import { useSeoMeta } from '#imports'
 import PrecontractualContent from '~/components/legal/PrecontractualContent.vue'
+useCanonicalUrl()
 
 useSeoMeta({ title: 'Información precontractual | Crediestética', ogTitle: 'Información precontractual | Crediestética', ogType: 'website' })
 </script>

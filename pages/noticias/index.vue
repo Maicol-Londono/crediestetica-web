@@ -144,6 +144,7 @@ import { publicNewsService } from '~/services/PublicNewsService'
 import { richHtmlToText } from '~/utils/richText'
 import { pageWindow, parsePage } from '#shared/utils/pagination'
 import type { NewsPage } from '~/types/news'
+useCanonicalUrl()
 
 // Fuente de verdad: Wellezy Hub (vía Nitro). Mismo resultado en SSR, navegación interna, recarga e incógnito.
 // Paginado (?pagina=N): Hub entrega como máximo 50 por página, así que se pide una página a la vez en lugar de «solo las primeras 50».

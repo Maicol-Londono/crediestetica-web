@@ -148,8 +148,9 @@ describe('menú y páginas', () => {
 
   test('Programa de referidos: contenido entregado y formulario que envía por ReferralService (no directo desde el componente) con estados de error y confirmación accesibles', () => {
     const page = readFileSync(join(ROOT, 'pages/testimonios/programa-de-referidos.vue'), 'utf8')
-    assert.ok(!page.includes('<ReferralProgramContent') && page.includes('<ReferralForm'))
-    assert.ok(!existsSync(join(ROOT, 'components/referral/ProgramContent.vue')), 'el programa estático de Planmed se retiró')
+    assert.ok(page.includes('<ReferralProgramContent') && page.includes('<ReferralForm'))
+    const program = readFileSync(join(ROOT, 'components/referral/ProgramContent.vue'), 'utf8')
+    assert.ok(/Crediestética/.test(program) && !/Plan Médico|Planmed/i.test(program), 'el programa estático está adaptado a Crediestética y no menciona a Planmed')
     const form = readFileSync(join(ROOT, 'components/referral/ReferralForm.vue'), 'utf8')
     // Desde D4.2 el formulario envía la inscripción (ReferralService -> /api/forms/prp-enrollment -> Hub); el aviso de «no funcional» ya no existe.
     assert.ok(!form.includes('referral-form-not-functional'))

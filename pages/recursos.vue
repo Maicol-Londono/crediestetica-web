@@ -57,6 +57,7 @@
 <script setup>
 import { useSeoMeta } from '#imports'
 import { documents } from '~/data/resources'
+useCanonicalUrl()
 
 useSeoMeta({
   title: 'Recursos | Crediestética',

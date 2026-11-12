@@ -200,6 +200,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSeoMeta, createError } from '#imports'
 import { useAsyncData } from '#imports'
 import { publicProcedureService } from '~/services/PublicProcedureService'
+useCanonicalUrl()
 
 const route = useRoute()
 const router = useRouter()

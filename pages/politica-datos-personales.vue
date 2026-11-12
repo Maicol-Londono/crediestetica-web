@@ -51,6 +51,7 @@
 import { useSeoMeta } from '#imports'
 import { CONTACT_EMAIL, CONTACT_MAILTO, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_DISPLAY, WHATSAPP_URL } from '#shared/utils/contact'
 import { LEGAL_DOCUMENTS, legalDocumentUrl, type LegalDocumentKey } from '#shared/utils/legalDocuments'
+useCanonicalUrl()
 
 const pendingSections = [
   { id: 'responsable', heading: 'Responsable del tratamiento', note: 'Razón social, identificación tributaria y datos de la sociedad responsable, pendientes de confirmación.' },

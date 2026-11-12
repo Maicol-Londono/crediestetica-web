@@ -16,6 +16,7 @@ import { useSeoMeta, useRoute, createError, useAsyncData, navigateTo } from '#im
 import { publicRecommendationsService } from '~/services/PublicRecommendationsService'
 import { RECOMMENDATION_SLUGS, type RecommendationPage } from '~/types/recommendations'
 import { resolveLegacySlug, type TreeTopic } from '#shared/utils/recommendationTree'
+useCanonicalUrl()
 
 const eyebrows = { general: 'Recomendaciones', cuidados: 'Cuidados de cirugía', revision: 'Cita de revisión' }
 const slug = useRoute().params.slug as string

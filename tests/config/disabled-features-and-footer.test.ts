@@ -27,9 +27,10 @@ describe('PRP desactivado', () => {
     assert.ok(guard < src.indexOf('crmPrpFormUrl || '), 'la guardia va antes de leer la URL')
     assert.ok(guard < src.indexOf('await fetch(') || guard < src.indexOf('fetch(url'), 'la guardia va antes del fetch')
   })
-  test('no se alteró el endpoint ni el contrato del CRM', () => {
+  test('el CRM de valoración no tiene destino por defecto (el de Planmed se retiró) y el de PRP no cambió', () => {
     assert.match(read('nuxt.config.ts'), /crmPrpFormUrl: 'https:\/\/pdtclientsolutions\.com\/crm-public\/api\/forms-px-prp'/)
-    assert.match(read('nuxt.config.ts'), /crmValuationUrl: 'https:\/\/pdtclientsolutions\.com\/crm-public\/api\/clients\/forms'/)
+    assert.match(read('nuxt.config.ts'), /^    crmValuationUrl: '',$/m)
+    assert.doesNotMatch(read('nuxt.config.ts'), /crmValuationUrl: '[^']/)
   })
 })
 

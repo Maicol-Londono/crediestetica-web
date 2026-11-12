@@ -53,6 +53,7 @@ import { RECOMMENDATION_KINDS, type RecommendationKind } from '~/utils/recommend
 import type { Procedure } from '~/types/procedure'
 import type { RecommendationPage } from '~/types/recommendations'
 import { treeSubtopicSlugs } from '#shared/utils/recommendationTree'
+useCanonicalUrl()
 
 const props = defineProps<{ kind: RecommendationKind }>()
 const meta = RECOMMENDATION_KINDS[props.kind]

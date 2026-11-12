@@ -17,6 +17,7 @@ import { publicRecommendationsService } from '~/services/PublicRecommendationsSe
 import { isRichHtmlEmpty } from '~/utils/richText'
 import { resolveRecommendation } from '~/utils/recommendationSource'
 import { RECOMMENDATION_KINDS, type RecommendationKind } from '~/utils/recommendationKinds'
+useCanonicalUrl()
 
 const props = defineProps<{ kind: RecommendationKind }>()
 const meta = RECOMMENDATION_KINDS[props.kind]

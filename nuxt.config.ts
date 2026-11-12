@@ -28,7 +28,9 @@ export default defineNuxtConfig({
     // Vacío => `<directorio de trabajo>/.data/crediestetica-content`. Debe quedar FUERA de `.output/` para sobrevivir a los despliegues.
     contentDir: '',
     // Formulario de valoración → CRM médico (POST multipart desde el SERVIDOR; el navegador nunca lo llama). NUXT_CRM_VALUATION_URL.
-    crmValuationUrl: 'https://pdtclientsolutions.com/crm-public/api/clients/forms',
+    // SIN destino por defecto: el CRM heredado de Planmed se retiró de aquí. Vacío => la valoración responde 503 `not_configured` (y, si alguien
+    // define ese endpoint heredado, 503 igualmente: ver shared/utils/crmDestination.ts). Lo define el responsable del CRM.
+    crmValuationUrl: '',
     // Identificadores del CRM de Crediestética para la valoración (SOLO servidor, nunca en `public`). SIN valor por defecto a propósito: los que traía
     // el clon (73/16) eran de Planmed. Los confirma el responsable del CRM. Mientras falte o sea inválido cualquiera, la valoración responde 503
     // `not_configured`. NUXT_CRM_VALUATION_USER_ID / _LINE_ID / _ADVISOR_ID (enteros positivos) y NUXT_CRM_VALUATION_STATE / _ORIGIN (texto).

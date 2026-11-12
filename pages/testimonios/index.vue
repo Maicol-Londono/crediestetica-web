@@ -2,10 +2,32 @@
   <div class="bg-[#F7F3EE] min-h-screen font-sans selection:bg-[#111111] selection:text-white pt-6 md:pt-10 pb-24">
     <div class="max-w-[1200px] mx-auto px-6">
 
+      <!-- Escritorio/tableta: la imagen ya trae el título y el texto de la cabecera (se conserva el h1 para lectores de pantalla). En móvil el texto
+           de la imagen sería ilegible por su tamaño, así que se mantiene la cabecera de texto. -->
+      <div class="hidden md:block mb-10 md:mb-14">
+        <h1 class="sr-only">Nuestros pacientes</h1>
+        <picture>
+          <!-- Móvil: este bloque está oculto (hidden md:block) y una imagen oculta con display:none SE DESCARGA igual. Por eso en pantallas estrechas la fuente es un GIF
+               transparente en data URI (sin petición de red) y la imagen real solo se elige desde 768 px (breakpoint md). El PNG es el respaldo
+               de navegadores sin WebP. -->
+          <source media="(max-width: 767.98px)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />
+          <source media="(min-width: 768px)" srcset="/images/web/nuestros_pacientes.webp" type="image/webp" />
+          <img
+            src="/images/web/nuestros_pacientes.png"
+            alt="Nuestros pacientes. Conoce las experiencias de personas que, como tú, decidieron dar el paso hacia su bienestar."
+            width="1920"
+            height="819"
+            decoding="async"
+            fetchpriority="high"
+            class="w-full h-auto rounded-[2rem] shadow-sm"
+          />
+        </picture>
+      </div>
       <CommonPageHero
+        class="md:hidden"
         eyebrow="HISTORIAS REALES"
-        :lines="['PACIENTES', 'FELICES.']"
-        lead="Aquí compartiremos las historias de pacientes de Crediestética cuando estén disponibles."
+        :lines="['NUESTROS', 'PACIENTES']"
+        lead="Conoce las experiencias de personas que, como tú, decidieron dar el paso hacia su bienestar."
       />
       <TestimonialsNav />
 
@@ -36,6 +58,7 @@
 import { useSeoMeta } from '#imports'
 import { fetchPatientSection } from '~/services/PublicTestimonialsService'
 import type { TestimonialsContent } from '~/types/testimonials'
+useCanonicalUrl()
 
 const empty: TestimonialsContent = { visibility: { videos: true, beforeAfter: true }, videos: [], beforeAfter: [], instagram: [], referral: { title: '', content: '' } }
 
@@ -46,6 +69,6 @@ const content = computed(() => data.value ?? empty)
 // Según los datos (no el estado del fetch, que difiere entre servidor e hidratación y provocaba un desajuste).
 const loaded = computed(() => data.value != null || error.value != null)
 
-const description = 'Conoce las testimonios de pacientes de Crediestética.'
-useSeoMeta({ title: 'Pacientes | Crediestética', description, ogTitle: 'Pacientes | Crediestética', ogDescription: description })
+const description = 'Conoce las experiencias de personas que, como tú, decidieron dar el paso hacia su bienestar con Crediestética.'
+useSeoMeta({ title: 'Nuestros pacientes | Crediestética', description, ogTitle: 'Nuestros pacientes | Crediestética', ogDescription: description })
 </script>
