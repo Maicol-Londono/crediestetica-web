@@ -10,7 +10,7 @@
 //  - Los segmentos DINÁMICOS (slug, tema, subtema) se conservan tal cual: su mayúscula es dato de Hub, no de la aplicación.
 //  - La barra final y la cadena de consulta se conservan: la URL canónica se comporta igual que su equivalente en minúsculas.
 //  - Todo lo que no esté en la lista queda intacto: `/admin/**` (lo protege su propia guarda, middleware/admin-auth.global.ts), `/api/**`,
-//    `/_nuxt/**`, archivos estáticos (`/robots.txt`, `/images/...`), `/prp/**` (funcionalidad desactivada: sigue respondiendo 404) y las
+//    `/_nuxt/**`, archivos estáticos (`/robots.txt`, `/images/...`), `/prp/**` (su slug es un dato de Hub) y las
 //    rutas inexistentes (siguen en 404).
 // Como solo se escribe en minúsculas y la forma canónica ya no contiene mayúsculas en esos segmentos, no puede haber bucles.
 

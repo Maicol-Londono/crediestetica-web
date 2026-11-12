@@ -24,7 +24,7 @@ Plantilla sin secretos: `.env.production.example`. Nitro lee estas variables del
 | `NUXT_CONTENT_EDITOR_ROLE_IDS` | No | vacío | Roles adicionales que editan el contenido local | Vacía |
 | `NUXT_ADMIN_ROLE_IDS` | No | vacío | No interviene en el acceso al panel | Vacía |
 | `NUXT_TRUSTED_PROXY_HOPS` | No | `0` | Proxies de confianza para resolver la IP del cliente | `0`; `1` solo tras confirmar un único proxy |
-| `NUXT_PUBLIC_CRM_PRP_FORM_URL` | No (PRP desactivado) | CRM de PRP compartido | Destino del formulario PRP | No definir mientras PRP siga desactivado |
+| `NUXT_PUBLIC_CRM_PRP_FORM_URL` | No (tiene valor por defecto) | CRM de PRP compartido | Destino del formulario PRP | No hace falta definirla; PRP está habilitado (páginas y envío) con `id_line=30` |
 | `NUXT_PUBLIC_APP_NAME`, `NUXT_PUBLIC_LOCAL_DOMAIN` | No | `Crediestética`, `crediestetica.com` | Valores informativos | No definir |
 | `PORT` / `NITRO_PORT`, `HOST` / `NITRO_HOST` | Según el servidor | Nitro: 3000 | Puerto y dirección de escucha | Los que use el proxy |
 

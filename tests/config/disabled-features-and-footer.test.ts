@@ -1,5 +1,5 @@
 // @ts-nocheck -- pruebas ejecutadas con Node (node:test); fuera del alcance del typecheck de Nuxt.
-// Funcionalidades desactivadas (PRP público), Footer (login, redes, enlaces legales) y catálogo Hub-first. Noticias está activa: tests/news/admin-module.test.ts.
+// Interruptores de PRP (páginas/lectura y envío), Footer (login, redes, enlaces legales) y catálogo Hub-first. Noticias está activa: tests/news/admin-module.test.ts.
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
@@ -13,16 +13,19 @@ const F = await imp('shared/utils/features.ts')
 const C = await imp('shared/utils/contact.ts')
 const L = await imp('shared/utils/legalDocuments.ts')
 
-describe('PRP desactivado', () => {
-  test('la bandera está apagada y bloquea el micrositio y su lectura', () => {
-    assert.equal(F.PRP_ENABLED, false)
-    assert.equal(F.isDisabledPagePath('/prp/un-codigo'), true)
-    assert.equal(F.isDisabledApiPath('/api/public/prp/un-codigo'), true)
-    assert.equal(F.isDisabledPagePath('/prpx'), false)
+describe('PRP: interruptores', () => {
+  test('páginas y lectura habilitadas; con el interruptor apagado bloquean el micrositio y su lectura', () => {
+    assert.equal(F.PRP_ENABLED, true)
+    assert.equal(F.isDisabledPagePath('/prp/un-codigo'), false)
+    assert.equal(F.isDisabledApiPath('/api/public/prp/un-codigo'), false)
+    assert.equal(F.isDisabledPagePath('/prp/un-codigo', false), true)
+    assert.equal(F.isDisabledApiPath('/api/public/prp/un-codigo', false), true)
+    assert.equal(F.isDisabledPagePath('/prpx', false), false)
   })
-  test('el proveedor del CRM falla ANTES de leer la URL y de hacer fetch', () => {
+  test('el envío al CRM tiene su propio interruptor y el proveedor falla ANTES de leer la URL y de hacer fetch si se apaga', () => {
+    assert.equal(F.PRP_SUBMIT_ENABLED, true)
     const src = read('providers/CrmPrpLeadProvider.ts')
-    const guard = src.indexOf('if (!PRP_ENABLED)')
+    const guard = src.indexOf('if (!PRP_SUBMIT_ENABLED)')
     assert.ok(guard > 0)
     assert.ok(guard < src.indexOf('crmPrpFormUrl || '), 'la guardia va antes de leer la URL')
     assert.ok(guard < src.indexOf('await fetch(') || guard < src.indexOf('fetch(url'), 'la guardia va antes del fetch')

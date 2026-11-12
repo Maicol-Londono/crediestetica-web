@@ -117,7 +117,7 @@ describe('lo que NO se redirige', () => {
       '/Financiacion.png', '/NOTICIAS.html', '/noticias.JSON']) untouched(p)
   })
 
-  test('PRP (desactivado) sigue su camino: no se redirige y por tanto sigue en 404', () => {
+  test('/prp/** no se normaliza (slug dinámico, dato de Hub): no se redirige', () => {
     for (const p of ['/prp', '/PRP', '/Prp/Abc', '/PRP/abc']) untouched(p)
   })
 
