@@ -4,7 +4,7 @@ import { authService } from '~/services/AuthService'
 export default defineNuxtRouteMiddleware(async (to, from) => {
   // Solo protege /admin. El router de Nuxt NO distingue mayúsculas (/Admin/noticias es la misma página), así que TODA comprobación se hace
   // sobre la ruta normalizada (shared/utils/adminPasswordGate.ts): comparar `to.path` tal cual dejaba pasar las variantes sin autenticación.
-  if (!isAdminPath(to.path)) {
+  if (!isAdminPanelPath(to.path)) {
     return
   }
   const path = normalizeAdminPath(to.path)

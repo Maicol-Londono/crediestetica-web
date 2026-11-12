@@ -15,14 +15,14 @@ export function normalizeAdminPath(path: string): string {
 }
 
 /** ¿Es `/admin` o una ruta anidada del panel (en cualquier combinación de mayúsculas)? */
-export function isAdminPath(path: string): boolean {
+export function isAdminPanelPath(path: string): boolean {
   const p = normalizeAdminPath(path)
   return p === ADMIN_HOME_PATH || p.startsWith(`${ADMIN_HOME_PATH}/`)
 }
 
 /** Ruta a la que hay que redirigir, o null si se puede continuar. */
 export function adminGateRedirect(path: string, user: { mustChangePassword?: boolean } | null | undefined): string | null {
-  if (!isAdminPath(path)) return null
+  if (!isAdminPanelPath(path)) return null
   const p = normalizeAdminPath(path)
 
   if (p === ADMIN_LOGIN_PATH) {

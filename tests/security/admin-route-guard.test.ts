@@ -85,7 +85,7 @@ before(async () => {
   globalThis.__adminTest = state
   gate = await imp('shared/utils/adminPasswordGate.ts')
   // El middleware usa estas funciones como importaciones automáticas de Nuxt (shared/utils).
-  Object.assign(globalThis, { isAdminPath: gate.isAdminPath, normalizeAdminPath: gate.normalizeAdminPath, adminGateRedirect: gate.adminGateRedirect, ADMIN_LOGIN_PATH: gate.ADMIN_LOGIN_PATH })
+  Object.assign(globalThis, { isAdminPanelPath: gate.isAdminPanelPath, normalizeAdminPath: gate.normalizeAdminPath, adminGateRedirect: gate.adminGateRedirect, ADMIN_LOGIN_PATH: gate.ADMIN_LOGIN_PATH })
   middleware = await loadMiddleware()
 })
 beforeEach(() => {
@@ -97,10 +97,10 @@ beforeEach(() => {
 after(() => { delete globalThis.__adminTest; rmSync(dir, { recursive: true, force: true }) })
 
 describe('normalización de rutas del panel', () => {
-  test('isAdminPath reconoce el panel en cualquier combinación de mayúsculas y no confunde otras rutas', () => {
-    for (const p of [...PROTECTED, ...LOGIN]) assert.equal(gate.isAdminPath(p), true, p)
+  test('isAdminPanelPath reconoce el panel en cualquier combinación de mayúsculas y no confunde otras rutas', () => {
+    for (const p of [...PROTECTED, ...LOGIN]) assert.equal(gate.isAdminPanelPath(p), true, p)
     for (const p of ['/', '/administracion', '/Administracion', '/adminx/noticias', '/api/admin/news', '/noticias', '/procedimientos', '/prp/x', '/adm', '']) {
-      assert.equal(gate.isAdminPath(p), false, p)
+      assert.equal(gate.isAdminPanelPath(p), false, p)
     }
   })
 
@@ -237,7 +237,7 @@ describe('noindex y código fuente', () => {
     const src = read('middleware/admin-auth.global.ts')
     assert.doesNotMatch(src, /to\.path\.startsWith\(/)
     assert.doesNotMatch(src, /to\.path\s*===/)
-    assert.match(src, /isAdminPath\(to\.path\)/)
+    assert.match(src, /isAdminPanelPath\(to\.path\)/)
     assert.match(src, /adminGateRedirect\(to\.path, authService\.getUser\(\)\.value\)/)
     assert.doesNotMatch(src, /\.toLowerCase\(\)/, 'la normalización vive en un solo lugar (shared/utils/adminPasswordGate.ts)')
   })
