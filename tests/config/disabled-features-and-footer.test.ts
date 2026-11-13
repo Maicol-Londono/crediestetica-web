@@ -83,7 +83,9 @@ describe('Footer', () => {
 
 describe('Catálogo de procedimientos Hub-first', () => {
   test('lista y detalle salen de Wellezy Hub; el cliente solo habla con Nitro', () => {
-    assert.match(read('server/api/public/procedures/index.get.ts'), /wellezyPublicGet<any>\(event, `\/v1\/web\/cirugias\?page=/)
+    // La lista pasa por la consulta compartida (también la usa el sitemap), que lee de Hub con wellezyPublicGet.
+    assert.match(read('server/api/public/procedures/index.get.ts'), /fetchPublicProcedureRows\(event\)/)
+    assert.match(read('server/utils/procedures.ts'), /wellezyPublicGet<any>\(event, `\/v1\/web\/cirugias\?page=/)
     assert.match(read('server/api/public/procedures/\[slug\].get.ts'), /wellezyPublicGet<any>\(event, `\/v1\/web\/cirugias\//)
     assert.match(read('providers/HubPublicProcedureProvider.ts'), /\/api\/public\/procedures/)
   })
