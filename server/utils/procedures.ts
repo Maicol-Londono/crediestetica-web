@@ -252,6 +252,52 @@ export async function hubProcedures(
   return res.data
 }
 
+/** Máximo de páginas que se recorren del listado público de Hub. Si Hub anuncia más, es un error: nunca una lista truncada. */
+export const HUB_PROCEDURES_MAX_PAGES = 20
+
+const MSG_PROCEDURES_UNAVAILABLE = 'No fue posible cargar los procedimientos. Intenta nuevamente.'
+
+function invalidProcedureList(detail: string): never {
+  console.error(`[procedures] Listado de Hub no utilizable: ${detail}`)
+  throw createError({ statusCode: 503, message: MSG_PROCEDURES_UNAVAILABLE, data: { reason: 'invalid_response' } })
+}
+
+/**
+ * `meta.last_page` de una página del listado público.
+ *  - PRIMERA página (`announced` indefinido): `meta` o `last_page` ausentes => 1 (formato histórico, una sola página).
+ *  - Páginas SIGUIENTES (`announced` = total que anunció la primera): deben traer `meta.last_page` válido e IGUAL a `announced`;
+ *    si falta o cambia, la respuesta es inconsistente y no se puede saber si el listado está completo.
+ *  - Presente => entero positivo (número o texto de dígitos). Cualquier otro valor invalida la respuesta.
+ */
+function publicLastPage(meta: unknown, announced?: number): number {
+  const missing = (): number => announced === undefined ? 1 : invalidProcedureList(`la página no informa \`meta.last_page\` (se anunciaron ${announced})`)
+  if (meta === undefined || meta === null) return missing()
+  if (typeof meta !== 'object' || Array.isArray(meta)) return invalidProcedureList('`meta` no es un objeto')
+  const raw = (meta as { last_page?: unknown }).last_page
+  if (raw === undefined || raw === null) return missing()
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw.trim()) ? Number(raw.trim()) : Number.NaN
+  if (!Number.isSafeInteger(n) || n < 1) return invalidProcedureList('`meta.last_page` no es un entero positivo')
+  if (announced !== undefined && n !== announced) return invalidProcedureList(`\`meta.last_page\` cambió durante el recorrido (${announced} -> ${n})`)
+  return n
+}
+
+/**
+ * Listado público COMPLETO de procedimientos (GET /v1/web/cirugias, todas las páginas). Hub resuelve la línea con X-Tenant-Linea y solo
+ * entrega los activos y habilitados para ella. Lo usan el endpoint público y el sitemap: devuelve TODAS las filas o lanza un error
+ * (503 con `data.reason`); nunca una lista parcial. `data: []` con HTTP 200 es una respuesta válida (lista vacía).
+ */
+export async function fetchPublicProcedureRows(event: H3Event): Promise<any[]> {
+  const rows: any[] = []
+  for (let page = 1, lastPage = 1; page <= lastPage; page++) {
+    const res = await wellezyPublicGet<any>(event, `/v1/web/cirugias?page=${page}`)
+    assertHubOk('procedures', res, Array.isArray(res.data?.data), MSG_PROCEDURES_UNAVAILABLE)
+    lastPage = publicLastPage(res.data.meta, page === 1 ? undefined : lastPage)
+    if (lastPage > HUB_PROCEDURES_MAX_PAGES) invalidProcedureList(`Hub anuncia ${lastPage} páginas (máximo ${HUB_PROCEDURES_MAX_PAGES})`)
+    rows.push(...res.data.data)
+  }
+  return rows
+}
+
 /** Lista completa (todas las páginas) para el administrador. */
 export async function hubProceduresAll(event: H3Event, query: Record<string, unknown>): Promise<any[]> {
   const rows: any[] = []
