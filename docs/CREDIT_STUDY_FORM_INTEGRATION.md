@@ -304,7 +304,7 @@ La integración con el CRM queda **aplazada**. La prioridad inmediata es poner e
 Destino definido para **Crediestética** `[Dato recibido]`:
 
 - Para: `convenioscrediestetica@gmail.com` (actualizado: destinatarios definitivos confirmados)
-- Copia: `disenadoraplanmed@gmail.com`
+- Copia: `maicoll4966@gmail.com` (**TEMPORAL de pruebas**; el definitivo es `disenadoraplanmed@gmail.com`, ver nota al final de esta sección)
 
 
 Requisitos de diseño para la implementación futura (recomendaciones, aún sin decisión técnica):
@@ -347,7 +347,7 @@ La integración con el CRM queda **aplazada**. Cuando se retome, sin repetir el 
 
 Implementado (sin commit ni despliegue): `POST /api/forms/credit-study` (multipart: campos + 4 archivos; validación servidor con tipo real PDF/PNG/JPEG, 5 MB por archivo, 15 MB de archivos, 16 MB por petición; límite de 5 intentos/10 min/IP; sin duplicados en 10 min; sin almacenamiento de archivos). Código en `shared/utils/creditStudy.ts`, `server/utils/creditStudy.ts`, `server/api/forms/credit-study.post.ts`, `services/CreditStudyService.ts`. Pruebas: `tests/security/credit-study.test.ts`.
 
-**Destinatarios (Crediestética):** Para `convenioscrediestetica@gmail.com`, CC `disenadoraplanmed@gmail.com` (definitivos), definidos en servidor (`nuxt.config.ts`); sustituibles con las variables de abajo. No se aceptan destinatarios del navegador.
+**Destinatarios (Crediestética):** Para `convenioscrediestetica@gmail.com`, CC `maicoll4966@gmail.com` (**temporal de pruebas**; el definitivo es `disenadoraplanmed@gmail.com`), definidos en servidor (`nuxt.config.ts`); sustituibles con las variables de abajo. No se aceptan destinatarios del navegador.
 
 ### Variables de entorno (solo servidor; nunca en `public`, Git ni `.env.example` con valores)
 
@@ -408,4 +408,6 @@ No hay base de datos, disco ni migraciones, así que **no se garantiza «exactam
 ### Valoración en Crediestética
 El CRM propio **aún no está configurado ni validado** (faltan el destino propio y los cinco `NUXT_CRM_VALUATION_*`; no se inventaron ni se recuperaron valores). Mientras falte, el **correo es el canal principal** de la valoración (`handleValuationByEmail`); si tampoco hay correo, responde 503 `not_configured` como antes. En cuanto se configuren el destino y los ids, la valoración guarda **primero en el CRM** y envía el correo como complemento, sin cambios de código. El destino heredado de Planmed sigue bloqueado.
 
-**Destinatarios (Crediestética):** Para `convenioscrediestetica@gmail.com`, Copia `disenadoraplanmed@gmail.com`, para estudio de crédito, financiación, valoración y referidos.
+**Destinatarios (Crediestética):** Para `convenioscrediestetica@gmail.com`, Copia `maicoll4966@gmail.com`, para estudio de crédito, financiación, valoración y referidos.
+
+> **DESTINATARIO TEMPORAL DE PRUEBAS:** `maicoll4966@gmail.com` es un CC provisional (`nuxt.config.ts`: `creditStudyCc`, `leadFormCc`, `valuationCc`, `referralCc`). Una vez validados los formularios hay que **restaurar `disenadoraplanmed@gmail.com`** en esas cuatro claves y en las pruebas `tests/security/credit-study.test.ts` y `tests/security/lead-form-email.test.ts`.

@@ -257,9 +257,12 @@ describe('Configuración SMTP y destinatarios', () => {
   test('Crediestética: destinatarios definidos en el servidor y compartidos con ninguna otra marca', () => {
     const cfg = read('nuxt.config.ts')
     assert.match(cfg, /creditStudyTo: 'convenioscrediestetica@gmail.com'/)
-    assert.match(cfg, /creditStudyCc: 'disenadoraplanmed@gmail.com'/)
+    assert.match(cfg, /creditStudyCc: 'maicoll4966@gmail.com'/) // CC TEMPORAL de pruebas; restaurar disenadoraplanmed@gmail.com tras validar
+    for (const k of ['creditStudyCc', 'leadFormCc', 'valuationCc', 'referralCc']) assert.match(cfg, new RegExp(k + ": 'maicoll4966@gmail\\.com'"))
+    for (const k of ['creditStudyTo', 'leadFormTo', 'valuationTo', 'referralTo']) assert.match(cfg, new RegExp(k + ": 'convenioscrediestetica@gmail\\.com'"))
+    assert.doesNotMatch(cfg, /Cc: 'disenadoraplanmed/)
     assert.doesNotMatch(cfg, /public: \{[^}]*creditStudy/s, 'los destinatarios no están en `public`')
-    const ok = mail.resolveMailConfig({ ...CFG, creditStudyTo: 'convenioscrediestetica@gmail.com', creditStudyCc: 'disenadoraplanmed@gmail.com' })
+    const ok = mail.resolveMailConfig({ ...CFG, creditStudyTo: 'convenioscrediestetica@gmail.com', creditStudyCc: 'maicoll4966@gmail.com' })
     assert.equal(ok.ok, true)
   })
 })

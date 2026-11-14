@@ -7,9 +7,12 @@ import { resolveClientIp } from '#shared/utils/clientIp'
 //  · Credenciales SMTP (NUXT_MAIL_*) y destinatarios por formulario (p. ej. NUXT_CREDIT_STUDY_TO/CC, NUXT_LEAD_FORM_TO/CC) salen SOLO de la configuración del
 //    servidor. El navegador no puede fijar destinatarios, copia, remitente ni asunto. Sin configuración válida => 503 `not_configured` antes de leer el cuerpo.
 //  · Conexión cifrada obligatoria (465 = TLS; otros puertos exigen STARTTLS). Éxito SOLO si el SMTP aceptó el mensaje para TODOS los destinatarios
-//    (aceptación, no entrega en bandeja). Sin reintentos automáticos.
+//    (aceptación, no entrega en bandeja). Los formularios cuyo destino principal es el correo no reintentan: el usuario puede reenviar.
+//  · Notificaciones COMPLEMENTARIAS (respaldo tras Hub/CRM): existen reintentos automáticos en memoria (30 s, 2 min y 10 min). La cola NO es persistente y los
+//    reintentos y la deduplicación son locales a cada proceso: la implementación está pensada, por ahora, para UNA sola instancia. Un reinicio del proceso
+//    puede perder las notificaciones pendientes (ver docs/CREDIT_STUDY_FORM_INTEGRATION.md, «Límites conocidos del correo de respaldo»).
 //  · Límite de intentos por IP y huella del contenido para no duplicar envíos, por formulario. No se registra ningún dato personal, financiero ni de archivos:
-//    solo códigos de error. Los guardas viven en la memoria de ESTE proceso: la aplicación debe ejecutarse como una sola instancia.
+//    solo códigos de error. Los guardas viven en la memoria de ESTE proceso.
 
 const RATE = { max: 5, windowMs: 10 * 60_000 }
 const DUPLICATE_WINDOW_MS = 10 * 60_000
