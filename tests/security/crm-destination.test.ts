@@ -20,8 +20,9 @@ let dir, D, handleValuation, prpGet, W
 // Copia el archivo del servidor reescribiendo `#shared/utils/<x>` a la ruta real del módulo compartido (Node no conoce los alias de Nuxt).
 const copyServer = (rel, name) => {
   const base = fileUrl('shared/utils')
-  const src = readFileSync(join(ROOT, rel), 'utf8').replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`)
-  writeFileSync(join(dir, name), src)
+  const fix = src => src.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'")
+  writeFileSync(join(dir, 'formMail.ts'), fix(readFileSync(join(ROOT, 'server/utils/formMail.ts'), 'utf8'))) // el módulo de valoración ahora importa el núcleo de correo
+  writeFileSync(join(dir, name), fix(readFileSync(join(ROOT, rel), 'utf8')))
   return import(pathToFileURL(join(dir, name)).href)
 }
 const run = async (fn, e) => { try { return { value: await fn(e) } } catch (error) { return { error } } }

@@ -125,9 +125,9 @@ describe('coherencia entre las rutas que limitan por IP', () => {
   test('valoración y Referidos usan resolveClientIp con trustedProxyHops, y la valoración ya no usa xForwardedFor', async () => {
     const { readFileSync } = await import('node:fs')
     const read = rel => readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8')
-    for (const rel of ['server/utils/valuation.ts', 'server/utils/prpEnrollment.ts']) {
+    for (const rel of ['server/utils/valuation.ts', 'server/utils/prpEnrollment.ts', 'server/utils/formMail.ts']) {
       const src = read(rel)
-      assert.match(src, /resolveClientIp\(getRequestIP\(event\), getRequestHeader\(event, 'x-forwarded-for'\), Number\(config\.trustedProxyHops\) \|\| 0\)/, rel)
+      assert.match(src, /resolveClientIp\(getRequestIP\(event\), getRequestHeader\(event, 'x-forwarded-for'\), Number\((?:config|runtime)\.trustedProxyHops\) \|\| 0\)/, rel)
       assert.doesNotMatch(src, /xForwardedFor\s*:\s*true/, rel)
     }
   })

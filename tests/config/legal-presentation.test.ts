@@ -67,7 +67,7 @@ describe('sin cambios en integraciones ni consentimientos', () => {
   test('los formularios y sus payloads no se tocaron en esta etapa', () => {
     assert.match(read('components/referral/ReferralForm.vue'), /v-model="values\.accepted_contract" type="checkbox"/)
     assert.match(read('shared/utils/prpEnrollment.ts'), /accepted_contract: true,/)
-    assert.match(read('services/LeadService.ts'), /MockLeadProvider/)
+    assert.match(read('services/LeadService.ts'), /'\/api\/forms\/lead'/) // envío por correo (antes: proveedor simulado)
     assert.match(read('shared/utils/valuation.ts'), /\['accept', '1'\]/)
     assert.match(read('providers/CrmPrpLeadProvider.ts'), /form\.append\('accept', '1'\)/)
   })

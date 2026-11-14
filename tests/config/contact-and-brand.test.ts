@@ -48,7 +48,8 @@ describe('contenido comercial', () => {
   test('el panel y las páginas públicas no nombran a Planmed (excepto Navbar y legales)', () => {
     for (const f of SRC) {
       if (LEGAL_OR_PROTECTED.has(f) || f.startsWith('server/') || f === 'shared/utils/legalDocuments.ts') continue // legalDocuments.ts: lista de bloqueo de dominios heredados
-      const vis = read(f).split('\n').filter(l => !/^\s*(\/\/|\*|\/\*|<!--)/.test(l) && !/\/\/.*planmed/i.test(l)).join('\n')
+      // El buzón de destino del estudio de crédito (definido por el negocio) contiene el texto «planmed» en la dirección: no es una mención de marca.
+      const vis = read(f).replace(/disenadoraplanmed@gmail\.com/g, '').split('\n').filter(l => !/^\s*(\/\/|\*|\/\*|<!--)/.test(l) && !/\/\/.*planmed/i.test(l)).join('\n')
       assert.ok(!/planmed/i.test(vis.replace(/<!--.*?-->/gs, '')), f)
     }
   })

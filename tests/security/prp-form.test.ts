@@ -140,7 +140,7 @@ describe('páginas PRP y envío PRP son interruptores independientes', () => {
 describe('los demás formularios no cambian', () => {
   test('valoración, simulador, preaprobado e inscripción de referidos no dependen de features.ts', () => {
     for (const f of ['server/utils/valuation.ts', 'server/api/forms/valuation.post.ts', 'shared/utils/valuation.ts', 'services/ValuationService.ts', 'components/forms/ValuationRequest.vue',
-      'components/forms/LeadForm.vue', 'services/LeadService.ts', 'providers/MockLeadProvider.ts', 'server/utils/prpEnrollment.ts', 'services/ReferralService.ts']) {
+      'components/forms/LeadForm.vue', 'services/LeadService.ts', 'providers/MockLeadProvider.ts', 'server/utils/prpEnrollment.ts', 'server/utils/referral.ts', 'services/ReferralService.ts']) {
       assert.doesNotMatch(read(f), /utils\/features/, f)
     }
   })
@@ -149,7 +149,9 @@ describe('los demás formularios no cambian', () => {
     assert.doesNotMatch(read('shared/utils/valuation.ts'), /id_line', '30'|CRM_PRP_ID_LINE/)
     assert.match(read('shared/utils/valuation.ts'), /\['id_line', crm\.lineId\]/)
   })
-  test('el preaprobado del simulador sigue usando el proveedor simulado (sin envío real)', () => {
-    assert.match(read('services/LeadService.ts'), /new MockLeadProvider\(\)/)
+  test('el preaprobado del simulador se envía por correo (/api/forms/lead), sin CRM ni PRP', () => {
+    const svc = read('services/LeadService.ts')
+    assert.match(svc, /LEAD_ENDPOINT = '\/api\/forms\/lead'/)
+    assert.doesNotMatch(svc, /MockLeadProvider|crm-public|prp/i)
   })
 })
