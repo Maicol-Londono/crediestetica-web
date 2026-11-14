@@ -39,6 +39,31 @@ export default defineNuxtConfig({
     crmValuationAdvisorId: '',
     crmValuationState: '',
     crmValuationOrigin: '',
+    // Correo SMTP (SOLO servidor, nunca en `public`) del formulario «Estudio de créditos» (POST /api/forms/credit-study). SIN credenciales por defecto:
+    // las define el administrador por entorno con NUXT_MAIL_HOST / _PORT / _USERNAME / _PASSWORD / _FROM_ADDRESS / _FROM_NAME. Sin ellas el envío responde
+    // 503 `not_configured`. Conexión cifrada obligatoria (puerto 465 = TLS; otros puertos exigen STARTTLS).
+    mailHost: '',
+    mailPort: '',
+    mailUsername: '',
+    mailPassword: '',
+    mailFromAddress: '',
+    mailFromName: 'Crediestética',
+    // TEMPORAL (pruebas): el CC de los cuatro formularios es maicoll4966@gmail.com. Al validar los formularios hay que restaurar disenadoraplanmed@gmail.com.
+    // Destinatarios del estudio de crédito: definidos AQUÍ, en el servidor (el navegador no puede cambiarlos). Se pueden sustituir con NUXT_CREDIT_STUDY_TO /
+    // NUXT_CREDIT_STUDY_CC (varias direcciones separadas por coma). Son los de Crediestética: no se comparten con Planmed.
+    creditStudyTo: 'convenioscrediestetica@gmail.com',
+    creditStudyCc: 'maicoll4966@gmail.com',
+    // Destinatarios de la solicitud de financiación (LeadForm → POST /api/forms/lead), definidos AQUÍ, solo en el servidor. Sustituibles con NUXT_LEAD_FORM_TO /
+    // NUXT_LEAD_FORM_CC (varias direcciones separadas por coma). Son los de Crediestética: no se comparten con Planmed.
+    leadFormTo: 'convenioscrediestetica@gmail.com',
+    leadFormCc: 'maicoll4966@gmail.com',
+    // Destinatarios del correo de RESPALDO de la valoración y de la notificación complementaria del programa de referidos (Hub → correo): solo servidor,
+    // sustituibles con NUXT_VALUATION_TO/CC y NUXT_REFERRAL_TO/CC. Son los de Crediestética: no se comparten con Planmed.
+    // El correo NO sustituye al CRM ni a Hub: se envía después de que ellos confirmen (en valoración es además el canal principal mientras el CRM no esté configurado).
+    valuationTo: 'convenioscrediestetica@gmail.com',
+    valuationCc: 'maicoll4966@gmail.com',
+    referralTo: 'convenioscrediestetica@gmail.com',
+    referralCc: 'maicoll4966@gmail.com',
     public: {
       appName: 'Crediestética',
       // Valor informativo del dominio público: ningún código lo lee hoy. No es dominio de la API ni se envía a Hub (no se usa X-Tenant-Domain).

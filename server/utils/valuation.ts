@@ -2,7 +2,12 @@ import type { H3Event } from 'h3'
 import { createHash } from 'node:crypto'
 import { resolveClientIp } from '#shared/utils/clientIp'
 import { crmDestinationProblem, MSG_CRM_UNAVAILABLE } from '#shared/utils/crmDestination'
-import { buildCrmFields, crmConfirmed, normalizeValuation, resolveValuationCrmConfig, validateValuation, VALUATION_CRM_ENV, VALUATION_FIELDS } from '#shared/utils/valuation'
+import { buildCrmFields, crmConfirmed, normalizeValuation, resolveValuationCrmConfig, validateValuation, VALUATION_CRM_ENV, VALUATION_FIELDS, type ValuationInput } from '#shared/utils/valuation'
+
+import {
+  VALUATION_RECIPIENTS, cleanLine, contentFingerprint, deliverFormMail, formFail, isRateLimited, notifyComplementary, renderFormEmail, requireMailConfig, resolveMailConfig,
+  type MailSection, type NotifyResult
+} from './formMail'
 
 // Solicitud de valoración → CRM médico (POST multipart a /crm-public/api/clients/forms). Solo servidor.
 //  · Valida TODO antes de llamar al CRM (una petición inválida nunca llega a él).
@@ -15,6 +20,14 @@ import { buildCrmFields, crmConfirmed, normalizeValuation, resolveValuationCrmCo
 //    cualquiera, responde 503 `not_configured` antes de leer el cuerpo y de consumir el límite, y no sale ninguna petición al CRM.
 //  · Los guardas de límite y duplicados viven en la memoria de ESTE proceso: la aplicación debe ejecutarse como una sola instancia.
 
+//  · CORREO COMPLEMENTARIO: después de que el CRM CONFIRMA el registro se envía un correo de respaldo (NUXT_VALUATION_TO/CC). Nunca sustituye al CRM ni
+//    altera su resultado: si el correo falla el registro sigue vigente y el usuario no ve error (cola de reintento en memoria, ver ./formMail).
+//    Si el CRM falla no se envía correo ni se afirma que se registró.
+//  · Mientras el CRM propio NO esté configurado/validado (destino o ids ausentes/ inválidos) el CORREO es el canal principal (`handleValuationByEmail`);
+//    en cuanto el CRM se habilite, el CRM pasa a ser el destino principal y el correo, complementario. No se inventan ids de CRM.
+
+const TAG = 'valuation'
+const FORM = 'valuation'
 const TIMEOUT_MS = 15_000
 const RATE = { max: 8, windowMs: 10 * 60_000 }
 const DUPLICATE_WINDOW_MS = 2 * 60_000
@@ -51,17 +64,10 @@ export async function handleValuation(event: H3Event) {
   assertSameOrigin(event)
   setHeader(event, 'Cache-Control', 'no-store')
 
-  // Destino del CRM: sin configuración válida, o apuntando al CRM heredado de Planmed, NO se procesa ni se envía nada (ni se consume el límite
-  // por IP). Se evalúa en el servidor antes de leer el cuerpo.
-  const url = String(useRuntimeConfig(event).crmValuationUrl || '')
-  const problem = crmDestinationProblem(url)
-  if (problem) {
-    console.error(`[valuation] destino del CRM bloqueado (${problem}): define NUXT_CRM_VALUATION_URL con el CRM propio.`)
-    fail(503, MSG_CRM_UNAVAILABLE, { reason: 'not_configured' })
-  }
-
-  // Identificadores del CRM de Crediestética (sin valores por defecto). Se evalúa ANTES de leer el cuerpo y del límite por IP.
+  // ¿Hay un CRM propio utilizable? Destino válido (no el heredado de Planmed) E identificadores completos. Si no, el correo es el canal PRINCIPAL.
   const config = useRuntimeConfig(event)
+  const url = String(config.crmValuationUrl || '')
+  const problem = crmDestinationProblem(url)
   const crm = resolveValuationCrmConfig({
     userId: config.crmValuationUserId,
     lineId: config.crmValuationLineId,
@@ -69,10 +75,12 @@ export async function handleValuation(event: H3Event) {
     state: config.crmValuationState,
     origin: config.crmValuationOrigin
   })
-  if (!crm.ok) {
-    // Solo los NOMBRES de las variables: nunca sus valores.
-    console.error(`[valuation] configuración del CRM incompleta o inválida (${crm.invalid.map(k => VALUATION_CRM_ENV[k]).join(', ')}): la valoración permanece bloqueada.`)
-    fail(503, MSG_CRM_UNAVAILABLE, { reason: 'not_configured' })
+  if (problem || !crm.ok) {
+    // Solo NOMBRES de variables o el motivo del destino: nunca valores.
+    console.error(`[valuation] CRM no configurado o inválido (${problem || (crm.ok ? '' : crm.invalid.map(k => VALUATION_CRM_ENV[k]).join(', '))}): la valoración usa el correo como canal principal.`)
+    // Sin CRM ni correo: comportamiento original (503 sin leer el cuerpo ni consumir el límite).
+    if (!resolveMailConfig(config as Record<string, any>, VALUATION_RECIPIENTS).ok) fail(503, MSG_CRM_UNAVAILABLE, { reason: 'not_configured' })
+    return await handleValuationByEmail(event)
   }
 
   const now = Date.now()
@@ -130,9 +138,105 @@ export async function handleValuation(event: H3Event) {
     }
 
     accepted.set(print, now)
+    // CRM confirmó: correo de RESPALDO en segundo plano (la respuesta no espera al SMTP; `notifyValuationByEmail` no lanza ni cambia este resultado).
+    void notifyValuationByEmail(event, value, print)
     return { ok: true }
   } finally {
     clearTimeout(timer)
     inflight.delete(print)
   }
+}
+
+/** Asunto, texto y HTML del correo. Todo valor se escapa. */
+export function buildValuationEmail(input: { brand: string, receivedAt: Date, value: ValuationInput }) {
+  const { brand, value: v } = input
+  const l = cleanLine
+  const sections: MailSection[] = [
+    { title: 'Procedimiento solicitado', rows: [
+      { label: 'Cirugía de interés', value: l(v.name_surgery) },
+      { label: 'Forma de pago', value: l(v.forma_pago) }
+    ] },
+    { title: 'Solicitante', rows: [
+      { label: 'Nombres', value: l(v.nombres) },
+      { label: 'Apellidos', value: l(v.apellidos) },
+      { label: 'Número de cédula', value: l(v.identificacion) },
+      { label: 'Fecha de nacimiento', value: l(v.fecha_nacimiento) },
+      { label: 'Ciudad', value: l(v.direccion) }
+    ] },
+    { title: 'Contacto', rows: [
+      { label: 'Teléfono', value: l(v.telefono) },
+      { label: 'Correo electrónico', value: l(v.email) }
+    ] },
+    { title: 'Autorización', rows: [{ label: 'Política de tratamiento de datos personales', value: 'Aceptada por el solicitante en el formulario' }] }
+  ]
+  const subject = l(`[${brand}] Nueva solicitud de valoración`).slice(0, 150)
+  const { text, html } = renderFormEmail({
+    brand,
+    title: 'Nueva solicitud de valoración',
+    receivedAt: input.receivedAt,
+    sections,
+    footer: 'Mensaje generado automáticamente por el formulario web. Contiene datos personales: trátalo como confidencial.'
+  })
+  return { subject, text, html }
+}
+
+/** Correo de respaldo de una valoración que el CRM ya confirmó. Nunca lanza ni altera el resultado del CRM: `sent`, `pending` (cola de reintento) o `skipped`. */
+export async function notifyValuationByEmail(event: H3Event, value: ValuationInput, key: string): Promise<NotifyResult> {
+  try {
+    const runtime = useRuntimeConfig(event) as Record<string, any>
+    const mail = resolveMailConfig(runtime, VALUATION_RECIPIENTS)
+    if (!mail.ok) {
+      console.error(`[${TAG}] correo complementario omitido: configuración incompleta (${mail.invalid.join(', ')})`)
+      return 'skipped'
+    }
+    const brand = String(runtime.public?.appName || 'Crediestética')
+    return await notifyComplementary({
+      tag: TAG,
+      form: FORM,
+      key: `valuation|${key}`,
+      mail: mail.config,
+      build: () => ({ ...buildValuationEmail({ brand, receivedAt: new Date(), value }), replyTo: value.email })
+    })
+  } catch {
+    // Cualquier fallo de configuración o de correo queda aquí: jamás llega al resultado confirmado de Hub/CRM. Solo un texto fijo (sin datos).
+    console.error(`[${TAG}] correo complementario omitido: error inesperado`)
+    return 'skipped'
+  }
+}
+
+/** Valoración por CORREO como canal PRINCIPAL (solo cuando el CRM no está configurado/validado). Devuelve { ok: true } solo si el SMTP aceptó el mensaje. */
+async function handleValuationByEmail(event: H3Event) {
+  assertSameOrigin(event)
+  setHeader(event, 'Cache-Control', 'no-store')
+
+  // Configuración de correo y destinatarios (solo servidor): ANTES de leer el cuerpo y de consumir el límite por IP.
+  const { runtime: config, config: mail } = requireMailConfig(event, TAG, VALUATION_RECIPIENTS)
+
+  const now = Date.now()
+  if (isRateLimited(FORM, event, config, now)) formFail(429, 'Recibimos demasiados intentos. Espera unos minutos e inténtalo de nuevo.', { reason: 'rate_limited' })
+
+  const length = Number(getRequestHeader(event, 'content-length'))
+  if (!Number.isFinite(length) || length <= 0) formFail(411, 'No pudimos procesar el envío. Inténtalo de nuevo.', { reason: 'length_required' })
+  if (length > 16 * 1024) formFail(413, 'El envío es demasiado grande.', { reason: 'too_large' })
+  if (!String(getRequestHeader(event, 'content-type') ?? '').toLowerCase().startsWith('application/json')) {
+    formFail(415, 'No pudimos procesar el envío. Inténtalo de nuevo.', { reason: 'malformed' })
+  }
+
+  const value = normalizeValuation(await readBody(event).catch(() => null))
+  const errors = validateValuation(value)
+  if (Object.keys(errors).length) formFail(422, 'Revisa los datos ingresados.', { reason: 'validation', errors })
+
+  const { subject, text, html } = buildValuationEmail({ brand: String(config.public?.appName || 'Crediestética'), receivedAt: new Date(now), value })
+  return await deliverFormMail({
+    tag: TAG,
+    form: FORM,
+    // Misma persona + mismo procedimiento = mismo envío (ignora formato del teléfono y mayúsculas de la cirugía).
+    print: contentFingerprint({ id: value.identificacion, tel: value.telefono.replace(/\D/g, ''), cirugia: value.name_surgery.toLowerCase(), pago: value.forma_pago }),
+    now,
+    mail,
+    subject,
+    text,
+    html,
+    replyTo: value.email
+  })
 }

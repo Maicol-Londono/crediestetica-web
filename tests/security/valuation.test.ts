@@ -26,13 +26,14 @@ const CRM_CFG = {
   trustedProxyHops: 0
 }
 
-const state = { cfg: {}, fetchCalls: [], bodyReads: 0, fetchImpl: null, clock: 1_800_000_000_000 }
-let dir, mod, realNow
+const state = { cfg: {}, fetchCalls: [], bodyReads: 0, fetchImpl: null, clock: 1_800_000_000_000, sent: [], sendImpl: null }
+let dir, mod, mailMod, realNow
 
 const copyServer = (rel, name) => {
   const base = fileUrl('shared/utils')
-  const src = readFileSync(join(ROOT, rel), 'utf8').replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`)
-  writeFileSync(join(dir, name), src)
+  const fix = src => src.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'")
+  writeFileSync(join(dir, 'formMail.ts'), fix(readFileSync(join(ROOT, 'server/utils/formMail.ts'), 'utf8')))
+  writeFileSync(join(dir, name), fix(readFileSync(join(ROOT, rel), 'utf8')))
   return import(pathToFileURL(join(dir, name)).href)
 }
 const run = async (fn, e) => { try { return { value: await fn(e) } } catch (error) { return { error } } }
@@ -42,7 +43,7 @@ const VALID = {
   telefono: '3001234567', email: 'ana@example.com', name_surgery: 'Rinoplastia', forma_pago: 'Financiación', accept: true
 }
 const event = (over = {}) => ({ method: 'POST', body: { ...VALID }, headers: {}, ip: SOCKET_IP, ...over })
-const submit = (over = {}) => run(mod.handleValuation, event(over))
+const submit = async (over = {}) => { const r = await run(mod.handleValuation, event(over)); await mailMod?.settleNotifications(); return r }
 const okFetch = async () => ({ ok: true, status: 200, json: async () => ({ mensagge: 'Registro creado' }) })
 
 before(async () => {
@@ -59,6 +60,7 @@ before(async () => {
   g.readBody = async e => { state.bodyReads++; return e.body }
   g.fetch = (...args) => { state.fetchCalls.push(args); return state.fetchImpl(...args) }
   mod = await copyServer('server/utils/valuation.ts', 'valuation.ts')
+  mailMod = await import(pathToFileURL(join(dir, 'formMail.ts')).href)
 })
 beforeEach(() => {
   state.cfg = { ...CRM_CFG }
@@ -67,8 +69,12 @@ beforeEach(() => {
   state.fetchImpl = okFetch
   state.clock += 3 * WINDOW // cada prueba parte de una ventana limpia
   mod.resetValuationGuards()
+  state.sent = []
+  state.sendImpl = async () => ({ accepted: ['valoracion@example.test'], rejected: [] })
+  mailMod.resetMailGuards()
+  mailMod.setMailTransportFactory(async () => ({ sendMail: async (msg) => { state.sent.push(msg); return state.sendImpl(msg) }, close: () => {} }))
 })
-after(() => { Date.now = realNow; rmSync(dir, { recursive: true, force: true }) })
+after(() => { mailMod.setMailTransportFactory(); Date.now = realNow; rmSync(dir, { recursive: true, force: true }) })
 
 const sentFields = () => [...state.fetchCalls[0][1].body.entries()]
 
@@ -354,5 +360,161 @@ describe('tratamiento de errores del CRM (sin cambios)', () => {
       assert.equal(r.error.data.reason, 'not_configured')
     }
     assert.equal(state.fetchCalls.length, 0)
+  })
+})
+
+// ── Correo COMPLEMENTARIO y canal principal sin CRM ──────────────────────────────────────────────────────────────────────────────────────────────────
+// Todo con CRM simulado y transporte SMTP simulado: no hay red ni correos reales. Direcciones y contraseñas FICTICIAS.
+const MAIL_CFG = {
+  mailHost: 'smtp.example.test', mailPort: 465, mailUsername: 'sender@example.test', mailPassword: 'clave-ficticia', mailFromAddress: '', mailFromName: 'Marca de prueba',
+  valuationTo: 'valoracion@example.test', valuationCc: '', public: { appName: 'Marca de prueba' }
+}
+
+async function keyOf() {
+  const { createHash } = await import('node:crypto')
+  return createHash('sha256').update(`${VALID.identificacion}|${VALID.telefono.replace(/\D/g, '')}|${VALID.name_surgery.toLowerCase()}`).digest('hex')
+}
+
+describe('CRM configurado: el CRM es el destino principal y el correo es complementario', () => {
+  test('CRM ok + correo ok => {ok:true}; el CRM se llama primero y el correo sale después, con asunto y destinatarios del servidor', async () => {
+    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
+    const order = []
+    state.fetchImpl = async () => { order.push('crm'); return okFetch() }
+    state.sendImpl = async () => { order.push('mail'); return { accepted: ['valoracion@example.test'], rejected: [] } }
+    const r = await submit()
+    assert.equal(r.value?.ok, true)
+    assert.deepEqual(order, ['crm', 'mail'])
+    assert.equal(state.fetchCalls.length, 1)
+    assert.equal(state.sent.length, 1)
+    assert.equal(state.sent[0].subject, '[Marca de prueba] Nueva solicitud de valoración')
+    assert.deepEqual(state.sent[0].to, ['valoracion@example.test'])
+  })
+
+  test('CRM ok + correo FALLA => sigue {ok:true} (el registro del CRM se conserva), el usuario no ve error y queda pendiente de reintento', async () => {
+    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
+    state.sendImpl = async () => { throw Object.assign(new Error('boom'), { code: 'ECONNREFUSED' }) }
+    const r = await submit()
+    assert.equal(r.value?.ok, true)
+    assert.equal(r.error, undefined)
+    assert.equal(state.fetchCalls.length, 1, 'el CRM se llamó una sola vez')
+    assert.equal(mailMod.notificationState(`valuation|${await keyOf()}`), 'pending')
+  })
+
+  test('CRM ok + sin correo configurado => {ok:true} y no se intenta ningún envío', async () => {
+    state.cfg = { ...CRM_CFG }
+    const r = await submit()
+    assert.equal(r.value?.ok, true)
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('CRM FALLA => no se envía correo ni se afirma que se registró', async () => {
+    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
+    state.fetchImpl = async () => ({ ok: false, status: 500, json: async () => ({}) })
+    const r = await submit()
+    assert.equal(r.error?.statusCode, 502)
+    assert.equal(r.error.data.reason, 'crm_error')
+    assert.equal(state.sent.length, 0)
+    state.fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({}) })
+    mod.resetValuationGuards()
+    const u = await submit()
+    assert.equal(u.error?.data?.reason, 'unconfirmed')
+    assert.equal(state.sent.length, 0)
+  })
+})
+
+const JSON_HDRS = { headers: { 'content-length': '900', 'content-type': 'application/json' } }
+
+describe('CRM NO configurado: el correo es el canal principal', () => {
+  test('sin CRM propio pero con correo => {ok:true} por correo, sin llamar al CRM', async () => {
+    state.cfg = { ...MAIL_CFG, trustedProxyHops: 0 }
+    const r = await submit(JSON_HDRS)
+    assert.equal(r.value?.ok, true)
+    assert.equal(state.fetchCalls.length, 0)
+    assert.equal(state.sent.length, 1)
+  })
+
+  test('ids del CRM incompletos o destino heredado de Planmed + correo => correo principal; nunca se llama al CRM', async () => {
+    for (const cfg of [{ ...CRM_CFG, crmValuationLineId: '' }, { ...CRM_CFG, crmValuationUrl: 'https://pdtclientsolutions.com/crm-public/api/clients/forms' }]) {
+      state.cfg = { ...cfg, ...MAIL_CFG }
+      mod.resetValuationGuards(); mailMod.resetMailGuards(); state.sent = []
+      const r = await submit(JSON_HDRS)
+      assert.equal(r.value?.ok, true)
+      assert.equal(state.fetchCalls.length, 0)
+      assert.equal(state.sent.length, 1)
+    }
+  })
+
+  test('ni CRM ni correo => 503 not_configured sin leer el cuerpo', async () => {
+    state.cfg = { trustedProxyHops: 0 }
+    const r = await submit(JSON_HDRS)
+    assert.equal(r.error?.statusCode, 503)
+    assert.equal(r.error.data.reason, 'not_configured')
+    assert.equal(state.bodyReads, 0)
+    assert.equal(state.fetchCalls.length, 0)
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('correo principal con SMTP caído => error al usuario (no hay registro que conservar)', async () => {
+    state.cfg = { ...MAIL_CFG, trustedProxyHops: 0 }
+    state.sendImpl = async () => { throw Object.assign(new Error('x'), { code: 'ECONNREFUSED' }) }
+    const r = await submit(JSON_HDRS)
+    assert.equal(r.error?.statusCode, 503)
+  })
+})
+
+describe('Blindaje y respuesta independiente del correo complementario', () => {
+  test('un error al LEER la configuración de correo no altera el registro confirmado por el CRM', async () => {
+    const cfg = { ...CRM_CFG, ...MAIL_CFG }
+    Object.defineProperty(cfg, 'mailHost', { get() { throw new Error('config corrupta') }, enumerable: true, configurable: true })
+    state.cfg = cfg
+    const r = await submit()
+    assert.equal(r.value?.ok, true)
+    assert.equal(state.fetchCalls.length, 1)
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('SMTP mal configurado (sin contraseña o puerto inválido) => el CRM confirma igual y no se intenta el envío', async () => {
+    for (const bad of [{ mailPassword: '' }, { mailPort: 'abc' }]) {
+      state.cfg = { ...CRM_CFG, ...MAIL_CFG, ...bad }
+      mod.resetValuationGuards(); mailMod.resetMailGuards(); state.fetchCalls = []
+      const r = await submit()
+      assert.equal(r.value?.ok, true, JSON.stringify(bad))
+      assert.equal(state.sent.length, 0)
+    }
+  })
+
+  test('la respuesta NO espera al SMTP: con el SMTP colgado responde {ok:true} de inmediato y el correo queda pendiente hasta que termina', async () => {
+    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
+    let release
+    state.sendImpl = () => new Promise((res) => { release = () => res({ accepted: ['valoracion@example.test'], rejected: [] }) })
+    const r = await run(mod.handleValuation, event()) // sin esperar al correo
+    assert.equal(r.value?.ok, true)
+    const k = `valuation|${await keyOf()}`
+    assert.equal(mailMod.notificationState(k), 'pending', 'no se informa como enviado mientras no lo esté')
+    await new Promise(res => setImmediate(res))
+    assert.equal(typeof release, 'function')
+    release()
+    await mailMod.settleNotifications()
+    assert.equal(mailMod.notificationState(k), 'sent')
+  })
+
+  test('REINICIO simulado: el estado del correo se pierde y un reenvío puede enviar OTRO correo (límite documentado, sin garantía de «exactamente una vez»)', async () => {
+    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
+    await submit()
+    assert.equal(state.sent.length, 1)
+    mailMod.resetMailGuards()
+    mod.resetValuationGuards() // el reinicio también borra el bloqueo de doble envío del CRM, que es de memoria
+    await submit()
+    assert.equal(state.sent.length, 2)
+  })
+
+  test('el pendiente no retiene el formulario completo: tras fallar, el correo reintentado es el mensaje ya construido', async () => {
+    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
+    state.sendImpl = async () => { throw Object.assign(new Error('x'), { code: 'ECONNREFUSED' }) }
+    await submit()
+    const src = readFileSync(join(ROOT, 'server/utils/formMail.ts'), 'utf8')
+    const entry = src.slice(src.indexOf('interface NotifyEntry'), src.indexOf('const pending'))
+    assert.match(entry, /msg\?: ComplementaryMessage/)
+    assert.doesNotMatch(entry, /build|value/)
   })
 })
