@@ -106,7 +106,8 @@ describe('bloqueo de destinos inválidos (sin cambios)', () => {
   })
   test('la configuración del destino sigue siendo el endpoint compartido aprobado', () => {
     assert.match(read('nuxt.config.ts'), /crmPrpFormUrl: 'https:\/\/pdtclientsolutions\.com\/crm-public\/api\/forms-px-prp'/)
-    assert.match(read('server/api/public/prp/[slug].get.ts'), /crmDestinationProblem\(useRuntimeConfig\(event\)\.public\?\.crmPrpFormUrl\)/)
+    // El micrositio ya no se condiciona por este destino (la inscripción se procesa en Hub); el proveedor de leads conserva su propia guarda.
+    assert.doesNotMatch(read('server/api/public/prp/[slug].get.ts'), /crmDestinationProblem\(|public\?\.crmPrpFormUrl/)
   })
 })
 

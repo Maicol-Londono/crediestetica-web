@@ -1,5 +1,5 @@
 <template>
-  <section aria-labelledby="ref-form-title" class="mt-14 border-t border-black pt-10">
+  <section aria-labelledby="ref-form-title">
     <!-- Resultado: «completed» solo cuando el CRM médico confirmó; «received» = guardada, pendiente de procesar. -->
     <div v-if="status === 'completed' || status === 'received'" role="status" :data-testid="`referral-${status}`" class="bg-white border border-[#E7DDD1] p-8 md:p-12 text-center">
       <div class="w-14 h-14 mx-auto mb-5 rounded-full bg-[#111111] text-[#CBA36B] flex items-center justify-center">
@@ -99,11 +99,14 @@
 </template>
 
 <script setup lang="ts">
-// Inscripción al Programa de referidos (PRP). Envía a POST /api/forms/prp-enrollment (servidor de Crediestética → Hub). Los datos
-// (incluidos los bancarios) solo viven en memoria: no se guardan en el almacenamiento del navegador ni se registran.
+// Inscripción al Programa de referidos (PRP) desde el micrositio /prp/[slug]. Envía a POST /api/forms/prp-enrollment (servidor de Crediestética → Hub).
+// Los datos (incluidos los bancarios) solo viven en memoria: no se guardan en el almacenamiento del navegador ni se registran.
+// `slug` es el del micrositio: el servidor resuelve con Hub el referidor (`external_code`); la persona nunca lo ve, lo elige ni lo escribe.
 import { ref, reactive, computed, watch } from 'vue'
 import { DOCUMENT_TYPES, PAYMENT_METHODS, isTransfer, normalizeEnrollment, validateEnrollment, type EnrollmentErrors, type EnrollmentInput } from '#shared/utils/prpEnrollment'
 import { referralService, ReferralError } from '~/services/ReferralService'
+
+const props = defineProps<{ slug: string }>()
 
 type TextKey = 'full_name' | 'phone' | 'email' | 'surgery_date' | 'surgery_name' | 'bank_holder_name' | 'bank_holder_document' | 'bank_account_number'
 interface F { id: string, key: TextKey, label: string, type?: string, inputmode?: 'text' | 'numeric' | 'tel' | 'email', autocomplete?: string, maxlength?: number }
@@ -165,7 +168,7 @@ async function onSubmit() {
   status.value = 'submitting'
   errorMessage.value = ''
   try {
-    const result = await referralService.submit(payload)
+    const result = await referralService.submit(payload, props.slug)
     // Solo tras la respuesta del servidor se descartan los datos (incluidos los bancarios).
     Object.assign(values, empty())
     control.value = 'Sí'

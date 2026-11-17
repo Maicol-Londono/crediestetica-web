@@ -1,10 +1,13 @@
 import type { H3Event } from 'h3'
 import { resolveClientIp } from '#shared/utils/clientIp'
-import { buildHubPayload, normalizeEnrollment, validateEnrollment } from '#shared/utils/prpEnrollment'
+import { buildHubPayload, normalizeEnrollment, readPrpSlug, validateEnrollment } from '#shared/utils/prpEnrollment'
 import { enrollmentKey, notifyReferralByEmail } from './referral'
+import { resolvePrpExternalCode } from './prpReferrer'
 
 // Inscripción al PRP → Wellezy Hub (POST /v1/web/prp-enrollments). Solo servidor.
 //  · Valida TODO antes de llamar a Hub; la empresa y la línea las resuelve Hub por el tenant de la configuración del servidor.
+//  · REFERIDOR: toda inscripción pertenece al referidor del micrositio /prp/[slug]. El navegador solo envía `prp_slug`; el `external_code` lo resuelve el servidor
+//    con Hub (./prpReferrer) y se agrega al payload. Un `external_code` enviado por el navegador se IGNORA. Sin referidor activo no hay inscripción.
 //  · Clave de idempotencia = HMAC (secreto del servidor) del payload COMPLETO: el mismo envío reintentado (también tras timeout) produce la misma
 //    clave y nunca duplica; nadie sin el secreto puede predecirla ni ocupar la inscripción de otra persona. Hub además compara el contenido (409).
 //  · Límite de peticiones por IP del cliente: X-Forwarded-For solo se usa con `trustedProxyHops` > 0 (ver shared/utils/clientIp.ts).
@@ -46,11 +49,14 @@ export async function handlePrpEnrollment(event: H3Event) {
   const ip = resolveClientIp(getRequestIP(event), getRequestHeader(event, 'x-forwarded-for'), Number(config.trustedProxyHops) || 0)
   if (rateLimited(ip, Date.now())) fail(429, 'Recibimos demasiados intentos. Espera unos minutos e inténtalo de nuevo.', { reason: 'rate_limited' })
 
-  const value = normalizeEnrollment(await readBody(event).catch(() => null))
+  const body = await readBody(event).catch(() => null)
+  const value = normalizeEnrollment(body)
   const errors = validateEnrollment(value)
   if (Object.keys(errors).length) fail(422, 'Revisa los datos ingresados.', { reason: 'validation', errors })
 
-  const payload = buildHubPayload(value)
+  // Referidor del micrositio (servidor ↔ Hub): el mismo slug entrega el mismo código en cada reintento, así la clave de idempotencia no cambia.
+  const externalCode = await resolvePrpExternalCode(event, readPrpSlug(body))
+  const payload = buildHubPayload(value, externalCode)
   const secret = String(config.sessionPassword || '')
   if (secret.length < 32) {
     console.error('[prp-enrollment] NUXT_SESSION_PASSWORD no está configurada: no se puede generar la clave de idempotencia.')
@@ -73,6 +79,11 @@ export async function handlePrpEnrollment(event: H3Event) {
   }
 
   if (res.status === 422) {
+    // Hub rechazó el referidor (inexistente, inactivo o de otra línea entre la lectura del micrositio y el envío): no se reintenta con otro.
+    if (res.data?.errors && typeof res.data.errors === 'object' && 'external_code' in res.data.errors) {
+      console.error('[prp-enrollment] Hub rechazó el referidor')
+      fail(422, 'El enlace de tu referidor no es válido o ya no está activo.', { reason: 'referrer_invalid' })
+    }
     const known: Record<string, string> = {}
     const src = res.data?.errors && typeof res.data.errors === 'object' ? res.data.errors : {}
     for (const [k, v] of Object.entries(src)) {

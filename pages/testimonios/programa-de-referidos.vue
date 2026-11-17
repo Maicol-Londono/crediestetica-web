@@ -36,8 +36,7 @@
         <!-- Sin texto administrado en Hub: se muestra el contenido estático del programa (presentación estática del programa de referidos de Crediestética). -->
         <ReferralProgramContent v-else-if="loaded" />
 
-        <!-- Formulario de inscripción. Se muestra con el texto de Hub o con el estático, no en error. -->
-        <ReferralForm v-if="loaded && !error" />
+        <!-- Sin formulario: esta página es informativa. La inscripción al programa solo se hace desde el micrositio del referidor (/prp/[slug]). -->
       </div>
     </div>
   </div>

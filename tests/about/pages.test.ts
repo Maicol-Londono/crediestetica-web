@@ -148,7 +148,10 @@ describe('menú y páginas', () => {
 
   test('Programa de referidos: contenido entregado y formulario que envía por ReferralService (no directo desde el componente) con estados de error y confirmación accesibles', () => {
     const page = readFileSync(join(ROOT, 'pages/testimonios/programa-de-referidos.vue'), 'utf8')
-    assert.ok(page.includes('<ReferralProgramContent') && page.includes('<ReferralForm'))
+    assert.ok(page.includes('<ReferralProgramContent'))
+    // La inscripción ya NO está en esta página genérica: solo se hace desde el micrositio del referidor (/prp/[slug]).
+    assert.ok(!page.includes('<ReferralForm'), 'la página genérica no inscribe al PRP')
+    assert.ok(readFileSync(join(ROOT, 'pages/prp/[slug].vue'), 'utf8').includes('<ReferralForm :slug="prp.slug" />'))
     const program = readFileSync(join(ROOT, 'components/referral/ProgramContent.vue'), 'utf8')
     assert.ok(/Crediestética/.test(program) && !/Plan Médico|Planmed/i.test(program), 'el programa estático está adaptado a Crediestética y no menciona a Planmed')
     const form = readFileSync(join(ROOT, 'components/referral/ReferralForm.vue'), 'utf8')

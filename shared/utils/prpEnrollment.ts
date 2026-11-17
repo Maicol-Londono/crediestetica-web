@@ -124,12 +124,31 @@ export function validateEnrollment(v: EnrollmentInput, today: Date = new Date())
   return e
 }
 
-/** Cuerpo que recibe Hub (valores canónicos). Los datos bancarios solo viajan con transferencia. */
-export function buildHubPayload(v: EnrollmentInput): Record<string, unknown> {
+/** Slug de un micrositio PRP (mismo formato que acepta `/api/public/prp/[slug]`). */
+export const PRP_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * Slug del micrositio desde el que se inscribe la persona (`prp_slug`). Es lo ÚNICO que el navegador aporta sobre el referidor: el `external_code` NUNCA
+ * se lee del cuerpo, lo resuelve el servidor con Hub a partir de este slug. Devuelve '' si falta o no es un slug válido.
+ */
+export function readPrpSlug(body: unknown): string {
+  const raw = body && typeof body === 'object' ? (body as Record<string, unknown>).prp_slug : ''
+  const slug = typeof raw === 'string' ? raw.trim() : ''
+  return slug.length > 0 && slug.length <= 255 && PRP_SLUG_RE.test(slug) ? slug : ''
+}
+
+/**
+ * Cuerpo que recibe Hub (valores canónicos). Los datos bancarios solo viajan con transferencia.
+ * `externalCode` es el código del referidor que Hub entregó para el micrositio validado (nunca un dato del navegador): va primero y forma parte del
+ * payload con el que se calcula la clave de idempotencia, así que la misma clave con otro referidor sería otro envío.
+ */
+export function buildHubPayload(v: EnrollmentInput, externalCode: string): Record<string, unknown> {
   const type = DOCUMENT_TYPES.find(t => t.label === v.document_type)
   if (!type || !PAYMENT_METHODS.some(p => p === v.payment_method) || !v.accepted_contract) throw new Error('Formulario no validado.')
+  if (typeof externalCode !== 'string' || !/^\S{1,50}$/.test(externalCode)) throw new Error('Referidor no resuelto.')
   const transfer = isTransfer(v.payment_method)
   return {
+    external_code: externalCode,
     full_name: v.full_name,
     phone: v.phone,
     email: v.email,

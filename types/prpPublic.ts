@@ -1,10 +1,9 @@
 // Datos públicos de un micrositio PRP (Wellezy Hub: GET /api/v1/web/prp/{slug}).
-// `externalCode` es el código del PRP en el CRM médico; solo se usa internamente como `code_prp`.
+// El código del referidor (`external_code`) NO se expone al navegador: la inscripción envía el slug y el servidor resuelve el código con Hub.
 export interface PublicPrp {
   name: string;
   slug: string;
   title: string | null;
-  externalCode: string;
 }
 
 // Datos que captura el formulario del micrositio. El código PRP NO lo escribe la persona.
