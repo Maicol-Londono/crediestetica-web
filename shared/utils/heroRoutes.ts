@@ -12,6 +12,7 @@ export const HERO_ROUTES = [
   '/politica-datos-personales',
   '/recursos',
   '/quienes-somos',
+  '/nosotros',
   '/financiacion',
 ] as const
 

@@ -5,7 +5,7 @@
   <nav class="font-sans fixed top-0 w-full z-50 transition-all duration-300"
     :class="[
       isTransparent
-        ? 'bg-transparent backdrop-blur-none shadow-none [--nav-fg:#ffffff] [--nav-fg-hover:rgba(255,255,255,0.8)] [--nav-login-fg:#ffffff] [--nav-login-border:rgba(255,255,255,0.6)] [--nav-login-hover-bg:rgba(255,255,255,0.1)] [--nav-login-hover-fg:#ffffff] [--nav-login-hover-border:rgba(255,255,255,0.6)]'
+        ? (onHero ? 'bg-transparent backdrop-blur-none shadow-none [--nav-fg:#ffffff] [--nav-fg-hover:rgba(255,255,255,0.8)] [--nav-login-fg:#ffffff] [--nav-login-border:rgba(255,255,255,0.6)] [--nav-login-hover-bg:rgba(255,255,255,0.1)] [--nav-login-hover-fg:#ffffff] [--nav-login-hover-border:rgba(255,255,255,0.6)]' : 'bg-transparent backdrop-blur-none shadow-none [--nav-fg:#000000] [--nav-fg-hover:#755A26] [--nav-login-fg:#000000] [--nav-login-border:rgba(0,0,0,0.2)] [--nav-login-hover-bg:transparent] [--nav-login-hover-fg:#755A26] [--nav-login-hover-border:#755A26]')
         : 'bg-white/70 backdrop-blur-md shadow-sm [--nav-fg:#000000] [--nav-fg-hover:#755A26] [--nav-login-fg:#000000] [--nav-login-border:rgba(0,0,0,0.2)] [--nav-login-hover-bg:transparent] [--nav-login-hover-fg:#755A26] [--nav-login-hover-border:#755A26]',
       isNavbarHidden ? 'md:-translate-y-full translate-y-0' : 'translate-y-0'
     ]"
@@ -19,7 +19,7 @@
       <!-- Logo -->
       <NuxtLink :to="'/'" class="block">
         <!-- Mismo logo.png del original: en blanco (filtro) sobre el hero, a color al desplazarse. -->
-        <img v-if="isTransparent" src="/images/branding/logo.png" alt="Crediestética" class="h-12 md:h-16 w-auto object-contain origin-left transition-all duration-300 brightness-0 invert" />
+        <img v-if="isTransparent && onHero" src="/images/branding/logo.png" alt="Crediestética" class="h-12 md:h-16 w-auto object-contain origin-left transition-all duration-300 brightness-0 invert" />
         <img src="/images/branding/logo.png" alt="Crediestética" v-else class="h-12 md:h-16 w-auto object-contain origin-left transition-all duration-300" />
       </NuxtLink>
 
@@ -232,7 +232,9 @@ const procedureItems = computed(() => buildProcedureMenu(hubMenu.value?.procedur
 const route = useRoute()
 
 // Transparente solo sobre un hero, sin desplazamiento y con el menú móvil cerrado (abierto necesita fondo para leerse).
-const isTransparent = computed(() => isHeroRoute(route.path) && scrollY.value <= 30 && !isMobileMenuOpen.value)
+// Transparente en todas las páginas mientras no se desplaza; solo sobre un hero (imagen oscura) los textos van en blanco.
+const onHero = computed(() => isHeroRoute(route.path))
+const isTransparent = computed(() => scrollY.value <= 30 && !isMobileMenuOpen.value)
 
 // Primera letra en mayúscula y el resto en minúscula («PROCEDIMIENTOS» -> «Procedimientos»): los textos del menú no se cambian, solo su presentación.
 const sentence = (t) => { const x = String(t).toLocaleLowerCase('es'); return x.charAt(0).toLocaleUpperCase('es') + x.slice(1) }

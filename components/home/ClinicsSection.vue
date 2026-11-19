@@ -15,7 +15,7 @@
       <ul class="grid grid-cols-2 lg:grid-cols-5 border-t border-l border-[#E7DDD1]" data-testid="home-clinics">
         <li v-for="(clinic, index) in managed" :key="clinic.id" class="border-b border-r border-[#E7DDD1]">
           <NuxtLink
-            :to="`/clinicas-aliadas#${clinic.id}`"
+            :to="`/clinicas-aliadas/${clinic.id}`"
             class="group relative h-full min-h-[14rem] flex flex-col items-center justify-center gap-4 p-6 hover:bg-white transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#111111]"
           >
             <span class="absolute top-4 left-5 text-[10px] font-bold tracking-widest text-[#cfc4c5] group-hover:text-[#111111] transition-colors" aria-hidden="true">

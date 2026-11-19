@@ -33,10 +33,14 @@ export class ReferralService {
     this.request = request
   }
 
-  async submit(value: EnrollmentInput): Promise<'completed' | 'received'> {
+  /**
+   * `prpSlug` es el slug del micrositio desde el que se inscribe la persona. Es lo único que se envía sobre el referidor: el `external_code` NO viaja desde
+   * el navegador (lo resuelve el servidor con Hub), y la persona no lo ve ni lo escribe.
+   */
+  async submit(value: EnrollmentInput, prpSlug: string): Promise<'completed' | 'received'> {
     let res: any
     try {
-      res = await this.request(REFERRAL_ENDPOINT, { method: 'POST', body: value })
+      res = await this.request(REFERRAL_ENDPOINT, { method: 'POST', body: { ...value, prp_slug: prpSlug } })
     } catch (e: any) {
       throw ReferralService.toError(e)
     }

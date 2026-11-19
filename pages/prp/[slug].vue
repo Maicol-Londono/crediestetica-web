@@ -36,10 +36,9 @@
 
       <!-- Formulario -->
       <section class="bg-[#F7F3EE] px-6 py-10 md:py-14 lg:py-16 lg:pl-12 lg:pr-14 xl:pl-16 xl:pr-24 flex flex-col justify-center">
-        <div class="max-w-lg mx-auto lg:mx-0 w-full bg-white border border-[#E7DDD1] shadow-2xl shadow-black/5 p-6 md:p-10">
-          <h2 class="font-serif text-2xl md:text-3xl font-medium text-black uppercase tracking-tight mb-2">Déjanos tus datos</h2>
-          <p class="text-gray-500 font-light mb-8">Déjanos tus datos y nos pondremos en contacto contigo.</p>
-          <PrpLeadForm :code-prp="prp.externalCode" />
+        <!-- Inscripción al programa de referidos: ReferralForm (tiene su propia tarjeta y título). El referidor lo resuelve el servidor con el slug. -->
+        <div class="max-w-lg mx-auto lg:mx-0 w-full">
+          <ReferralForm :slug="prp.slug" />
         </div>
       </section>
     </div>

@@ -181,7 +181,7 @@
           <div>
             <input ref="imageInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onImageSelected" />
             <div class="flex gap-2">
-              <button type="button" @click="imageInput?.click()" :disabled="isUploading" class="flex-1 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#143c28] transition-colors disabled:opacity-60">
+              <button type="button" @click="imageInput?.click()" :disabled="isUploading" class="flex-1 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#333333] transition-colors disabled:opacity-60">
                 {{ isUploading ? 'Procesando...' : (form.image ? 'Cambiar imagen' : 'Subir imagen') }}
               </button>
               <button v-if="form.image && form.image.startsWith('data:')" type="button" @click="form.image = savedImage" class="px-4 py-3 border border-gray-200 text-gray-500 text-xs font-bold uppercase rounded-lg hover:bg-gray-50">Descartar</button>

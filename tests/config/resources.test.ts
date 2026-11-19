@@ -3,12 +3,13 @@
 // Pruebas UNITARIAS y ESTÁTICAS: no consultan Google Drive. La accesibilidad de los enlaces se verificó a mano en D5.4 (ver el informe).
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { ROOT } from '../recommendations/harness.ts'
 
 const L = await import(pathToFileURL(join(ROOT, 'shared/utils/legalDocuments.ts')).href)
+const R = await import(pathToFileURL(join(ROOT, 'data/resourceDocuments.ts')).href)
 const src = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
 
 const EXPECTED = [
@@ -86,31 +87,45 @@ describe('separación: /recursos no cambia los documentos de modal, formularios 
   })
 })
 
-describe('página /recursos', () => {
-  const page = src('pages/recursos.vue')
-  const data = src('data/resources.ts')
+describe('página /recursos y vistas de documento', () => {
+  const page = src('pages/recursos/index.vue')
+  const detail = src('pages/recursos/[slug].vue')
+  const data = src('data/resourceDocuments.ts')
 
-  test('toma los documentos del registro central y conserva el aviso cuando no hay ninguno', () => {
-    assert.match(data, /publicResourceDocuments\(\)/)
-    assert.match(data, /from '#shared\/utils\/legalDocuments'/)
+  test('cuatro documentos con slug, PDF local existente y contenido', () => {
+    assert.deepEqual(R.resourceDocuments.map(d => d.slug), ['politica-tratamiento-datos', 'aviso-privacidad', 'formato-autorizacion-datos', 'formato-reclamacion-datos'])
+    for (const d of R.resourceDocuments) {
+      assert.equal(d.file, `/images/web/pdf/${d.slug}.pdf`)
+      assert.ok(existsSync(join(ROOT, 'public', d.file)), d.file)
+      assert.ok(d.title && d.description && d.sections.length > 0, d.slug)
+      assert.equal(R.resourceDocumentBySlug(d.slug), d)
+    }
+    assert.equal(R.resourceDocumentBySlug('no-existe'), null)
+  })
+
+  test('la lista conserva el aviso sin documentos y enlaza a la vista y a la descarga del PDF', () => {
     assert.match(page, /v-if="documents\.length === 0"/)
     assert.match(page, /Próximamente encontrarás aquí/)
+    assert.match(page, /`\/recursos\/\$\{doc\.slug\}`/)
+    assert.match(page, /:href="doc\.file"/)
+    assert.match(page, /:download="`\$\{doc\.slug\}\.pdf`"/)
+    assert.match(page, /Leer documento/)
+    assert.match(page, /Descargar PDF/)
   })
 
-  test('cada documento ofrece «Descargar» (descarga directa) y «Abrir» (visor), en pestaña nueva y sin referrer ni opener', () => {
-    assert.match(page, /:href="doc\.downloadUrl"/)
-    assert.match(page, /:href="doc\.url"/)
-    assert.equal((page.match(/target="_blank"/g) ?? []).length, 2)
-    assert.equal((page.match(/rel="noopener noreferrer"/g) ?? []).length, 2)
-    assert.match(page, />Descargar</)
-    assert.match(page, />Abrir</)
-    assert.match(page, /aria-label="`Descargar \$\{doc\.title\} \(PDF\)`"|:aria-label="`Descargar \$\{doc\.title\} \(PDF\)`"/)
+  test('la vista de detalle: 404 si no existe, descarga del PDF, canonical y sin v-html', () => {
+    assert.match(detail, /resourceDocumentBySlug\(slug\)/)
+    assert.match(detail, /statusCode: 404/)
+    assert.match(detail, /:href="doc\.file"/)
+    assert.match(detail, /:download="`\$\{doc\.slug\}\.pdf`"/)
+    assert.match(detail, /useCanonicalUrl\(\)/)
+    assert.match(detail, /useSeoMeta/)
+    assert.doesNotMatch(detail + page, /v-html/)
   })
 
-  test('diseño adaptable (apila en móvil, objetivo táctil ≥ 48 px, texto largo con salto) y sin marca ajena', () => {
-    assert.match(page, /flex-col md:flex-row/)
-    assert.match(page, /min-h-\[48px\]/)
-    assert.match(page, /break-words/)
-    assert.doesNotMatch(page + data, /planmed|#0C2619|#D3A76A/i)
+  test('diseño adaptable (apila en móvil, texto largo con salto) y sin marca ajena', () => {
+    assert.match(detail, /break-words/)
+    assert.match(detail, /min-h-3rem|min-height: 3rem/)
+    assert.doesNotMatch(page + detail + data, /planmed|#0C2619|#D3A76A/i)
   })
 })

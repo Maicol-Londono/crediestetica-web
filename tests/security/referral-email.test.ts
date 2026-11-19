@@ -16,6 +16,8 @@ const read = rel => readFileSync(join(ROOT, rel), 'utf8')
 const SOCKET_IP = '203.0.113.40'
 const ACCOUNT = '12345678901'
 const HOLDER_DOC = '1020304050'
+const SLUG = 'referidora-demo' // micrositio /prp/referidora-demo (ficticio)
+const CODE = 'REF001' // external_code que Hub entrega para ese micrositio (ficticio)
 
 const CFG = {
   mailHost: 'smtp.example.test', mailPort: 465, mailUsername: 'sender@example.test', mailPassword: 'clave-ficticia', mailFromAddress: '', mailFromName: 'Marca de prueba',
@@ -23,7 +25,7 @@ const CFG = {
   sessionPassword: 'x'.repeat(40), trustedProxyHops: 0, public: { appName: 'Marca de prueba' }
 }
 
-const state = { cfg: {}, sent: [], sendImpl: null, factoryCalls: 0, logs: [], hubCalls: [], hubImpl: null, order: [], inscriptions: new Map(), netCalls: [] }
+const state = { cfg: {}, sent: [], sendImpl: null, factoryCalls: 0, logs: [], hubCalls: [], hubImpl: null, order: [], inscriptions: new Map(), netCalls: [], referrerCalls: [], referrerImpl: null }
 let dir, enrol, referral, mail, realError, realFetch
 
 before(async () => {
@@ -46,9 +48,14 @@ before(async () => {
     state.order.push('hub')
     return state.hubImpl({ path, payload, headers })
   }
+  // Lectura del referidor (GET /v1/web/prp/{slug}): Hub entrega el external_code SOLO de referidores activos del tenant.
+  g.wellezyPublicGet = async (event, path) => {
+    state.referrerCalls.push({ path })
+    return state.referrerImpl({ path })
+  }
   const base = fileUrl('shared/utils')
-  const fix = s => s.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'").replace("'./referral'", "'./referral.ts'")
-  for (const f of ['formMail', 'referral', 'prpEnrollment']) writeFileSync(join(dir, `${f}.ts`), fix(read(`server/utils/${f}.ts`)))
+  const fix = s => s.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'").replace("'./referral'", "'./referral.ts'").replace("'./prpReferrer'", "'./prpReferrer.ts'")
+  for (const f of ['formMail', 'referral', 'prpEnrollment', 'prpReferrer']) writeFileSync(join(dir, `${f}.ts`), fix(read(`server/utils/${f}.ts`)))
   enrol = await import(pathToFileURL(join(dir, 'prpEnrollment.ts')).href)
   referral = await import(pathToFileURL(join(dir, 'referral.ts')).href)
   mail = await import(pathToFileURL(join(dir, 'formMail.ts')).href)
@@ -63,6 +70,8 @@ beforeEach(() => {
   state.order = []
   state.inscriptions = new Map()
   state.netCalls = []
+  state.referrerCalls = []
+  state.referrerImpl = async ({ path }) => path === `/v1/web/prp/${SLUG}` ? { status: 200, data: { data: { name: 'Referidora Demo', slug: SLUG, title: null, external_code: CODE } } } : { status: 404, data: { message: 'No encontrado' } }
   state.sendImpl = async () => { state.order.push('mail'); return { accepted: ['referidos@example.test', 'copia-referidos@example.test'], rejected: [] } }
   state.hubImpl = async ({ headers, payload }) => {
     const key = headers['Idempotency-Key']
@@ -87,6 +96,7 @@ after(() => {
 })
 
 const CASH = {
+  prp_slug: SLUG,
   full_name: 'Ana María Prueba', phone: '300 123 4567', email: 'Ana.Prueba@Example.com', document_type: 'Cédula de ciudadanía', document_number: '1.098.765.432',
   surgery_date: '2025-03-10', surgery_name: 'Rinoplastia', wants_control: true, payment_method: 'Efectivo', suggestion: 'Todo muy bien, gracias.',
   bank_holder_name: '', bank_holder_document: '', bank_account_number: '', accepted_contract: true
@@ -285,11 +295,15 @@ describe('Rutas, servicio y alcance: la integración con Hub se conserva', () =>
     assert.ok(call < src.indexOf('return { ok: true, status }'))
   })
 
-  test('el PRP de pacientes no se modificó (PrpLeadForm, /prp/[slug], PrpLeadService, CrmPrpLeadProvider, server/utils/prp)', () => {
-    const files = ['components/prp/PrpLeadForm.vue', 'pages/prp/[slug].vue', 'services/PrpLeadService.ts', 'providers/CrmPrpLeadProvider.ts', 'server/utils/prp.ts']
+  test('el flujo de leads del PRP (PrpLeadForm, PrpLeadService, CrmPrpLeadProvider, server/utils/prp) no se modificó; el micrositio ahora usa ReferralForm', () => {
+    const files = ['components/prp/PrpLeadForm.vue', 'services/PrpLeadService.ts', 'providers/CrmPrpLeadProvider.ts', 'server/utils/prp.ts']
     for (const f of files) assert.ok(existsSync(join(ROOT, f)), f)
     const changed = execFileSync('git', ['status', '--porcelain', '--', ...files], { cwd: ROOT, encoding: 'utf8' })
-    assert.equal(changed.trim(), '', 'sin cambios locales en el PRP de pacientes')
+    assert.equal(changed.trim(), '', 'sin cambios locales en el flujo de leads del PRP')
+    assert.ok(existsSync(join(ROOT, 'pages/prp/[slug].vue')))
+    const page = read('pages/prp/[slug].vue')
+    assert.match(page, /<ReferralForm :slug="prp\.slug" \/>/, 'el micrositio inscribe con ReferralForm y el slug')
+    assert.doesNotMatch(page, /PrpLeadForm|externalCode/, 'el micrositio ya no usa el formulario de leads ni pasa el código al navegador')
   })
 
   test('las pruebas no hicieron llamadas de red reales', () => {
@@ -365,8 +379,8 @@ describe('Blindaje, respuesta independiente y límites de la deduplicación del 
   test('VARIAS INSTANCIAS: cada una tiene su memoria; el reintento en otra instancia da 409 y un reenvío allí envía otro correo (límite documentado)', async () => {
     const d = mkdtempSync(join(tmpdir(), 'referral-i2-'))
     const base = fileUrl('shared/utils')
-    const fix = s => s.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'").replace("'./referral'", "'./referral.ts'")
-    for (const f of ['formMail', 'referral', 'prpEnrollment']) writeFileSync(join(d, `${f}.ts`), fix(read(`server/utils/${f}.ts`)))
+    const fix = s => s.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'").replace("'./referral'", "'./referral.ts'").replace("'./prpReferrer'", "'./prpReferrer.ts'")
+    for (const f of ['formMail', 'referral', 'prpEnrollment', 'prpReferrer']) writeFileSync(join(d, `${f}.ts`), fix(read(`server/utils/${f}.ts`)))
     const B = {
       enrol: await import(pathToFileURL(join(d, 'prpEnrollment.ts')).href),
       referral: await import(pathToFileURL(join(d, 'referral.ts')).href),

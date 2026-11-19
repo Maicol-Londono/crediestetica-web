@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="bg-[#F7F3EE] min-h-screen font-sans selection:bg-[#CBA36B] selection:text-[#111111] pb-24">
     <!-- Cabecera como el original: imagen a ancho completo (recursos.png) con degradado y tarjeta oscura que la solapa. -->
     <section class="relative w-full pt-0 md:pt-0 mb-12 md:mb-16">
@@ -19,33 +19,30 @@
         <div v-if="documents.length === 0" class="border border-[#E7DDD1] rounded-xl p-12 text-center bg-white">
           <p class="text-[14px] text-[#4c4546]">Próximamente encontrarás aquí los documentos y requisitos oficiales para tu proceso.</p>
         </div>
-        <ul v-else class="flex flex-col gap-4" data-testid="resource-documents" aria-label="Documentos descargables">
+        <ul v-else class="flex flex-col gap-4" data-testid="resource-documents" aria-label="Documentos legales">
           <li
             v-for="doc in documents"
-            :key="doc.id"
-            class="bg-white border border-[#BBB2AA]/20 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all p-5 md:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-            :data-testid="`resource-${doc.id}`"
+            :key="doc.slug"
+            class="bg-white border border-[#BBB2AA]/20 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 motion-reduce:hover:translate-y-0 transition-all p-5 md:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+            :data-testid="`resource-${doc.slug}`"
           >
             <div class="min-w-0">
               <p class="text-[10px] font-bold tracking-[0.2em] text-[#755A26] uppercase mb-1">Documento PDF</p>
               <h2 class="font-serif text-lg md:text-xl font-medium text-[#111111] leading-snug break-words">{{ doc.title }}</h2>
+              <p class="mt-1 text-sm text-gray-600 font-light break-words">{{ doc.description }}</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3 shrink-0">
+              <NuxtLink
+                :to="`/recursos/${doc.slug}`"
+                class="inline-flex items-center justify-center min-h-[48px] bg-[#111111] text-white rounded-full border-2 border-[#111111] px-6 py-3 text-[11px] font-bold tracking-[0.15em] uppercase hover:bg-transparent hover:text-[#111111] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CBA36B]"
+                :aria-label="`Leer ${doc.title}`"
+              >Leer documento</NuxtLink>
               <a
-                v-if="doc.downloadUrl"
-                :href="doc.downloadUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center justify-center min-h-[48px] bg-[#111111] text-white rounded-full border-2 border-[#111111] px-6 py-3 text-[11px] font-bold tracking-[0.15em] uppercase hover:bg-transparent hover:text-[#111111] transition-colors active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CBA36B]"
+                :href="doc.file"
+                :download="`${doc.slug}.pdf`"
+                class="inline-flex items-center justify-center min-h-[48px] border-2 border-[#111111] text-[#111111] rounded-full px-6 py-3 text-[11px] font-bold tracking-[0.15em] uppercase hover:bg-[#111111] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CBA36B]"
                 :aria-label="`Descargar ${doc.title} (PDF)`"
-              >Descargar</a>
-              <a
-                :href="doc.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center justify-center min-h-[48px] border-2 border-[#111111] text-[#111111] rounded-full px-6 py-3 text-[11px] font-bold tracking-[0.15em] uppercase hover:bg-[#111111] hover:text-white transition-colors active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CBA36B]"
-                :aria-label="`Abrir ${doc.title} en Google Drive`"
-              >Abrir<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
+              >Descargar PDF</a>
             </div>
           </li>
         </ul>
@@ -56,7 +53,7 @@
 
 <script setup>
 import { useSeoMeta } from '#imports'
-import { documents } from '~/data/resources'
+import { resourceDocuments as documents } from '~/data/resourceDocuments'
 useCanonicalUrl()
 
 useSeoMeta({
