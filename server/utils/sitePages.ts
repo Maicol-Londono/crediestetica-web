@@ -3,7 +3,6 @@ import { mkdir, readFile, rename, writeFile, copyFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 // Ruta relativa con extensión: las pruebas de Node (sin alias de Nuxt) la resuelven; el bundler de Nitro también.
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { sanitizeRichHtml } from '../../utils/richText.ts'
 
 // Persistencia LOCAL de las páginas informativas simples (Clínicas aliadas, Estudio de créditos): un JSON por página en

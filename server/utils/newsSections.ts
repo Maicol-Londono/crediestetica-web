@@ -1,7 +1,6 @@
 import type { H3Event } from 'h3'
 import { resolveNewsSectionRoute } from '#shared/utils/newsSectionsApi'
 // Importación explícita (no auto-import) por la misma razón que procedureSections.ts; ruta relativa con extensión para las pruebas de Node.
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { forwardAdminRoute, treeSegments } from './recommendationAdmin.ts'
 
 // Proxy ADMINISTRATIVO de las secciones de noticias (Wellezy Hub: /cms/posts/{id}/sections y /cms/post-sections/*). Reutiliza el reenvío de

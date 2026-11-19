@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3'
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions (las pruebas de Node no usan los alias de Nuxt).
 import { countBlocks, fromPublicBlock, publicBlocksOf, type ColumnLayout, type PublicBlock, type PublicBlocks } from '../../shared/utils/contentBlocks.ts'
 
 // Procedimientos de la línea: la fuente de verdad es Wellezy Hub (tabla `cirugias` + `cirugia_linea`).

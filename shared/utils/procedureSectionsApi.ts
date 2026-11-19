@@ -2,7 +2,6 @@
 // /cms/procedure-sections/*). Módulo PURO: lo usan la ruta de Nitro y las pruebas. Mismo esquema que recommendationAdminApi: solo se reenvía
 // lo que está en la tabla (método + ruta + campos). Nunca company_id, linea_id ni created_by: Hub los deriva del token de la línea.
 // Ruta relativa con extensión: las pruebas de Node (sin alias de Nuxt) la resuelven; el bundler también.
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { matchAdminRoute, type AdminRoute, type Def } from './recommendationAdminApi.ts'
 
 // `blocks[]:…` = lista de bloques apilables por columna; de cada bloque solo viajan estos campos (nunca company_id ni linea_id).
