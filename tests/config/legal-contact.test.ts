@@ -40,9 +40,11 @@ describe('datos de contacto confirmados', () => {
       assert.ok(!/573011409597|301 140 9597/.test(s), `${f}: WhatsApp duplicado`)
     }
   })
-  test('el pie de página muestra correo, celular y WhatsApp desde contact.ts', () => {
+  test('el pie de página muestra el correo de convenios y solo el WhatsApp (sin el celular) desde contact.ts', () => {
     const f = read('components/layout/Footer.vue')
-    for (const t of ['CONTACT_MAILTO', 'CONTACT_EMAIL', 'PHONE_TEL', 'PHONE_DISPLAY', 'WHATSAPP_URL', 'WHATSAPP_DISPLAY']) assert.ok(f.includes(t), t)
+    for (const t of ['FOOTER_MAILTO', 'FOOTER_EMAIL', 'WHATSAPP_URL', 'WHATSAPP_DISPLAY']) assert.ok(f.includes(t), t)
+    for (const t of ['PHONE_TEL', 'PHONE_DISPLAY', 'CONTACT_EMAIL']) assert.ok(!f.includes(t), `${t} no debe estar en el pie`)
+    assert.equal(contact.FOOTER_EMAIL, 'convenioscrediestetica@gmail.com')
   })
 })
 

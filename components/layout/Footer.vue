@@ -32,8 +32,7 @@
         <div class="flex flex-col gap-3 md:gap-4">
           <span class="text-[#F7F3EE] text-xs uppercase tracking-widest font-bold mb-2">Contacto</span>
           <NuxtLink :to="'/nosotros'" class="text-[#BBB2AA] hover:text-[#CBA36B] transition-colors text-sm">Información de Contacto</NuxtLink>
-          <a :href="CONTACT_MAILTO" class="text-[#BBB2AA] hover:text-[#CBA36B] transition-colors text-sm break-all">{{ CONTACT_EMAIL }}</a>
-          <a :href="PHONE_TEL" class="text-[#BBB2AA] hover:text-[#CBA36B] transition-colors text-sm">Celular: {{ PHONE_DISPLAY }}</a>
+          <a :href="FOOTER_MAILTO" class="text-[#BBB2AA] hover:text-[#CBA36B] transition-colors text-sm break-all">{{ FOOTER_EMAIL }}</a>
           <a :href="WHATSAPP_URL" target="_blank" rel="noopener noreferrer" class="text-[#BBB2AA] hover:text-[#CBA36B] transition-colors text-sm">WhatsApp: {{ WHATSAPP_DISPLAY }}</a>
         </div>
       </div>
@@ -49,7 +48,7 @@
 </template>
 
 <script setup>
-import { WHATSAPP_URL, WHATSAPP_DISPLAY, PHONE_TEL, PHONE_DISPLAY, CONTACT_EMAIL, CONTACT_MAILTO, publicSocialProfiles } from '#shared/utils/contact'
+import { WHATSAPP_URL, WHATSAPP_DISPLAY, FOOTER_EMAIL, FOOTER_MAILTO, publicSocialProfiles } from '#shared/utils/contact'
 import { legalDocLink } from '#shared/utils/legalDocuments'
 
 const ICONS = {
