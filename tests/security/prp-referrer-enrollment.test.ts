@@ -304,3 +304,83 @@ describe('8. Separación de formularios: solo el micrositio inscribe al PRP', ()
     assert.deepEqual(callers, [])
   })
 })
+
+describe('9. Código antiguo del flujo de leads: sin consumidores, conservado a propósito (retirada propuesta en un cambio aparte)', () => {
+  const files = walk(ROOT)
+  const using = re => files.filter(f => re.test(readFileSync(f, 'utf8'))).map(rel).sort()
+
+  test('nada monta PrpLeadForm: la cadena PrpLeadForm → PrpLeadService → CrmPrpLeadProvider no tiene punto de entrada', () => {
+    assert.deepEqual(using(/<PrpLeadForm[\s>]/), [], 'ninguna página ni componente lo monta')
+    assert.deepEqual(using(/prpLeadService|PrpLeadService['"]/).filter(f => f !== 'services/PrpLeadService.ts'), ['components/prp/PrpLeadForm.vue'])
+    assert.deepEqual(using(/CrmPrpLeadProvider/).filter(f => !['providers/CrmPrpLeadProvider.ts'].includes(f)), ['services/PrpLeadService.ts'])
+  })
+  test('siguen existiendo (no se eliminan por limpieza) y crmPrpFormUrl solo lo consume el proveedor antiguo', () => {
+    for (const f of ['components/prp/PrpLeadForm.vue', 'services/PrpLeadService.ts', 'providers/CrmPrpLeadProvider.ts']) assert.ok(read(f).length > 0, f)
+    const code = f => readFileSync(join(ROOT, f), 'utf8').replace(/\/\/.*$/gm, '')
+    const consumers = files.map(rel).filter(f => !f.startsWith('nuxt.config') && /crmPrpFormUrl/.test(code(f)))
+    assert.deepEqual(consumers, ['providers/CrmPrpLeadProvider.ts'])
+  })
+  test('el micrositio y la inscripción no dependen de crmPrpFormUrl ni del tipo de leads', () => {
+    for (const f of ['pages/prp/[slug].vue', 'server/api/public/prp/[slug].get.ts', 'server/utils/prpEnrollment.ts', 'server/utils/prpReferrer.ts', 'components/referral/ReferralForm.vue']) {
+      assert.doesNotMatch(read(f).replace(/\/\/.*$/gm, '').replace(/<!--[\s\S]*?-->/g, ''), /crmPrpFormUrl|crmDestinationProblem|PrpLead/, f)
+    }
+  })
+})
+
+describe('10. Recorrido completo con el cliente HTTP REAL de Hub (solo $fetch simulado; nunca se llama a Hub)', () => {
+  let W
+  const wire = []
+  let savedGet, savedPost, savedFetch
+
+  before(async () => {
+    W = await import(fileUrl('server/utils/wellezy.ts'))
+    savedGet = globalThis.wellezyPublicGet
+    savedPost = globalThis.wellezyPublicPost
+    savedFetch = globalThis.$fetch
+    globalThis.wellezyPublicGet = W.wellezyPublicGet
+    globalThis.wellezyPublicPost = W.wellezyPublicPost
+    // «Hub» a nivel de cable: lectura pública del micrositio e inscripción, con las cabeceras que realmente se envían.
+    globalThis.$fetch = {
+      raw: async (url, opts) => {
+        wire.push({ url, method: opts.method, headers: opts.headers, body: opts.body })
+        if (opts.method === 'GET') return url.endsWith(`/v1/web/prp/${SLUG}`) ? { status: 200, _data: { data: { name: 'Referidora Demo', slug: SLUG, title: null, external_code: CODE } } } : { status: 404, _data: { message: 'No encontrado' } }
+        return { status: 201, _data: { data: { status: 'completed' } } }
+      }
+    }
+  })
+  beforeEach(() => { wire.length = 0; state.cfg = { ...state.cfg, wellezyApiBaseUrl: 'https://hub.example.test/api', wellezyLineSlug: 'linea-demo' } })
+  after(() => { globalThis.wellezyPublicGet = savedGet; globalThis.wellezyPublicPost = savedPost; globalThis.$fetch = savedFetch })
+
+  test('lectura del referidor e inscripción llevan X-Tenant-Linea de la configuración del servidor; la inscripción lleva Idempotency-Key y el external_code', async () => {
+    const r = await enroll({ ...CASH, external_code: 'HACK', 'X-Tenant-Linea': 'otra-linea' })
+    assert.deepEqual(r.value, { ok: true, status: 'completed' })
+    assert.equal(wire.length, 2)
+    const [get, post] = wire
+    assert.equal(get.method, 'GET')
+    assert.equal(get.url, `https://hub.example.test/api/v1/web/prp/${SLUG}`)
+    assert.equal(get.headers['X-Tenant-Linea'], 'linea-demo')
+    assert.equal(post.method, 'POST')
+    assert.equal(post.url, 'https://hub.example.test/api/v1/web/prp-enrollments')
+    assert.equal(post.headers['X-Tenant-Linea'], 'linea-demo', 'el tenant sale de la configuración, no del navegador')
+    assert.match(post.headers['Idempotency-Key'], /^[0-9a-f]{48}$/)
+    assert.equal(post.body.external_code, CODE)
+    assert.doesNotMatch(JSON.stringify(wire), /HACK|otra-linea/)
+  })
+
+  test('un reintento repite exactamente la misma clave y el mismo payload (mismo código) hacia Hub', async () => {
+    await enroll()
+    await enroll()
+    const posts = wire.filter(w => w.method === 'POST')
+    assert.equal(posts.length, 2)
+    assert.equal(posts[0].headers['Idempotency-Key'], posts[1].headers['Idempotency-Key'])
+    assert.deepEqual(posts[0].body, posts[1].body)
+    assert.equal(posts[0].headers['Idempotency-Key'], referral.enrollmentKey(SECRET, posts[0].body), 'la clave es el HMAC del payload que incluye el external_code')
+  })
+
+  test('sin NUXT_WELLEZY_LINE_SLUG no sale ninguna petición (nunca un X-Tenant-Linea vacío) y no se inscribe', async () => {
+    state.cfg = { ...state.cfg, wellezyLineSlug: '' }
+    const r = await enroll()
+    assert.equal(r.error?.statusCode, 503)
+    assert.equal(wire.length, 0)
+  })
+})

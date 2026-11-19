@@ -102,24 +102,30 @@ describe('GET /api/public/prp/[slug]', () => {
   test('el endpoint de PRP del CRM es compartido con Planmed: ya no se considera heredado', () => {
     for (const v of [LEGACY_PRP, LEGACY_PRP + '/', 'HTTPS://PDTCLIENTSOLUTIONS.COM/CRM-PUBLIC/API/FORMS-PX-PRP']) assert.equal(D.crmDestinationProblem(v), null, v)
   })
-  test('con el CRM de PRP compartido sí consulta a Hub', async () => {
-    state.cfg = { public: { crmPrpFormUrl: LEGACY_PRP } }
-    await run(prpGet, e)
-    assert.equal(state.hubCalls.length, 1)
-  })
-  test('PRP deshabilitado con el CRM de PRP ausente o inválido: 404 y Hub no se consulta', async () => {
-    for (const crmPrpFormUrl of ['', undefined, 'x']) {
+  // La inscripción se procesa en Wellezy Hub: el micrositio ya NO depende del destino del CRM (crmPrpFormUrl), valga lo que valga.
+  test('el micrositio consulta a Hub con cualquier valor de crmPrpFormUrl (ausente, inválido, heredado o propio): ya no lo desactiva', async () => {
+    for (const crmPrpFormUrl of [LEGACY_PRP, '', undefined, 'x', OWN_CRM]) {
+      state.hubCalls = []
       state.cfg = { public: { crmPrpFormUrl } }
-      assert.equal((await run(prpGet, e)).error?.statusCode, 404, String(crmPrpFormUrl))
+      await run(prpGet, e)
+      assert.equal(state.hubCalls.length, 1, String(crmPrpFormUrl))
     }
+    state.hubCalls = []
     state.cfg = {}
-    assert.equal((await run(prpGet, e)).error?.statusCode, 404)
-    assert.equal(state.hubCalls.length, 0)
-  })
-  test('con un destino propio válido sí consulta a Hub (el bloqueo es solo por destino)', async () => {
-    state.cfg = { public: { crmPrpFormUrl: OWN_CRM } }
     await run(prpGet, e)
-    assert.equal(state.hubCalls.length, 1)
+    assert.equal(state.hubCalls.length, 1, 'sin ninguna configuración de CRM')
+  })
+  test('el recurso público entrega solo nombre, slug y título: el external_code del referidor NO llega al navegador', async () => {
+    const real = globalThis.wellezyPublicGet
+    globalThis.wellezyPublicGet = async () => ({ status: 200, data: { data: { name: 'Referidora Demo', slug: 'demo', title: 'Título', external_code: 'REF001', is_active: true, id: 7 } } })
+    try {
+      const r = await run(prpGet, e)
+      assert.deepEqual(r.value, { name: 'Referidora Demo', slug: 'demo', title: 'Título' })
+      assert.doesNotMatch(JSON.stringify(r.value), /REF001|external_code|externalCode/)
+    } finally { globalThis.wellezyPublicGet = real }
+  })
+  test('un referidor inexistente o inactivo (404 de Hub) sigue siendo 404', async () => {
+    assert.equal((await run(prpGet, e)).error?.statusCode, 404)
   })
   test('el proveedor del navegador también se niega a enviar (defensa en profundidad)', () => {
     const src = readFileSync(join(ROOT, 'providers/CrmPrpLeadProvider.ts'), 'utf8')
