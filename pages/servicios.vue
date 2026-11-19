@@ -173,32 +173,6 @@
       </div>
     </section>
 
-    <!-- 8. OTROS SERVICIOS ESPECIALIZADOS -->
-    <section id="otros-servicios" class="scroll-mt-24 bg-white" aria-labelledby="srv-otros-title">
-      <div class="max-w-[1200px] mx-auto px-6 md:px-12 py-16 md:py-24">
-        <div class="max-w-2xl">
-          <p class="eyebrow">Servicios especializados</p>
-          <h2 id="srv-otros-title" class="h2 mt-3">También tenemos otras alternativas para ti.</h2>
-          <p class="prose-p mt-5">Descubre otros servicios especializados que pueden responder a diferentes necesidades de salud, cuidado, recuperación y bienestar.</p>
-        </div>
-        <ul class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          <li v-for="s in otherServices" :key="s.title" class="group flex flex-col bg-[#F7F3EE] border border-[#E7DDD1] rounded-2xl overflow-hidden transition-shadow hover:shadow-xl">
-            <div class="overflow-hidden">
-              <img :src="img(s.image)" :alt="s.alt" :width="s.w" :height="s.h" loading="lazy" class="w-full aspect-[3/2] object-cover transition-transform duration-700 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
-            </div>
-            <div class="flex flex-col flex-1 p-6 md:p-7">
-              <h3 class="font-serif text-xl text-[#111111]">{{ s.title }}</h3>
-              <p class="prose-p !text-[15px] mt-3 flex-1">{{ s.text }}</p>
-              <a :href="advisory(`Hola, quiero recibir orientación sobre: ${s.title}.`)" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center gap-2 self-start text-[11px] font-bold tracking-[0.15em] uppercase text-[#111111] border-b border-[#111111] pb-1 hover:text-[#755A26] hover:border-[#755A26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#CBA36B] transition-colors">
-                Consultar<span class="sr-only"> sobre {{ s.title }}</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14m-6-6l6 6-6 6" /></svg>
-              </a>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </section>
-
     <!-- 9. ACOMPAÑAMIENTO -->
     <section class="bg-[#EFE7DC]" aria-labelledby="srv-acomp-title">
       <div class="max-w-[1200px] mx-auto px-6 md:px-12 py-16 md:py-24">
@@ -252,8 +226,7 @@ const categories = [
   { id: 'minimamente-invasivos', label: 'Mínimamente invasivos' },
   { id: 'depilacion', label: 'Depilación' },
   { id: 'estetica-corporal', label: 'Estética corporal' },
-  { id: 'microimplante-capilar', label: 'Microimplante capilar' },
-  { id: 'otros-servicios', label: 'Otros servicios' }
+  { id: 'microimplante-capilar', label: 'Microimplante capilar' }
 ]
 
 const surgeryAreas = [
@@ -272,15 +245,6 @@ const hairAreas = [
   { title: 'Coronilla', text: 'Opciones para áreas de menor densidad capilar.' },
   { title: 'Cejas', text: 'Procedimientos especializados para restauración o definición.' },
   { title: 'Barba', text: 'Alternativas para mejorar densidad y apariencia.' }
-]
-
-const otherServices = [
-  { title: 'Cirugía oncológica', image: 'cirugia_oncologica', w: 937, h: 619, alt: 'Orientación médica para procedimientos relacionados con el tratamiento oncológico', text: 'Orientación sobre alternativas de procedimientos quirúrgicos relacionados con el tratamiento oncológico, sujeto a valoración y disponibilidad especializada.' },
-  { title: 'Cirugía bariátrica', image: 'cirugia_bariatrica', w: 926, h: 619, alt: 'Consulta médica sobre cirugía bariátrica', text: 'Alternativas quirúrgicas orientadas al tratamiento de la obesidad y al manejo integral del paciente, bajo valoración médica.' },
-  { title: 'Balón gástrico', image: 'balon_gastrico', w: 934, h: 619, alt: 'Consulta sobre manejo del peso con balón gástrico', text: 'Procedimientos relacionados con el manejo del peso, con evaluación individual y seguimiento profesional según el tratamiento.' },
-  { title: 'Tienda ortopédica', image: 'tienda_ortopedica', w: 1536, h: 1024, alt: 'Productos de apoyo para movilidad y recuperación', text: 'Productos y soluciones de apoyo para movilidad, recuperación, cuidado y bienestar físico.' },
-  { title: 'Insumos y dispositivos médicos', image: 'insumos_y_dispositivos_medicos', w: 959, h: 641, alt: 'Insumos y dispositivos médicos', text: 'Acceso a insumos, dispositivos y soluciones para necesidades médicas específicas.' },
-  { title: 'Pequeños procedimientos', image: 'pequenos_procedimientos', w: 932, h: 623, alt: 'Atención profesional para procedimientos de menor complejidad', text: 'Alternativas para procedimientos de menor complejidad que requieren orientación y atención profesional.' }
 ]
 
 const attributes = [
