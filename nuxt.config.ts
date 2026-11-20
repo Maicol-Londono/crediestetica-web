@@ -6,6 +6,10 @@ export default defineNuxtConfig({
     // y NUXT_SESSION_PASSWORD (mínimo 32 caracteres aleatorios).
     // Autenticación contra Wellezy Hub: p. ej. https://wellezyhub.com/api (local: http://localhost:8000/api).
     wellezyApiBaseUrl: '',
+    // Integración firmada con el Hub para el pago en línea de la valoración (Wompi). Se crea en el Hub con `php artisan integrations:create`.
+    // Solo servidor (NUXT_HUB_INTEGRATION_KEY_ID / NUXT_HUB_INTEGRATION_SECRET); sin ellas el pago permanece bloqueado y se muestra el aviso con WhatsApp.
+    hubIntegrationKeyId: '',
+    hubIntegrationSecret: '',
     // Tenant por SLUG (nunca por id). Referencia verificada en la copia local de PD (D5.5): Legalmed = companies.id 16, Crediestética = lineas.id 4
     // (lineas.company_id 16). Esos ids NO se usan en el código: el login envía los slugs y las lecturas públicas envían X-Tenant-Linea.
     wellezyCompanySlug: 'legalmed',

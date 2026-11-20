@@ -293,7 +293,7 @@ const NOTIFY_MAX_DELIVERED = 5000
 const NOTIFY_DELIVERED_TTL_MS = 24 * 60 * 60_000
 const NOTIFY_WAIT_MS = 4_000
 
-export interface ComplementaryMessage { subject: string, text: string, html: string, replyTo?: string }
+export interface ComplementaryMessage { subject: string, text: string, html: string, replyTo?: string, attachments?: MailAttachment[] }
 interface NotifyEntry { attempts: number, at: number, mail: MailConfig, tag: string, form: string, msg?: ComplementaryMessage, timer?: ReturnType<typeof setTimeout>, gaveUp?: boolean }
 const pending = new Map<string, NotifyEntry>()
 const delivered = new Map<string, number>()
