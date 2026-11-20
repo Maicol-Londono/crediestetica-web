@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     hubIntegrationSecret: '',
     // Alta del cliente en el CRM Médico tras un pago de valoración aprobado (POST /api/chat/create/client). Vacíos por defecto: sin URL no se envía nada
     // (así el Sandbox local no crea clientes reales). Valores y ejemplo en .env.production.example. Solo servidor.
+    // La idempotencia del alta usa NUXT_CONTENT_DIR (ABSOLUTO, fuera de la app y de .output): sin él no se envía ningún alta (ver server/utils/crmClientStore.ts).
     crmClientUrl: '',
     crmClientLineId: '',
     crmClientAdvisorEmail: 'convenioscrediestetica@gmail.com',

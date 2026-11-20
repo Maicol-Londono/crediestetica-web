@@ -7,6 +7,7 @@ import {
   type MailSection, type NotifyResult
 } from './formMail'
 import { buildReceiptPdf } from './receiptPdf'
+import { claimCrm, crmStoreDir, finishCrm } from './crmClientStore'
 
 // Pago en línea de la valoración (Wompi vía Wellezy Hub). Solo servidor: el navegador NUNCA habla con el Hub ni ve el secreto de la integración.
 //  · /api/forms/valuation-payment/checkout: valida los datos básicos y le pide al Hub el checkout (el Hub registra al paciente, crea la valoración con el
@@ -206,11 +207,11 @@ export function buildPaidValuationEmail(input: PaidValuation & { brand: string, 
 // POST JSON a la API del CRM (indicaciones del programador líder): name, phone y advisor_email son obligatorios, además de id_line. Solo se envían los datos del
 // formulario: name, identificacion (cédula), phone, ad_headline = «formulario web» y advisor_email. Solo tras un pago APROBADO.
 //  · Destino e id_line son configuración (NUXT_CRM_CLIENT_*), vacíos por defecto: sin ellos no sale nada (así las pruebas locales con Sandbox no crean clientes reales).
-//  · Sin reintentos: un tiempo agotado puede haber creado el registro y repetirlo lo duplicaría. Una sola vez por pago (memoria de este proceso).
+//  · Sin reintentos automáticos: un tiempo agotado puede haber creado el registro y repetirlo lo duplicaría. Una sola vez por pago, con registro persistente
+//    en disco (crmClientStore.ts: processing / sent / failed / unknown), que exige NUXT_CONTENT_DIR absoluto: sin él no se envía nada.
 //  · Nunca se registran datos personales ni el cuerpo: solo el estado HTTP o el tipo de fallo.
 const CRM_TIMEOUT_MS = 15_000
 const CRM_HEADLINE = 'formulario web'
-const crmSent = new Set<string>()
 const crmPending = new Set<Promise<unknown>>()
 
 /** Celular para el CRM: solo dígitos y con indicativo de país (57) cuando es un celular colombiano de 10 dígitos. */
@@ -230,7 +231,57 @@ export function buildCrmClientPayload(input: { name: string, phone: string, docu
   }
 }
 
-export async function registerCrmClient(runtime: Record<string, any>, input: { name: string, phone: string, document: string }, key: string): Promise<'sent' | 'skipped' | 'failed'> {
+/**
+ * Criterio de éxito del alta (API de chat del CRM). PROVISIONAL: el contrato de respuesta NO está confirmado por el responsable del CRM (pendiente con PDT) y aquí
+ * no se inventa. Solo se acepta como alta confirmada una respuesta 2xx con cuerpo JSON (objeto) que traiga una marca POSITIVA explícita (`success: true`,
+ * `ok: true` o `status` = success/ok/created) y ninguna marca de fallo. Cuerpo vacío, `{}`, un `message` genérico, no JSON o cualquier otra cosa es ambigua:
+ * NO se marca como enviada y NO se reenvía (estado unknown, a conciliar a mano). Mientras PDT no confirme el contrato, es esperable que respuestas reales de éxito
+ * queden en unknown: es preferible a registrar como enviado algo no comprobado.
+ */
+export function crmChatConfirmed(data: unknown): boolean {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false
+  const d = data as Record<string, unknown>
+  if (d.success === false || d.ok === false || d.status === false) return false
+  if (d.error || (Array.isArray(d.errors) ? d.errors.length : d.errors)) return false
+  if (typeof d.status === 'string' && /^(error|fail|failed|failure)$/i.test(d.status)) return false
+  return d.success === true || d.ok === true || (typeof d.status === 'string' && /^(success|ok|created)$/i.test(d.status))
+}
+
+/** Códigos de red que demuestran que NO se llegó a conectar con el CRM (la petición no salió): conexión rechazada o nombre no resuelto. */
+const CRM_NO_CONNECTION_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'])
+
+/**
+ * Clasifica un error de `$fetch` (ofetch). Recorre toda la cadena de `cause` y los `errors` de un AggregateError. Solo es `failed` (la petición no llegó al CRM)
+ * si hay al menos un código de red y TODOS pertenecen a CRM_NO_CONNECTION_CODES, sin tiempo agotado ni cancelación. Todo lo demás (tiempo agotado, ECONNRESET,
+ * UND_ERR_*, errores sin código, cadenas mixtas) es `unknown`: no se puede demostrar que el CRM no recibió la petición.
+ */
+export function classifyCrmError(error: unknown): 'failed' | 'unknown' {
+  const codes: string[] = []
+  const seen = new Set<unknown>()
+  let abort = false
+  const walk = (e: any, depth: number) => {
+    if (!e || typeof e !== 'object' || seen.has(e) || depth > 8) return
+    seen.add(e)
+    if (e.name === 'TimeoutError' || e.name === 'AbortError') abort = true
+    if (typeof e.code === 'string') codes.push(e.code)
+    if (e.cause) walk(e.cause, depth + 1)
+    if (Array.isArray(e.errors)) for (const x of e.errors) walk(x, depth + 1)
+  }
+  walk(error, 0)
+  return !abort && codes.length > 0 && codes.every(c => CRM_NO_CONNECTION_CODES.has(c)) ? 'failed' : 'unknown'
+}
+
+/** 4xx con rechazo demostrable de la petición y causa transitoria: 408 (el servidor no recibió la petición completa) y 429 (límite de peticiones). El resto de 4xx no se reintenta. */
+const CRM_RETRYABLE_HTTP = new Set([408, 429])
+
+/** Registro estructurado con etiqueta fija (`event`), sin datos personales, secretos ni cuerpos del CRM. `payment` es el uuid opaco del pago (para localizar la conciliación). */
+function crmLog(event: 'crm_store_error' | 'crm_lock_timeout' | 'crm_send_failed' | 'crm_send_unknown' | 'crm_send_sent', fields: Record<string, unknown>) {
+  const line = `[${TAG}] ${JSON.stringify({ event, ...fields })}`
+  if (event === 'crm_send_sent') console.info(line)
+  else console.error(line)
+}
+
+export async function registerCrmClient(runtime: Record<string, any>, input: { name: string, phone: string, document: string }, key: string): Promise<'sent' | 'skipped' | 'failed' | 'unknown'> {
   const url = String(runtime.crmClientUrl || '').trim()
   if (!url) return 'skipped'
   const problem = crmDestinationProblem(url)
@@ -242,9 +293,27 @@ export async function registerCrmClient(runtime: Record<string, any>, input: { n
   }
   const payload = buildCrmClientPayload(input, { lineId, advisorEmail })
   if (!payload.name || payload.phone.length < 7) return 'skipped'
-  if (crmSent.has(key)) return 'skipped'
-  crmSent.add(key)
 
+  // Idempotencia persistente por pago. Sin NUXT_CONTENT_DIR absoluto y escribible (o sin poder reservar el envío) no se envía nada.
+  const loc = crmStoreDir(runtime)
+  if (!loc.ok) {
+    crmLog('crm_store_error', { payment: key, detail: loc.detail, action: 'set NUXT_CONTENT_DIR to an absolute path outside the app folder' })
+    return 'skipped'
+  }
+  const dir = loc.dir
+  const claim = await claimCrm(dir, key)
+  if (!claim.ok) {
+    if (claim.reason === 'store_error') crmLog('crm_store_error', { payment: key, detail: claim.detail })
+    else if (claim.reason === 'lock_timeout') crmLog('crm_lock_timeout', { payment: key })
+    else if (claim.reason === 'unknown') crmLog('crm_send_unknown', { payment: key, stage: 'claim', reason: claim.detail, action: 'manual reconciliation, no resend' })
+    else if (claim.reason === 'failed_permanent' || claim.reason === 'exhausted') crmLog('crm_send_failed', { payment: key, stage: 'claim', reason: claim.detail ?? claim.reason, retryable: false, action: 'fix cause and reconcile manually' })
+    return 'skipped'
+  }
+
+  let state: 'sent' | 'failed' | 'unknown'
+  let httpStatus: number | undefined
+  let reason: string
+  let retryable: boolean | undefined
   try {
     const res = await $fetch.raw(url, {
       method: 'POST',
@@ -252,15 +321,36 @@ export async function registerCrmClient(runtime: Record<string, any>, input: { n
       headers: { Accept: 'application/json' },
       timeout: CRM_TIMEOUT_MS,
       retry: 0,
+      // Nunca seguir redirecciones: un 307/308 reenviaría los datos personales a otro host.
+      redirect: 'manual',
       ignoreResponseError: true
     })
-    if (res.status >= 200 && res.status < 300) return 'sent'
-    console.error(`[${TAG}] el CRM respondió ${res.status} al dar de alta el cliente.`)
-    return 'failed'
-  } catch {
-    console.error(`[${TAG}] sin respuesta del CRM al dar de alta el cliente (resultado incierto, no se reintenta).`)
-    return 'failed'
+    httpStatus = res.status
+    if (res.status >= 200 && res.status < 300) {
+      state = crmChatConfirmed(res._data) ? 'sent' : 'unknown'
+      reason = state === 'sent' ? 'confirmed' : 'unconfirmed_response'
+    } else if (res.status >= 400 && res.status < 500) {
+      state = 'failed'
+      retryable = CRM_RETRYABLE_HTTP.has(res.status)
+      reason = retryable ? 'http_retryable' : 'http_rejected'
+    } else if (res.status >= 300 && res.status < 400) {
+      state = 'unknown'
+      reason = 'redirect_not_followed'
+    } else {
+      state = 'unknown'
+      reason = 'http_other'
+    }
+  } catch (error) {
+    state = classifyCrmError(error)
+    reason = state === 'failed' ? 'no_connection' : 'no_response'
+    if (state === 'failed') retryable = true
   }
+  const saved = await finishCrm(dir, key, claim.attempt, state, { ...(httpStatus ? { httpStatus } : {}), reason, ...(retryable !== undefined ? { retryable } : {}) })
+  const fields = { payment: key, attempt: claim.attempt, http: httpStatus, reason, ...(retryable !== undefined ? { retryable } : {}), ...(saved ? {} : { saved: false }) }
+  if (state === 'sent') crmLog('crm_send_sent', fields)
+  else if (state === 'failed') crmLog('crm_send_failed', fields)
+  else crmLog('crm_send_unknown', { ...fields, action: 'manual reconciliation, no resend' })
+  return state
 }
 
 function trackCrm(p: Promise<unknown>) {
@@ -268,10 +358,9 @@ function trackCrm(p: Promise<unknown>) {
   void p.finally(() => crmPending.delete(p))
 }
 
-/** Solo pruebas: espera las altas en curso y vacía las claves ya enviadas. */
-export async function settleCrmClients(reset = false) {
+/** Solo pruebas: espera las altas en curso. */
+export async function settleCrmClients() {
   await Promise.allSettled([...crmPending])
-  if (reset) crmSent.clear()
 }
 
 export async function handleValuationPayConfirm(event: H3Event) {
