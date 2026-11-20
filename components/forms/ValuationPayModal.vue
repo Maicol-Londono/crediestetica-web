@@ -77,13 +77,14 @@ defineProps<{ price: string }>()
 const whatsappHref = whatsappUrlWithText('Hola, quiero pagar mi valoración y necesito ayuda con el pago en línea.')
 
 type FieldKey = Exclude<keyof ValuationPayContact, 'accept'>
-const fields: Array<{ key: FieldKey, label: string, type: string, inputmode: 'text' | 'tel' | 'email', autocomplete: string, maxlength: number }> = [
+const fields: Array<{ key: FieldKey, label: string, type: string, inputmode: 'text' | 'numeric' | 'tel' | 'email', autocomplete: string, maxlength: number }> = [
   { key: 'name', label: 'Nombre completo', type: 'text', inputmode: 'text', autocomplete: 'name', maxlength: 100 },
+  { key: 'document', label: 'Número de cédula', type: 'text', inputmode: 'numeric', autocomplete: 'off', maxlength: 15 },
   { key: 'phone', label: 'Celular', type: 'tel', inputmode: 'tel', autocomplete: 'tel', maxlength: 20 },
   { key: 'email', label: 'Correo electrónico', type: 'email', inputmode: 'email', autocomplete: 'email', maxlength: 150 }
 ]
 
-const values = reactive<ValuationPayContact>({ name: '', phone: '', email: '', accept: false })
+const values = reactive<ValuationPayContact>({ name: '', document: '', phone: '', email: '', accept: false })
 const errors = reactive<ValuationPayErrors>({})
 const unavailable = ref(false)
 const isOpen = ref(false)
@@ -102,9 +103,15 @@ const firstName = computed(() => paidName.value.trim().split(/\s+/)[0] || 'pacie
 let attempt = ''
 const newAttempt = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`)
 const STORE_KEY = 'valuation-pay:payment'
+// Pago en curso en esta pestaña: id del pago en el Hub y cédula (solo la tiene la web; viaja a la confirmación para el correo). Sin otros datos personales.
 const store = {
-  get: () => { try { return sessionStorage.getItem(STORE_KEY) } catch { return null } },
-  set: (v: string) => { try { sessionStorage.setItem(STORE_KEY, v) } catch { /* sin almacenamiento: solo se pierde la reanudación tras redirección */ } },
+  get: (): { uuid: string, document: string } | null => {
+    try {
+      const p = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null')
+      return p && typeof p.uuid === 'string' ? { uuid: p.uuid, document: typeof p.document === 'string' ? p.document : '' } : null
+    } catch { return null }
+  },
+  set: (uuid: string, document: string) => { try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ uuid, document })) } catch { /* sin almacenamiento: solo se pierde la reanudación tras redirección */ } },
   clear: () => { try { sessionStorage.removeItem(STORE_KEY) } catch { /* nada */ } }
 }
 
@@ -129,10 +136,10 @@ function loadWidget(): Promise<void> {
 interface ConfirmResult { status: string, name?: string }
 
 // La aprobación la decide el Hub (consulta a Wompi con su llave privada); aquí solo se muestra el resultado.
-async function confirm(paymentUuid: string, transactionId?: string): Promise<ConfirmResult | null> {
+async function confirm(paymentUuid: string, document: string, transactionId?: string): Promise<ConfirmResult | null> {
   for (let i = 0; i < 5; i++) {
     try {
-      const res = await $fetch<ConfirmResult>('/api/forms/valuation-payment/confirm', { method: 'POST', body: { payment_uuid: paymentUuid, ...(transactionId ? { transaction_id: transactionId } : {}) } })
+      const res = await $fetch<ConfirmResult>('/api/forms/valuation-payment/confirm', { method: 'POST', body: { payment_uuid: paymentUuid, document, ...(transactionId ? { transaction_id: transactionId } : {}) } })
       if (res.status !== 'PENDING') return res
       if (i < 4) await new Promise(r => setTimeout(r, 3000))
       else return res
@@ -143,10 +150,10 @@ async function confirm(paymentUuid: string, transactionId?: string): Promise<Con
   return null
 }
 
-async function finish(paymentUuid: string, transactionId?: string) {
+async function finish(paymentUuid: string, document: string, transactionId?: string) {
   view.value = 'verifying'
   isOpen.value = true
-  const res = await confirm(paymentUuid, transactionId)
+  const res = await confirm(paymentUuid, document, transactionId)
   if (res?.status === 'APPROVED') {
     store.clear()
     paidName.value = res.name || values.name
@@ -166,10 +173,10 @@ async function goToPay(contact: ValuationPayContact) {
     if (!attempt) attempt = newAttempt()
     const res = await $fetch<{ payment_uuid: string, checkout: { public_key: string, reference: string, amount_in_cents: number, currency: string, signature_integrity: string, redirect_url: string | null } }>(
       '/api/forms/valuation-payment/checkout',
-      { method: 'POST', body: { name: contact.name, phone: contact.phone, email: contact.email, accept: contact.accept, attempt } }
+      { method: 'POST', body: { name: contact.name, document: contact.document, phone: contact.phone, email: contact.email, accept: contact.accept, attempt } }
     )
     paidName.value = contact.name
-    store.set(res.payment_uuid)
+    store.set(res.payment_uuid, contact.document)
     await loadWidget()
     const c = res.checkout
     const checkout = new (window as any).WidgetCheckout({
@@ -186,7 +193,7 @@ async function goToPay(contact: ValuationPayContact) {
       widgetOpen.value = false
       attempt = ''
       const tx = result?.transaction?.id
-      if (tx) void finish(res.payment_uuid, tx)
+      if (tx) void finish(res.payment_uuid, contact.document, tx)
     })
   } catch (e: any) {
     widgetOpen.value = false
@@ -213,7 +220,7 @@ const route = useRoute()
 onMounted(() => {
   const id = typeof route.query.id === 'string' ? route.query.id : ''
   const stored = store.get()
-  if (id && stored) void finish(stored, id)
+  if (id && stored) void finish(stored.uuid, stored.document, id)
 })
 
 async function open() {
@@ -235,9 +242,11 @@ function trap(e: KeyboardEvent) {
   if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog.value)) { e.preventDefault(); last.focus() }
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
 }
-watch(isOpen, (v) => {
-  document.body.style.overflow = v ? 'hidden' : ''
-  if (v) document.addEventListener('keydown', trap)
+// Mientras el widget de Wompi está abierto se libera el bloqueo: su formulario es más alto que muchas ventanas y hay que poder desplazar la página para verlo completo.
+watch([isOpen, widgetOpen], ([open, widget]) => {
+  const locked = open && !widget
+  document.body.style.overflow = locked ? 'hidden' : ''
+  if (locked) document.addEventListener('keydown', trap)
   else document.removeEventListener('keydown', trap)
 })
 onBeforeUnmount(() => { document.body.style.overflow = ''; document.removeEventListener('keydown', trap) })

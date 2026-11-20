@@ -69,7 +69,7 @@ after(() => {
 
 const ev = (body, ip = '203.0.113.1') => ({ body, ip, headers: {} })
 const run = async (fn, event) => { try { return { value: await fn(event) } } catch (error) { return { error } } }
-const contact = (over = {}) => ({ name: 'Ana Prueba', phone: '3001234567', email: 'ana@example.com', accept: true, attempt: ATTEMPT, ...over })
+const contact = (over = {}) => ({ name: 'Ana Prueba', document: '1020434966', phone: '3001234567', email: 'ana@example.com', accept: true, attempt: ATTEMPT, ...over })
 const approved = () => ({ status: 200, _data: { payment: { uuid: PAY_UUID, status: 'APPROVED' }, receipt: { concept: 'Valoración', reference: 'VAL-123', transaction_id: 'tx-999', amount_cents: 15000000, currency: 'COP', paid_at: '2026-11-20T15:30:00Z' }, patient: { name: 'Ana Prueba', email: 'ana@example.com', phone: '3001234567' } } })
 
 describe('comprobante PDF', () => {
@@ -104,9 +104,22 @@ describe('checkout', () => {
     assert.equal(/amount|price|valor/i.test(opts.body), false)
   })
 
+  test('solo envía return_url con https (el WAF de Wompi bloquea http://localhost)', async () => {
+    state.hubImpl = async () => ({ status: 201, _data: { payment: { uuid: PAY_UUID }, checkout: { public_key: 'pub', reference: 'R', amount_in_cents: 1, currency: 'COP', signature_integrity: 's', redirect_url: null } } })
+    await run(V.handleValuationPayCheckout, ev(contact()))
+    assert.equal(JSON.parse(state.hub[0].opts.body).return_url, 'https://crediestetica.test/financiacion')
+    state.hub = []
+    globalThis.getRequestURL = () => new URL('http://localhost:3000/api/forms/valuation-payment/checkout')
+    const r = await run(V.handleValuationPayCheckout, ev(contact()))
+    globalThis.getRequestURL = () => new URL('https://crediestetica.test/api/forms/valuation-payment/checkout')
+    assert.equal('return_url' in JSON.parse(state.hub[0].opts.body), false)
+    assert.equal(r.value.checkout.redirect_url, null)
+  })
+
   test('rechaza datos inválidos sin llamar al Hub', async () => {
     const r = await run(V.handleValuationPayCheckout, ev(contact({ email: 'no-es-correo', accept: false })))
     assert.equal(r.error.statusCode, 422)
+    for (const document of ['', 'abc', '123']) assert.equal((await run(V.handleValuationPayCheckout, ev(contact({ document })))).error.statusCode, 422)
     assert.equal(state.hub.length, 0)
   })
 
@@ -128,7 +141,7 @@ describe('checkout', () => {
 describe('confirmación y correo', () => {
   test('pago aprobado: devuelve el nombre y envía el correo con el comprobante PDF adjunto', async () => {
     state.hubImpl = async () => approved()
-    const r = await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID, transaction_id: 'tx-999' }))
+    const r = await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID, transaction_id: 'tx-999', document: '1.020.434.966' }))
     assert.equal(r.value.status, 'APPROVED')
     assert.equal(r.value.name, 'Ana Prueba')
     await mail.settleNotifications()
@@ -140,6 +153,86 @@ describe('confirmación y correo', () => {
     assert.match(msg.attachments[0].filename, /^comprobante-valoracion-VAL123\.pdf$|^comprobante-valoracion-VAL-123\.pdf$/)
     assert.ok(Buffer.from(msg.attachments[0].content).toString('latin1').startsWith('%PDF'))
     assert.match(msg.text, /3001234567/)
+    assert.match(msg.text, /Cédula/)
+    assert.match(msg.text, /1020434966/)
+    assert.ok(msg.html.includes('1020434966'))
+    assert.ok(Buffer.from(msg.attachments[0].content).toString('latin1').includes('1020434966'))
+  })
+
+  describe('alta del cliente en el CRM Médico', () => {
+    const CRM_URL = 'https://crm.example.test/api/chat/create/client'
+    const crmCfg = { crmClientUrl: CRM_URL, crmClientLineId: '30', crmClientAdvisorEmail: 'asesora@example.test' }
+    const crmCalls = () => state.hub.filter(c => c.url === CRM_URL)
+    beforeEach(async () => { await V.settleCrmClients(true) })
+
+    test('pago aprobado: envía solo los datos del formulario con id_line y el asesor', async () => {
+      state.cfg = { ...CFG, ...crmCfg }
+      state.hubImpl = async url => (url === CRM_URL ? { status: 200, _data: { ok: true } } : approved())
+      const r = await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID, document: '1.020.434.966' }))
+      assert.equal(r.value.status, 'APPROVED')
+      await V.settleCrmClients()
+      assert.equal(crmCalls().length, 1)
+      assert.deepEqual(crmCalls()[0].opts.body, { name: 'Ana Prueba', phone: '573001234567', identificacion: '1020434966', ad_headline: 'formulario web', advisor_email: 'asesora@example.test', id_line: 30 })
+      assert.equal(crmCalls()[0].opts.retry, 0)
+    })
+
+    test('una sola vez por pago, aunque se confirme dos veces', async () => {
+      state.cfg = { ...CFG, ...crmCfg }
+      state.hubImpl = async url => (url === CRM_URL ? { status: 200, _data: {} } : approved())
+      await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID }))
+      await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID }))
+      await V.settleCrmClients()
+      assert.equal(crmCalls().length, 1)
+      assert.equal('identificacion' in crmCalls()[0].opts.body, false)
+    })
+
+    test('sin URL configurada, o pago no aprobado, no sale nada hacia el CRM', async () => {
+      state.hubImpl = async () => approved()
+      await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID }))
+      state.cfg = { ...CFG, ...crmCfg }
+      state.hubImpl = async url => (url === CRM_URL ? { status: 200, _data: {} } : { status: 200, _data: { payment: { uuid: PAY_UUID, status: 'DECLINED' } } })
+      await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID }))
+      await V.settleCrmClients()
+      assert.equal(crmCalls().length, 0)
+    })
+
+    test('configuración inválida (id_line, asesor o destino heredado) no envía', async () => {
+      state.hubImpl = async url => (url === CRM_URL ? { status: 200, _data: {} } : approved())
+      for (const bad of [{ crmClientLineId: '' }, { crmClientLineId: 'abc' }, { crmClientAdvisorEmail: 'sin-arroba' }]) {
+        await V.settleCrmClients(true)
+        state.cfg = { ...CFG, ...crmCfg, ...bad }
+        await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID }))
+        await V.settleCrmClients()
+      }
+      assert.equal(crmCalls().length, 0)
+    })
+
+    test('si el CRM falla (error o red) el usuario igual ve el pago aprobado y no se reintenta', async () => {
+      state.cfg = { ...CFG, ...crmCfg }
+      state.hubImpl = async (url) => { if (url === CRM_URL) throw new Error('red caída'); return approved() }
+      const r = await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID }))
+      assert.equal(r.value.status, 'APPROVED')
+      assert.equal(r.value.name, 'Ana Prueba')
+      await V.settleCrmClients()
+      assert.equal(crmCalls().length, 1)
+      await mail.settleNotifications()
+      assert.equal(state.sent.length, 1)
+    })
+
+    test('crmPhone antepone 57 solo a celulares colombianos de 10 dígitos', () => {
+      assert.equal(V.crmPhone('300 123 4567'), '573001234567')
+      assert.equal(V.crmPhone('+57 300 123 4567'), '573001234567')
+      assert.equal(V.crmPhone('6041234567'), '6041234567')
+    })
+  })
+
+  test('cédula ausente o inválida: el correo la marca «No informada» y el pago se procesa igual', async () => {
+    state.hubImpl = async () => approved()
+    await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID, document: '<script>x</script>' }))
+    await mail.settleNotifications()
+    assert.equal(state.sent.length, 1)
+    assert.match(state.sent[0].text, /No informada/)
+    assert.equal(state.sent[0].text.includes('script'), false)
   })
 
   test('confirmar dos veces el mismo pago no duplica el correo', async () => {

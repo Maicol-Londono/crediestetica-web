@@ -10,6 +10,11 @@ export default defineNuxtConfig({
     // Solo servidor (NUXT_HUB_INTEGRATION_KEY_ID / NUXT_HUB_INTEGRATION_SECRET); sin ellas el pago permanece bloqueado y se muestra el aviso con WhatsApp.
     hubIntegrationKeyId: '',
     hubIntegrationSecret: '',
+    // Alta del cliente en el CRM Médico tras un pago de valoración aprobado (POST /api/chat/create/client). Vacíos por defecto: sin URL no se envía nada
+    // (así el Sandbox local no crea clientes reales). Valores y ejemplo en .env.production.example. Solo servidor.
+    crmClientUrl: '',
+    crmClientLineId: '',
+    crmClientAdvisorEmail: 'convenioscrediestetica@gmail.com',
     // Tenant por SLUG (nunca por id). Referencia verificada en la copia local de PD (D5.5): Legalmed = companies.id 16, Crediestética = lineas.id 4
     // (lineas.company_id 16). Esos ids NO se usan en el código: el login envía los slugs y las lecturas públicas envían X-Tenant-Linea.
     wellezyCompanySlug: 'legalmed',
