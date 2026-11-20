@@ -53,12 +53,13 @@ describe('Footer', () => {
     assert.doesNotMatch(footer, /\/recursos/)
     assert.doesNotMatch(footer, /instagram\.com\/|facebook\.com\/|tiktok\.com\/@/)
   })
-  test('enlaces legales desde el registro central: política de datos (Drive) y precontractual (ruta propia)', () => {
-    assert.match(footer, /legalDocLink\(l\.key\)/)
-    assert.match(footer, /key: 'politicaDatos'/)
-    assert.match(footer, /key: 'precontractual'/)
-    assert.equal(L.legalDocLink('politicaDatos').external, true)
-    assert.equal(L.legalDocLink('politicaDatos').href, L.LEGAL_DOCUMENTS.politicaDatos.url)
+  test('enlaces legales: datos personales desde los documentos públicos de /recursos (Drive) y precontractual (ruta propia del registro)', () => {
+    assert.match(footer, /publicResourceDocuments\(\)/)
+    for (const id of ['politica-tratamiento-datos', 'aviso-privacidad', 'formato-autorizacion-datos']) {
+      assert.ok(footer.includes(`resourceLink('${id}'`), id)
+      assert.ok(L.publicResourceDocuments().some(d => d.id === id), id)
+    }
+    assert.match(footer, /legalDocLink\('precontractual'\)/)
     assert.equal(L.legalDocLink('precontractual').href, '/informacion-precontractual')
   })
   test('redes: Facebook, Instagram y TikTok con sus URL oficiales; Messenger pendiente y sin enlace inventado', () => {

@@ -57,9 +57,8 @@ describe('área táctil de los enlaces documentales', () => {
   test('los enlaces de la lista del modal/página precontractual miden al menos 44 px de alto', () => {
     assert.match(content, /inline-flex items-center min-h-\[44px\][^"]*">\{\{ d\.title \}\}/)
   })
-  test('«Ver documento» y «Ver en el sitio» de la política de datos miden al menos 44 px de alto', () => {
-    assert.equal((policy.match(/inline-flex items-center min-h-\[44px\]/g) ?? []).length, 2)
-    assert.ok(!/<(a|NuxtLink)[^>]*inline-block mt-1/.test(policy))
+  test('los enlaces de documentos de la política de datos miden al menos 44 px de alto', () => {
+    assert.equal((policy.match(/flex items-center justify-between gap-4 min-h-\[44px\]/g) ?? []).length, 1)
   })
 })
 
