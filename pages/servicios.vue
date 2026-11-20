@@ -114,33 +114,50 @@
       </div>
     </section>
 
-    <!-- 6. ESTÉTICA CORPORAL: mosaico de tres fotografías -->
-    <section id="estetica-corporal" class="scroll-mt-24 bg-white" aria-labelledby="srv-corporal-title">
-      <div class="max-w-[1200px] mx-auto px-6 md:px-12 py-16 md:py-24">
-        <div class="grid lg:grid-cols-12 gap-10 lg:gap-16 items-end">
-          <div class="lg:col-span-7">
-            <p class="eyebrow">Cuidado corporal</p>
-            <h2 id="srv-corporal-title" class="h2 mt-3">Estética corporal</h2>
-            <p class="lead">Bienestar, cuidado y armonía corporal.</p>
+    <!-- 6. ALIANZAS COMERCIALES: propuesta B2B (reemplaza a «Estética corporal»). Sin cifras ni porcentajes: las condiciones se pactan con cada aliado. -->
+    <section id="alianzas-comerciales" class="scroll-mt-24 bg-white border-t-4 border-[#CBA36B]" aria-labelledby="srv-alianzas-title">
+      <div class="max-w-[1200px] mx-auto px-6 md:px-12 pt-16 md:pt-24 pb-16 md:pb-20">
+        <div class="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+          <div class="lg:col-span-6">
+            <p class="eyebrow">Alianzas comerciales</p>
+            <h2 id="srv-alianzas-title" class="h2 mt-3">Crece con nosotros. Conecta oportunidades y genera ingresos.</h2>
+            <div class="prose-p mt-6">
+              <p>En Crediestética creemos en el poder de las alianzas. Por eso, invitamos a spas, centros de estética, profesionales y empresas relacionadas con el bienestar y la belleza a formar parte de nuestra red de aliados.</p>
+              <p>Si tienes clientes o usuarios interesados en realizarse procedimientos médicos y estéticos, puedes conectarlos con Crediestética y convertir esas recomendaciones en nuevas oportunidades de negocio.</p>
+            </div>
+            <div class="mt-9"><a :href="allyHref" target="_blank" rel="noopener noreferrer" class="btn btn-dark" data-testid="ally-cta-top">Conviértete en aliado de Crediestética</a></div>
           </div>
-          <div class="lg:col-span-5">
-            <div class="prose-p">
-              <p>Explora alternativas enfocadas en el cuidado corporal y la estética, orientadas a acompañar tus objetivos personales de bienestar y apariencia.</p>
+          <div class="lg:col-span-6">
+            <div class="relative">
+              <img :src="img('convenio_comercial')" alt="Dos profesionales del sector de la belleza y el bienestar conversan sobre una colaboración comercial en un espacio elegante" width="1672" height="941" loading="lazy" class="w-full aspect-[4/3] object-cover rounded-2xl shadow-xl" />
+              <span class="hidden md:block absolute -bottom-4 -left-4 w-24 h-24 border-l-2 border-b-2 border-[#CBA36B] rounded-bl-2xl" aria-hidden="true"></span>
             </div>
           </div>
         </div>
-        <div class="mt-10 grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-5">
-          <img :src="img('estetica_corporal')" alt="Cuidado corporal y bienestar" width="925" height="612" loading="lazy" class="col-span-2 md:col-span-6 w-full h-full min-h-[260px] aspect-[4/3] md:aspect-auto object-cover rounded-2xl shadow-lg" />
-          <img :src="img('estetica_corporal_2')" alt="Tratamiento estético corporal" width="927" height="620" loading="lazy" class="col-span-1 md:col-span-3 w-full aspect-[3/4] object-cover rounded-2xl shadow-lg" />
-          <img :src="img('estetica_corporal_3')" alt="Armonía y cuidado de la silueta" width="882" height="617" loading="lazy" class="col-span-1 md:col-span-3 w-full aspect-[3/4] object-cover rounded-2xl shadow-lg" />
+
+        <div class="mt-16 md:mt-20">
+          <h3 class="font-serif text-2xl md:text-3xl font-bold text-[#111111]">¿Cómo funciona?</h3>
+          <ol class="mt-8 grid md:grid-cols-3 gap-0 md:gap-0 border-t border-[#CBA36B]/60" aria-label="Pasos para ser aliado">
+            <li v-for="(s, i) in allySteps" :key="s.title" class="relative py-8 md:py-10 md:px-8 first:md:pl-0 last:md:pr-0 border-b md:border-b-0 md:border-r last:md:border-r-0 border-[#E7DDD1]">
+              <span class="font-serif text-5xl text-[#CBA36B] leading-none" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+              <h4 class="mt-4 font-serif text-xl font-bold text-[#111111]"><span class="sr-only">Paso {{ i + 1 }}: </span>{{ s.title }}</h4>
+              <p class="prose-p mt-3">{{ s.text }}</p>
+            </li>
+          </ol>
+          <p class="note mt-2">La compensación económica es parte de un acuerdo comercial entre empresas, depende de las condiciones pactadas con cada aliado y de su cumplimiento, y está sujeta a la revisión de cumplimiento normativo y ético que corresponda. El aliado conecta a las personas interesadas con Crediestética: no diagnostica, no recomienda tratamientos ni interviene en decisiones médicas, y no debe solicitar ni compartir información clínica o datos sensibles sin la autorización correspondiente.</p>
         </div>
-        <div class="mt-10 grid lg:grid-cols-12 gap-8 items-start">
-          <div class="prose-p lg:col-span-8">
-            <p>Contamos con opciones para quienes buscan conocer tratamientos estéticos corporales, procedimientos de cuidado y alternativas que requieren orientación especializada.</p>
-            <p>Cada tratamiento debe ser seleccionado de acuerdo con las características y necesidades individuales de cada persona.</p>
+
+      </div>
+      <div class="relative overflow-hidden bg-[#111111]">
+        <img :src="img('convenio_comercial_2')" alt="Dos profesionales se dan la mano para cerrar una alianza comercial" width="1774" height="887" loading="lazy" class="absolute inset-0 w-full h-full object-cover object-right" />
+        <div class="absolute inset-0 bg-gradient-to-r from-[#111111] via-[#111111]/90 to-[#111111]/55" aria-hidden="true"></div>
+        <div class="relative z-10 max-w-[1200px] mx-auto px-6 md:px-12 py-14 md:py-20 grid lg:grid-cols-12 gap-8 items-center">
+          <div class="lg:col-span-8">
+            <h3 class="font-serif text-2xl md:text-3xl font-bold text-white leading-snug">¿Tienes un spa, centro de estética o negocio relacionado con el bienestar?</h3>
+            <p class="mt-4 text-white/75 font-light leading-relaxed">Hagamos equipo y exploremos nuevas oportunidades de crecimiento. En Crediestética queremos construir alianzas que generen valor para ambas partes.</p>
           </div>
           <div class="lg:col-span-4 lg:text-right">
-            <a :href="advisory('Hola, quiero explorar las opciones de estética corporal.')" target="_blank" rel="noopener noreferrer" class="btn btn-dark">Explorar estética corporal</a>
+            <a :href="allyHref" target="_blank" rel="noopener noreferrer" class="btn btn-gold" data-testid="ally-cta-bottom">Conviértete en aliado de Crediestética</a>
           </div>
         </div>
       </div>
@@ -225,7 +242,6 @@ const categories = [
   { id: 'quirurgicos', label: 'Procedimientos quirúrgicos' },
   { id: 'minimamente-invasivos', label: 'Mínimamente invasivos' },
   { id: 'depilacion', label: 'Depilación' },
-  { id: 'estetica-corporal', label: 'Estética corporal' },
   { id: 'microimplante-capilar', label: 'Microimplante capilar' }
 ]
 
@@ -236,6 +252,13 @@ const surgeryAreas = [
   'Cirugía facial',
   'Cirugía reconstructiva',
   'Otros procedimientos disponibles en nuestro catálogo'
+]
+
+const allyHref = advisory('Hola, estoy interesado(a) en conocer cómo puedo convertirme en aliado comercial de Crediestética y generar ingresos mediante la referencia de pacientes. Me gustaría recibir información sobre los requisitos y las condiciones de colaboración.')
+const allySteps = [
+  { title: 'Conviértete en aliado', text: 'Establecemos una relación comercial con tu empresa o establecimiento para explorar oportunidades de colaboración.' },
+  { title: 'Refiere pacientes', text: 'Recomienda nuestros servicios a personas interesadas en procedimientos médicos y estéticos. Nosotros nos encargamos de orientar al paciente durante su proceso.' },
+  { title: 'Genera ingresos', text: 'Cuando un paciente referido concreta su procedimiento quirúrgico, podrás recibir una compensación económica de acuerdo con las condiciones comerciales previamente acordadas.' }
 ]
 
 const depilationZones = ['Rostro', 'Axilas', 'Brazos', 'Piernas', 'Espalda', 'Zona de bikini', 'Otras zonas corporales']
@@ -263,7 +286,7 @@ function goTo(id: string) {
   history.replaceState(null, '', `#${id}`)
 }
 
-const description = 'Conoce los servicios de Crediestética: procedimientos quirúrgicos, tratamientos estéticos, depilación, estética corporal, microimplante capilar y alternativas de financiación.'
+const description = 'Conoce los servicios de Crediestética: procedimientos quirúrgicos, tratamientos estéticos, depilación, microimplante capilar, alianzas comerciales y alternativas de financiación.'
 useSeoMeta({ title: 'Servicios Médicos y Estéticos | Crediestética', ogTitle: 'Servicios Médicos y Estéticos | Crediestética', description, ogDescription: description, ogType: 'website', ogImage: '/images/web/servicios/hero.png' })
 useHead({ link: [{ rel: 'canonical', href: `${String(useSiteConfig().url ?? '').replace(/\/+$/, '')}/servicios` }] })
 </script>
