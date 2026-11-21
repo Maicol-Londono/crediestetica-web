@@ -3,7 +3,7 @@ import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { crmDestinationProblem } from '#shared/utils/crmDestination'
 import { isValidDocument, normalizeDocument, normalizeValuationPay, validateValuationPay } from '#shared/utils/valuationPay'
 import {
-  VALUATION_RECIPIENTS, cleanLine, fmtMoney, formFail, isRateLimited, notifyComplementary, renderFormEmail, resolveMailConfig,
+  VALUATION_PAY_RECIPIENTS, cleanLine, envName, fmtMoney, formFail, isRateLimited, notifyComplementary, renderFormEmail, resolveMailConfig,
   type MailSection, type NotifyResult
 } from './formMail'
 import { buildReceiptPdf } from './receiptPdf'
@@ -353,6 +353,17 @@ export async function registerCrmClient(runtime: Record<string, any>, input: { n
   return state
 }
 
+/**
+ * Correo de confirmación del PAGO: un único destinatario (`valuationPayTo`) y nunca copia ni copia oculta. No lee `valuationTo`/`valuationCc` ni las claves
+ * de los demás formularios; aunque la clave tuviera varias direcciones, el pago se bloquea (configuración inválida) en lugar de enviar a más de una.
+ */
+export function resolvePayMailConfig(runtime: Record<string, any>) {
+  const mail = resolveMailConfig(runtime, VALUATION_PAY_RECIPIENTS)
+  if (!mail.ok) return mail
+  if (mail.config.to.length !== 1) return { ok: false as const, invalid: [envName(VALUATION_PAY_RECIPIENTS.to)] }
+  return { ok: true as const, config: { ...mail.config, cc: [] as string[] } }
+}
+
 function trackCrm(p: Promise<unknown>) {
   crmPending.add(p)
   void p.finally(() => crmPending.delete(p))
@@ -397,7 +408,7 @@ export async function handleValuationPayConfirm(event: H3Event) {
   // Alta del cliente en el CRM Médico (en segundo plano: no retrasa ni altera la respuesta al usuario).
   trackCrm(registerCrmClient(runtime, { name: String(p.name), phone: String(p.phone ?? ''), document }, paymentUuid.toLowerCase()))
 
-  const mail = resolveMailConfig(runtime, VALUATION_RECIPIENTS)
+  const mail = resolvePayMailConfig(runtime)
   if (!mail.ok) console.error(`[${TAG}] configuración de correo incompleta (${mail.invalid.join(', ')}): el pago está aprobado pero no se envió el correo.`)
 
   // El pago ya es real: el correo es un aviso a Crediestética con reintentos (nunca altera el resultado). Una clave por pago evita duplicados.

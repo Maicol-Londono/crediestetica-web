@@ -51,11 +51,13 @@ export interface MailConfig {
 }
 
 /** Claves de runtimeConfig con los destinatarios de cada formulario (Para y Copia). Solo servidor. */
-export interface MailRecipientKeys { to: string, cc: string }
+export interface MailRecipientKeys { to: string, cc?: string }
 export const CREDIT_STUDY_RECIPIENTS: MailRecipientKeys = { to: 'creditStudyTo', cc: 'creditStudyCc' }
 export const LEAD_FORM_RECIPIENTS: MailRecipientKeys = { to: 'leadFormTo', cc: 'leadFormCc' }
 export const VALUATION_RECIPIENTS: MailRecipientKeys = { to: 'valuationTo', cc: 'valuationCc' }
 export const REFERRAL_RECIPIENTS: MailRecipientKeys = { to: 'referralTo', cc: 'referralCc' }
+/** Confirmación del PAGO de valoración: clave propia y SIN clave de copia, de modo que ninguna variable (heredada o nueva) pueda añadirle CC. */
+export const VALUATION_PAY_RECIPIENTS: MailRecipientKeys = { to: 'valuationPayTo' }
 
 /** Nombre de la variable de entorno de una clave de runtimeConfig (`leadFormTo` → `NUXT_LEAD_FORM_TO`). Solo para diagnóstico: nunca se registran los valores. */
 export const envName = (key: string) => `NUXT_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`
@@ -88,8 +90,8 @@ export function resolveMailConfig(src: Record<string, unknown> | null | undefine
   if (!MAIL_RE.test(fromAddress)) invalid.push('NUXT_MAIL_FROM_ADDRESS')
   const to = parseAddresses(c[keys.to])
   if (!to || !to.length) invalid.push(envName(keys.to))
-  const cc = text(c[keys.cc]) ? parseAddresses(c[keys.cc]) : []
-  if (!cc) invalid.push(envName(keys.cc))
+  const cc = keys.cc && text(c[keys.cc]) ? parseAddresses(c[keys.cc]) : []
+  if (!cc) invalid.push(envName(keys.cc!))
   if (invalid.length) return { ok: false, invalid }
   const fromName = text(c.mailFromName).replace(CTRL_RE, ' ').replace(/["<>]/g, '').slice(0, 100)
   return { ok: true, config: { host, port, username, password, fromAddress, fromName, to: to!, cc: cc! } }

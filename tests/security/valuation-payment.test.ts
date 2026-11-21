@@ -22,7 +22,7 @@ const CFG = {
   hubIntegrationKeyId: 'key-ficticia',
   hubIntegrationSecret: SECRET,
   mailHost: 'smtp.example.test', mailPort: 465, mailUsername: 'sender@example.test', mailPassword: 'x-ficticia', mailFromAddress: '', mailFromName: 'Marca',
-  valuationTo: 'destino@example.test', valuationCc: '', trustedProxyHops: 0,
+  valuationTo: 'destino@example.test', valuationCc: '', valuationPayTo: 'convenioscrediestetica@gmail.com', trustedProxyHops: 0,
   public: { appName: 'Marca de prueba' }
 }
 
@@ -570,5 +570,106 @@ describe('confirmación y correo', () => {
     assert.equal(r.error.statusCode, 502)
     await mail.settleNotifications()
     assert.equal(state.sent.length, 0)
+  })
+})
+
+describe('destinatarios del correo de confirmación del pago (aislados de los demás formularios)', () => {
+  const PAY_TO = 'convenioscrediestetica@gmail.com'
+  const DESIGNER = 'disenadoraplanmed@gmail.com'
+  const pay = async () => {
+    state.hubImpl = async () => approved()
+    await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID, transaction_id: 'tx-999', document: '1020434966' }))
+    await mail.settleNotifications()
+  }
+
+  test('el TO del pago es exactamente convenioscrediestetica@gmail.com, sin CC ni BCC', async () => {
+    await pay()
+    assert.equal(state.sent.length, 1)
+    const msg = state.sent[0]
+    assert.deepEqual(msg.to, [PAY_TO])
+    assert.equal('cc' in msg, false)
+    assert.equal('bcc' in msg, false)
+  })
+
+  test('aunque valuationCc (y la copia de los demás formularios) tenga a la diseñadora, el pago no la recibe', async () => {
+    state.cfg = { ...CFG, valuationTo: 'otro@example.test', valuationCc: DESIGNER, creditStudyTo: PAY_TO, creditStudyCc: DESIGNER, leadFormTo: PAY_TO, leadFormCc: DESIGNER, referralTo: PAY_TO, referralCc: DESIGNER }
+    await pay()
+    assert.equal(state.sent.length, 1)
+    const msg = state.sent[0]
+    assert.deepEqual(msg.to, [PAY_TO])
+    assert.equal('cc' in msg, false)
+    assert.equal('bcc' in msg, false)
+    assert.equal(JSON.stringify({ to: msg.to, cc: msg.cc, bcc: msg.bcc }).includes(DESIGNER), false)
+  })
+
+  test('una clave de copia del pago (valuationPayCc) o cualquier otra no puede añadirle CC', async () => {
+    state.cfg = { ...CFG, valuationPayCc: DESIGNER, valuationPayBcc: DESIGNER }
+    await pay()
+    const msg = state.sent[0]
+    assert.deepEqual(msg.to, [PAY_TO])
+    assert.equal('cc' in msg, false)
+    assert.equal('bcc' in msg, false)
+    const cfg = V.resolvePayMailConfig(state.cfg)
+    assert.equal(cfg.ok, true)
+    assert.deepEqual(cfg.config.cc, [])
+  })
+
+  test('el comprobante PDF sigue adjunto', async () => {
+    await pay()
+    const [att] = state.sent[0].attachments
+    assert.equal(att.contentType, 'application/pdf')
+    assert.ok(Buffer.from(att.content).toString('latin1').startsWith('%PDF'))
+  })
+
+  test('sin valuationPayTo el pago NO usa valuationTo/Cc de respaldo: no se envía correo', async () => {
+    const { valuationPayTo, ...sin } = CFG
+    state.cfg = { ...sin, valuationTo: 'otro@example.test', valuationCc: DESIGNER }
+    await pay()
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('varias direcciones en valuationPayTo bloquean el envío (el pago tiene un único destinatario)', async () => {
+    state.cfg = { ...CFG, valuationPayTo: `${PAY_TO}, ${DESIGNER}` }
+    assert.equal(V.resolvePayMailConfig(state.cfg).ok, false)
+    await pay()
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('un pago no aprobado no envía correo', async () => {
+    for (const status of ['PENDING', 'DECLINED', 'ERROR', 'VOIDED']) {
+      state.hubImpl = async () => ({ status: 200, _data: { payment: { uuid: PAY_UUID, status } } })
+      await run(V.handleValuationPayConfirm, ev({ payment_uuid: PAY_UUID }))
+    }
+    await mail.settleNotifications()
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('los demás formularios conservan sus claves y destinatarios', () => {
+    assert.deepEqual(mail.CREDIT_STUDY_RECIPIENTS, { to: 'creditStudyTo', cc: 'creditStudyCc' })
+    assert.deepEqual(mail.LEAD_FORM_RECIPIENTS, { to: 'leadFormTo', cc: 'leadFormCc' })
+    assert.deepEqual(mail.VALUATION_RECIPIENTS, { to: 'valuationTo', cc: 'valuationCc' })
+    assert.deepEqual(mail.REFERRAL_RECIPIENTS, { to: 'referralTo', cc: 'referralCc' })
+    assert.deepEqual(mail.VALUATION_PAY_RECIPIENTS, { to: 'valuationPayTo' })
+    const cfg = { ...CFG, creditStudyTo: PAY_TO, creditStudyCc: DESIGNER, leadFormTo: PAY_TO, leadFormCc: DESIGNER, valuationCc: DESIGNER, referralTo: PAY_TO, referralCc: DESIGNER }
+    for (const keys of [mail.CREDIT_STUDY_RECIPIENTS, mail.LEAD_FORM_RECIPIENTS, mail.REFERRAL_RECIPIENTS]) {
+      const r = mail.resolveMailConfig(cfg, keys)
+      assert.equal(r.ok, true)
+      assert.deepEqual(r.config.to, [PAY_TO])
+      assert.deepEqual(r.config.cc, [DESIGNER])
+    }
+    const val = mail.resolveMailConfig(cfg, mail.VALUATION_RECIPIENTS)
+    assert.deepEqual(val.config.to, ['destino@example.test'])
+    assert.deepEqual(val.config.cc, [DESIGNER])
+  })
+
+  test('nuxt.config: el pago tiene su propia clave fija y no existe clave de CC del pago; las demás no cambian', () => {
+    const cfg = read('nuxt.config.ts')
+    assert.match(cfg, new RegExp("valuationPayTo: '" + PAY_TO.replace('.', '\.') + "'"))
+    assert.equal(/valuationPayCc|VALUATION_PAY_CC/i.test(cfg), false)
+    for (const k of ['creditStudyCc', 'leadFormCc', 'valuationCc', 'referralCc']) assert.match(cfg, new RegExp(k + ": 'disenadoraplanmed@gmail\.com'"))
+    for (const k of ['creditStudyTo', 'leadFormTo', 'valuationTo', 'referralTo']) assert.match(cfg, new RegExp(k + ": '" + PAY_TO.replace('.', '\.') + "'"))
+    const pay = read('server/utils/valuationPayment.ts')
+    assert.equal(pay.includes('VALUATION_RECIPIENTS'), false)
+    assert.match(pay, /VALUATION_PAY_RECIPIENTS/)
   })
 })
