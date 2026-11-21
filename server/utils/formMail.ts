@@ -100,7 +100,48 @@ export function resolveMailConfig(src: Record<string, unknown> | null | undefine
 /** Configuración de correo del formulario o 503 `not_configured` (sin leer el cuerpo ni consumir el límite por IP). */
 export function requireMailConfig(event: H3Event, tag: string, keys: MailRecipientKeys): { runtime: Record<string, any>, config: MailConfig } {
   const runtime = useRuntimeConfig(event) as Record<string, any>
+
+  const mailKeys = [
+    'mailHost',
+    'mailPort',
+    'mailUsername',
+    'mailPassword',
+    'mailFromAddress',
+  ] as const
+
+  const diagnostic = Object.fromEntries(
+    mailKeys.map((key) => {
+      const runtimeValue = runtime[key]
+      const envKey = envName(key)
+      const envValue = process.env[envKey]
+
+      return [
+        key,
+        {
+          runtimeType: typeof runtimeValue,
+          runtimePresent: typeof runtimeValue === 'string'
+            ? runtimeValue.length > 0
+            : runtimeValue !== undefined && runtimeValue !== null,
+          runtimeLength: typeof runtimeValue === 'string'
+            ? runtimeValue.length
+            : null,
+          envPresent: typeof envValue === 'string' && envValue.length > 0,
+          envLength: typeof envValue === 'string'
+            ? envValue.length
+            : null,
+        },
+      ]
+    }),
+  )
+
   const mail = resolveMailConfig(runtime, keys)
+
+  if (!mail.ok) {
+    console.error('[mail-diagnostic] runtimeConfig vs process.env:', JSON.stringify({
+      fields: diagnostic,
+      invalid: mail.invalid,
+    }))
+  }
   if (!mail.ok) {
     console.error(`[${tag}] configuración de correo incompleta o inválida (${mail.invalid.join(', ')}): el envío permanece bloqueado.`)
     formFail(503, MSG_FORM_UNAVAILABLE, { reason: 'not_configured' })
@@ -330,7 +371,7 @@ function resetNotifications() {
 
 const track = <T>(p: Promise<T>) => {
   notifyInFlight.add(p)
-  void p.finally(() => notifyInFlight.delete(p)).catch(() => {})
+  void p.finally(() => notifyInFlight.delete(p)).catch(() => { })
   return p
 }
 
