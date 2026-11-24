@@ -74,6 +74,26 @@
         </div>
       </section>
 
+      <!-- Llamado a la acción: valoración con descuento por pago en la web. El botón abre el formulario de datos; el check-out (Wompi, ya integrado en el Hub)
+           se conecta en la siguiente etapa y mientras tanto no se simula ningún pago. -->
+      <section aria-labelledby="fin-valoracion" class="band bg-white" data-testid="valuation-cta">
+        <div class="inner">
+          <div class="bg-[#F7F3EE] border border-[#E7DDD1] border-l-[4px] border-l-[#CBA36B] rounded-2xl px-6 py-10 md:px-12 md:py-12 grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div class="lg:col-span-7">
+              <p class="eyebrow">Valoración con especialista</p>
+              <h2 id="fin-valoracion" class="h2 mt-3">Paga tu valoración en línea y ahorra {{ saving }}</h2>
+              <p class="prose-p mt-4">El valor regular de la valoración es de {{ regularPrice }}. Si realizas el pago a través de nuestra página web, tiene un costo especial de {{ webPrice }}.</p>
+            </div>
+            <div class="lg:col-span-5 lg:text-right">
+              <p class="text-[#111111]/60 text-sm">Valor regular <span class="line-through" data-testid="valuation-regular-price">{{ regularPrice }}</span></p>
+              <p class="font-serif text-4xl md:text-5xl font-extrabold text-[#111111] mt-1" data-testid="valuation-web-price">{{ webPrice }}</p>
+              <p class="text-xs uppercase tracking-[0.15em] text-[#755A26] font-bold mt-1">Pagando en la web</p>
+              <FormsValuationPayModal :price="webPrice" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- 5 · Preguntas frecuentes (las mismas de /nosotros, administradas en /admin/nosotros) — verde, con el acordeón sobre tarjeta blanca -->
       <section v-if="faqs.length" aria-labelledby="fin-faq" class="band band-dark bg-[#111111]">
         <div class="inner max-w-3xl">
@@ -116,6 +136,14 @@ const needs = [
   { title: 'Colillas de pago', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', text: '3 últimas colillas de pago, donde se evidencie efectivamente el pago del monto por concepto de salario de la carta laboral.' }
 ]
 
+// Valoración: tarifa regular y tarifa por pago en la web (COP). Solo se muestran; el cobro lo hará el check-out.
+const VALUATION_REGULAR_PRICE = 300000
+const VALUATION_WEB_PRICE = 150000
+const cop = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
+const regularPrice = cop(VALUATION_REGULAR_PRICE)
+const webPrice = cop(VALUATION_WEB_PRICE)
+const saving = cop(VALUATION_REGULAR_PRICE - VALUATION_WEB_PRICE)
+
 const { data } = await useFetch<AboutContent>('/api/public/about', { key: 'about-page', default: () => aboutPublicView(aboutDefaultContent()) })
 const content = computed<AboutContent>(() => data.value ?? aboutPublicView(aboutDefaultContent()))
 const faqs = computed(() => content.value.faqs)
@@ -138,6 +166,7 @@ useHead({
 .inner { max-width: 1200px; margin: 0 auto; }
 .h2 { font-family: var(--font-serif, serif); font-size: 1.75rem; line-height: 1.2; font-weight: 700; color: #111111; }
 .h3 { font-size: .875rem; font-weight: 700; letter-spacing: .12em; color: #4c4546; margin-top: .25rem; }
+.eyebrow { font-size: 0.6875rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; color: #755A26; }
 .step-n { font-size: 10px; font-weight: 700; letter-spacing: .2em; color: #CBA36B; margin-bottom: .5rem; }
 .icon { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; margin-top: 1rem; border: 1.5px solid #CBA36B; border-radius: 9999px; color: #111111; }
 .prose-p { color: #4b5563; font-weight: 300; font-size: 1rem; line-height: 1.7; }

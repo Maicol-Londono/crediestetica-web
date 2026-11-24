@@ -191,9 +191,9 @@ describe('Configuración SMTP y destinatarios', () => {
   test('Crediestética: destinatarios definidos en el servidor (nuxt.config.ts), fuera de `public`', () => {
     const cfg = read('nuxt.config.ts')
     assert.match(cfg, /leadFormTo: 'convenioscrediestetica@gmail\.com'/)
-    assert.match(cfg, /leadFormCc: 'maicoll4966@gmail\.com'/) // CC TEMPORAL de pruebas
+    assert.match(cfg, /leadFormCc: 'disenadoraplanmed@gmail\.com'/)
     assert.doesNotMatch(cfg, /public: \{[^}]*leadForm/s)
-    assert.equal(mail.resolveMailConfig({ ...CFG, leadFormTo: 'convenioscrediestetica@gmail.com', leadFormCc: 'maicoll4966@gmail.com' }, mail.LEAD_FORM_RECIPIENTS).ok, true)
+    assert.equal(mail.resolveMailConfig({ ...CFG, leadFormTo: 'convenioscrediestetica@gmail.com', leadFormCc: 'disenadoraplanmed@gmail.com' }, mail.LEAD_FORM_RECIPIENTS).ok, true)
   })
 })
 

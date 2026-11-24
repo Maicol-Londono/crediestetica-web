@@ -6,6 +6,10 @@ export default defineNuxtConfig({
     // y NUXT_SESSION_PASSWORD (mínimo 32 caracteres aleatorios).
     // Autenticación contra Wellezy Hub: p. ej. https://wellezyhub.com/api (local: http://localhost:8000/api).
     wellezyApiBaseUrl: '',
+    // Integración firmada con el Hub para el pago en línea de la valoración (Wompi). Se crea en el Hub con `php artisan integrations:create`.
+    // Solo servidor (NUXT_HUB_INTEGRATION_KEY_ID / NUXT_HUB_INTEGRATION_SECRET); sin ellas el pago permanece bloqueado y se muestra el aviso con WhatsApp.
+    hubIntegrationKeyId: '',
+    hubIntegrationSecret: '',
     // Tenant por SLUG (nunca por id). Referencia verificada en la copia local de PD (D5.5): Legalmed = companies.id 16, Crediestética = lineas.id 4
     // (lineas.company_id 16). Esos ids NO se usan en el código: el login envía los slugs y las lecturas públicas envían X-Tenant-Linea.
     wellezyCompanySlug: 'legalmed',
@@ -48,22 +52,25 @@ export default defineNuxtConfig({
     mailPassword: '',
     mailFromAddress: '',
     mailFromName: 'Crediestética',
-    // TEMPORAL (pruebas): el CC de los cuatro formularios es maicoll4966@gmail.com. Al validar los formularios hay que restaurar disenadoraplanmed@gmail.com.
+    // El CC definitivo de los cuatro formularios (estudio de crédito, financiación, valoración y referidos) es la diseñadora: disenadoraplanmed@gmail.com.
     // Destinatarios del estudio de crédito: definidos AQUÍ, en el servidor (el navegador no puede cambiarlos). Se pueden sustituir con NUXT_CREDIT_STUDY_TO /
     // NUXT_CREDIT_STUDY_CC (varias direcciones separadas por coma). Son los de Crediestética: no se comparten con Planmed.
     creditStudyTo: 'convenioscrediestetica@gmail.com',
-    creditStudyCc: 'maicoll4966@gmail.com',
+    creditStudyCc: 'disenadoraplanmed@gmail.com',
     // Destinatarios de la solicitud de financiación (LeadForm → POST /api/forms/lead), definidos AQUÍ, solo en el servidor. Sustituibles con NUXT_LEAD_FORM_TO /
     // NUXT_LEAD_FORM_CC (varias direcciones separadas por coma). Son los de Crediestética: no se comparten con Planmed.
     leadFormTo: 'convenioscrediestetica@gmail.com',
-    leadFormCc: 'maicoll4966@gmail.com',
+    leadFormCc: 'disenadoraplanmed@gmail.com',
     // Destinatarios del correo de RESPALDO de la valoración y de la notificación complementaria del programa de referidos (Hub → correo): solo servidor,
     // sustituibles con NUXT_VALUATION_TO/CC y NUXT_REFERRAL_TO/CC. Son los de Crediestética: no se comparten con Planmed.
     // El correo NO sustituye al CRM ni a Hub: se envía después de que ellos confirmen (en valoración es además el canal principal mientras el CRM no esté configurado).
     valuationTo: 'convenioscrediestetica@gmail.com',
-    valuationCc: 'maicoll4966@gmail.com',
+    valuationCc: 'disenadoraplanmed@gmail.com',
     referralTo: 'convenioscrediestetica@gmail.com',
-    referralCc: 'maicoll4966@gmail.com',
+    referralCc: 'disenadoraplanmed@gmail.com',
+    // Confirmación del PAGO de valoración (comprobante PDF): destinatario propio y único, sin copia ni copia oculta. Es independiente de valuationTo/Cc
+    // y de los demás formularios. A propósito NO existe una clave de CC para el pago.
+    valuationPayTo: 'convenioscrediestetica@gmail.com',
     public: {
       appName: 'Crediestética',
       // Valor informativo del dominio público: ningún código lo lee hoy. No es dominio de la API ni se envía a Hub (no se usa X-Tenant-Domain).

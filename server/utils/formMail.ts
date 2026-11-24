@@ -51,11 +51,13 @@ export interface MailConfig {
 }
 
 /** Claves de runtimeConfig con los destinatarios de cada formulario (Para y Copia). Solo servidor. */
-export interface MailRecipientKeys { to: string, cc: string }
+export interface MailRecipientKeys { to: string, cc?: string }
 export const CREDIT_STUDY_RECIPIENTS: MailRecipientKeys = { to: 'creditStudyTo', cc: 'creditStudyCc' }
 export const LEAD_FORM_RECIPIENTS: MailRecipientKeys = { to: 'leadFormTo', cc: 'leadFormCc' }
 export const VALUATION_RECIPIENTS: MailRecipientKeys = { to: 'valuationTo', cc: 'valuationCc' }
 export const REFERRAL_RECIPIENTS: MailRecipientKeys = { to: 'referralTo', cc: 'referralCc' }
+/** Confirmación del PAGO de valoración: clave propia y SIN clave de copia, de modo que ninguna variable (heredada o nueva) pueda añadirle CC. */
+export const VALUATION_PAY_RECIPIENTS: MailRecipientKeys = { to: 'valuationPayTo' }
 
 /** Nombre de la variable de entorno de una clave de runtimeConfig (`leadFormTo` → `NUXT_LEAD_FORM_TO`). Solo para diagnóstico: nunca se registran los valores. */
 export const envName = (key: string) => `NUXT_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`
@@ -88,8 +90,8 @@ export function resolveMailConfig(src: Record<string, unknown> | null | undefine
   if (!MAIL_RE.test(fromAddress)) invalid.push('NUXT_MAIL_FROM_ADDRESS')
   const to = parseAddresses(c[keys.to])
   if (!to || !to.length) invalid.push(envName(keys.to))
-  const cc = text(c[keys.cc]) ? parseAddresses(c[keys.cc]) : []
-  if (!cc) invalid.push(envName(keys.cc))
+  const cc = keys.cc && text(c[keys.cc]) ? parseAddresses(c[keys.cc]) : []
+  if (!cc) invalid.push(envName(keys.cc!))
   if (invalid.length) return { ok: false, invalid }
   const fromName = text(c.mailFromName).replace(CTRL_RE, ' ').replace(/["<>]/g, '').slice(0, 100)
   return { ok: true, config: { host, port, username, password, fromAddress, fromName, to: to!, cc: cc! } }
@@ -98,7 +100,48 @@ export function resolveMailConfig(src: Record<string, unknown> | null | undefine
 /** Configuración de correo del formulario o 503 `not_configured` (sin leer el cuerpo ni consumir el límite por IP). */
 export function requireMailConfig(event: H3Event, tag: string, keys: MailRecipientKeys): { runtime: Record<string, any>, config: MailConfig } {
   const runtime = useRuntimeConfig(event) as Record<string, any>
+
+  const mailKeys = [
+    'mailHost',
+    'mailPort',
+    'mailUsername',
+    'mailPassword',
+    'mailFromAddress',
+  ] as const
+
+  const diagnostic = Object.fromEntries(
+    mailKeys.map((key) => {
+      const runtimeValue = runtime[key]
+      const envKey = envName(key)
+      const envValue = process.env[envKey]
+
+      return [
+        key,
+        {
+          runtimeType: typeof runtimeValue,
+          runtimePresent: typeof runtimeValue === 'string'
+            ? runtimeValue.length > 0
+            : runtimeValue !== undefined && runtimeValue !== null,
+          runtimeLength: typeof runtimeValue === 'string'
+            ? runtimeValue.length
+            : null,
+          envPresent: typeof envValue === 'string' && envValue.length > 0,
+          envLength: typeof envValue === 'string'
+            ? envValue.length
+            : null,
+        },
+      ]
+    }),
+  )
+
   const mail = resolveMailConfig(runtime, keys)
+
+  if (!mail.ok) {
+    console.error('[mail-diagnostic] runtimeConfig vs process.env:', JSON.stringify({
+      fields: diagnostic,
+      invalid: mail.invalid,
+    }))
+  }
   if (!mail.ok) {
     console.error(`[${tag}] configuración de correo incompleta o inválida (${mail.invalid.join(', ')}): el envío permanece bloqueado.`)
     formFail(503, MSG_FORM_UNAVAILABLE, { reason: 'not_configured' })
@@ -293,7 +336,7 @@ const NOTIFY_MAX_DELIVERED = 5000
 const NOTIFY_DELIVERED_TTL_MS = 24 * 60 * 60_000
 const NOTIFY_WAIT_MS = 4_000
 
-export interface ComplementaryMessage { subject: string, text: string, html: string, replyTo?: string }
+export interface ComplementaryMessage { subject: string, text: string, html: string, replyTo?: string, attachments?: MailAttachment[] }
 interface NotifyEntry { attempts: number, at: number, mail: MailConfig, tag: string, form: string, msg?: ComplementaryMessage, timer?: ReturnType<typeof setTimeout>, gaveUp?: boolean }
 const pending = new Map<string, NotifyEntry>()
 const delivered = new Map<string, number>()
@@ -328,7 +371,7 @@ function resetNotifications() {
 
 const track = <T>(p: Promise<T>) => {
   notifyInFlight.add(p)
-  void p.finally(() => notifyInFlight.delete(p)).catch(() => {})
+  void p.finally(() => notifyInFlight.delete(p)).catch(() => { })
   return p
 }
 
