@@ -3,11 +3,9 @@ import { mkdir, readFile, rename, writeFile, copyFile, unlink } from 'node:fs/pr
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 // Ruta relativa con extensión: las pruebas de Node (sin alias de Nuxt) la resuelven; el bundler de Nitro también.
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { sanitizeRichHtml } from '../../utils/richText.ts'
 // Importación explícita (no auto-import): el auto-import de Nitro omite algunas constantes de shared/utils (p. ej. la que sigue a un `as const`)
 // y el fallo solo aparece en ejecución («CLINIC_MEDIA_PREFIX is not defined»).
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { CLINIC_MEDIA_PREFIX, CLINIC_MEDIA_NAME_RE, clinicMediaUrls, clinicsDefault, normalizeClinics, validateClinics, type ClinicsContent } from '../../shared/utils/clinics.ts'
 
 // Persistencia LOCAL de «Clínicas aliadas» (no usa Wellezy Hub): `<NUXT_CONTENT_DIR>/clinics.json` y los archivos subidos en

@@ -11,7 +11,6 @@
 // `path` NO se usa: depende de la configuración de la línea (puede ser null o la ruta histórica). Las URLs de Crediestética se construyen
 // siempre con los slugs: /recomendaciones/{tema}/{subtema}. Todo valor que no cumple el contrato se descarta; nunca se inventa.
 
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions (las pruebas de Node no usan los alias de Nuxt).
 import { countBlocks, fromPublicBlock, publicBlocksOf, type ColumnLayout, type PublicBlock, type PublicBlocks } from './contentBlocks.ts'
 
 export const SECTION_TYPES = ['description', 'recommendations', 'callout', 'contact', 'custom'] as const

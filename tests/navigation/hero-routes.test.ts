@@ -15,7 +15,7 @@ describe('menú transparente sobre el hero (D9.1)', () => {
       assert.equal(isHeroRoute(r), true, r)
     }
     assert.equal(isHeroRoute('/noticias/un-articulo'), false)
-    assert.equal(isHeroRoute('/nosotros'), false)
+    assert.equal(isHeroRoute('/nosotros'), true)
     assert.equal(isHeroRoute('/financiacion'), true)
     assert.equal(isHeroRoute('/testimonios'), false)
   })
@@ -27,7 +27,8 @@ describe('menú transparente sobre el hero (D9.1)', () => {
 
   test('el menú alterna transparente/sólido por ruta y desplazamiento, con logo blanco sobre el hero', () => {
     const nav = readFileSync('components/layout/Navbar.vue', 'utf8')
-    assert.match(nav, /isHeroRoute\(route\.path\) && scrollY\.value <= 30 && !isMobileMenuOpen\.value/)
+    assert.match(nav, /isHeroRoute\(route\.path\)/)
+    assert.match(nav, /scrollY\.value <= 30 && !isMobileMenuOpen\.value/)
     assert.match(nav, /brightness-0 invert/)
     assert.match(nav, /fixed top-0/)
   })

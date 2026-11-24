@@ -34,25 +34,26 @@
       </div>
     </section>
 
-    <!-- 2. INFORMACIÓN INSTITUCIONAL -->
-    <section v-if="!isEmpty" class="bg-[#F7F3EE] mt-8 md:mt-12" aria-labelledby="about-institutional-title">
-      <div class="max-w-[1200px] mx-auto px-6 md:px-12 py-16 md:py-24 grid lg:grid-cols-12 gap-10 lg:gap-16">
-        <div class="lg:col-span-5">
-          <h2 id="about-institutional-title" class="font-serif text-3xl md:text-4xl leading-[1.15] tracking-[-0.01em] text-[#111111] uppercase mb-8">
-            {{ content.institutional.title }}
-          </h2>
-          <div class="bg-white border border-[#E7DDD1] rounded-xl shadow-sm p-6 md:p-8">
-            <CommonRichContent :html="content.institutional.legal" class="text-[15px] text-gray-700 leading-relaxed" />
-          </div>
+    <!-- 2. INFORMACIÓN INSTITUCIONAL: presentación sobre marfil y, debajo, una banda de fondo propio por cada bloque de texto (se parte por sus títulos) -->
+    <section v-if="!isEmpty" class="bg-[#F7F3EE] pt-8 md:pt-12" aria-labelledby="about-institutional-title">
+      <div class="max-w-[1200px] mx-auto px-6 md:px-12 py-12 md:py-16 flex flex-col gap-8">
+        <h2 id="about-institutional-title" class="font-serif text-3xl md:text-4xl leading-[1.15] tracking-[-0.01em] text-[#111111] uppercase">
+          {{ content.institutional.title }}
+        </h2>
+        <div class="bg-white border border-[#E7DDD1] rounded-xl shadow-sm p-6 md:p-8">
+          <CommonRichContent :html="content.institutional.legal" class="text-[15px] text-gray-700 leading-relaxed" />
         </div>
-        <div class="lg:col-span-7 flex flex-col gap-6 lg:pt-2">
-          <CommonRichContent
-            v-for="(paragraph, i) in paragraphs"
-            :key="i"
-            :html="paragraph"
-            class="text-gray-600 font-light text-lg leading-relaxed"
-          />
-        </div>
+      </div>
+    </section>
+
+    <section
+      v-for="(block, i) in blocks"
+      :key="i"
+      class="border-t border-[#E7DDD1]"
+      :class="blockBg(i)"
+    >
+      <div class="max-w-[1000px] mx-auto px-6 md:px-12 py-12 md:py-16">
+        <CommonRichContent :html="block" class="about-block text-gray-600 font-light text-lg leading-relaxed" />
       </div>
     </section>
 
@@ -103,7 +104,9 @@ const { data } = await useFetch<AboutContent>('/api/public/about', { key: 'about
 const content = computed<AboutContent>(() => data.value ?? aboutPublicView(aboutDefaultContent()))
 
 const isEmpty = computed(() => aboutIsEmpty(content.value))
-const paragraphs = computed(() => content.value.institutional.paragraphs.filter(Boolean))
+// Los tres párrafos se unen y se parten en cada título (h2), para dar a cada tema su propia banda de fondo.
+const blocks = computed(() => content.value.institutional.paragraphs.filter(Boolean).join('').split(/(?=<h2[\s>])/i).map(b => b.trim()).filter(Boolean))
+const blockBg = (i: number) => ['bg-white', 'bg-[#EFE7DC]', 'bg-[#F7F3EE]'][i % 3]
 const videoId = computed(() => aboutYoutubeId(content.value.video.url))
 
 const description = 'Conoce la trayectoria, el respaldo médico y las instituciones aliadas que hacen parte del ecosistema Crediestética.'
@@ -123,3 +126,7 @@ useHead({
 })
 </script>
 
+<style scoped>
+.about-block :deep(h2) { font-family: var(--font-serif, serif); font-size: 1.75rem; line-height: 1.2; font-weight: 500; color: #111111; text-transform: uppercase; margin-bottom: 1.25rem; padding-bottom: .75rem; border-bottom: 2px solid #CBA36B; width: fit-content; }
+.about-block :deep(p + p), .about-block :deep(p + ul), .about-block :deep(ul + p) { margin-top: 1rem; }
+</style>

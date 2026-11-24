@@ -97,20 +97,18 @@ describe('enlace por consentimiento', () => {
   })
 })
 
-describe('política de datos provisional', () => {
+describe('política de datos (página sintetizada, igual que la de Planmed)', () => {
   const page = read('pages/politica-datos-personales.vue')
-  test('declara que no es la política oficial y marca las secciones como pendientes', () => {
-    assert.match(page, /no es la política de tratamiento de datos personales de Crediestética/)
-    for (const id of ['responsable', 'finalidades', 'derechos', 'consultas-reclamos', 'datos-sensibles', 'autorizaciones']) assert.ok(page.includes(`id: '${id}'`), id)
-    assert.ok(page.includes('canales-contacto') && page.includes('documentos-descargables'))
-    assert.ok((page.match(/Pendiente de publicación/g) ?? []).length >= 2)
+  test('ya no es una estructura provisional: sin avisos de pendiente ni secciones vacías', () => {
+    assert.ok(!/Pendiente de publicación|policy-pending-notice|no es la política|pendingSections|canales-contacto/.test(page))
   })
-  test('no incluye texto legal inventado (sin artículos ni plazos ni finalidades concretas)', () => {
-    assert.ok(!/artículo|días hábiles|Ley 1581|Decreto 1377|finalidades son/i.test(page))
+  test('no inventa plazos ni finalidades concretas', () => {
+    assert.ok(!/días hábiles|Decreto 1377|finalidades son/i.test(page))
   })
-  test('los documentos salen del registro central', () => {
-    assert.match(page, /LEGAL_DOCUMENTS/)
-    assert.match(page, /legalDocumentUrl/)
+  test('lista los cuatro documentos públicos de /recursos, sin escribir URL en la página', () => {
+    assert.match(page, /publicResourceDocuments\(\)/)
+    assert.ok(!/drive\.google\.com|\.pdf/i.test(page))
+    assert.equal(docs.publicResourceDocuments().length, 4)
   })
 })
 

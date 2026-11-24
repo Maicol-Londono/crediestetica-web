@@ -14,7 +14,7 @@ const ORIGINAL = {
   'public/images/branding/logo.jpg': 'f5a9019f', 'public/images/branding/logo_fondo_transparente.png': 'f030e02b',
   'public/images/branding/logo-ico.ico': 'd69f4820', 'public/images/web/home.png': '8caba184'
 }
-const PAGES = ['pages/index.vue', 'pages/quienes-somos.vue', 'pages/servicios.vue', 'pages/nosotros.vue', 'components/site/PageShell.vue', 'components/site/ManagedPage.vue', 'pages/recursos.vue', 'error.vue', 'app.vue', 'shared/utils/financingSeo.ts', 'components/common/TrustSection.vue', 'components/home/ClinicsSection.vue', 'components/common/MedicalLeadershipSection.vue']
+const PAGES = ['pages/index.vue', 'pages/quienes-somos.vue', 'pages/servicios.vue', 'pages/nosotros.vue', 'components/site/PageShell.vue', 'components/site/ManagedPage.vue', 'pages/recursos/index.vue', 'error.vue', 'app.vue', 'shared/utils/financingSeo.ts', 'components/common/TrustSection.vue', 'components/home/ClinicsSection.vue', 'components/common/MedicalLeadershipSection.vue']
 
 describe('recursos visuales', () => {
   test('logos, favicon y portada son los originales de Crediestética', () => {

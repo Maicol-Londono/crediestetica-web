@@ -122,7 +122,7 @@
           <div>
             <input ref="coverInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onCoverSelected" />
             <div class="flex gap-2">
-              <button type="button" @click="coverInput?.click()" :disabled="isUploading" class="flex-1 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#143c28] transition-colors disabled:opacity-60">
+              <button type="button" @click="coverInput?.click()" :disabled="isUploading" class="flex-1 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#333333] transition-colors disabled:opacity-60">
                 {{ isUploading ? 'Procesando...' : (form.coverImage ? 'Cambiar imagen' : 'Subir imagen *') }}
               </button>
               <button v-if="form.coverImage" type="button" @click="form.coverImage = ''" class="px-4 py-3 border border-gray-200 text-gray-500 text-xs font-bold uppercase rounded-lg hover:bg-gray-50">Quitar</button>

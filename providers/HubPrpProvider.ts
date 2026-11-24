@@ -36,6 +36,9 @@ function toError(e: any): PrpError {
   )
 }
 
+// Respuesta de las rutas internas de Nitro para una sola fila (el Hub la devuelve bajo `data`).
+type HubPrpEnvelope = { data: Record<string, unknown> }
+
 function fromHub(row: any): Prp {
   return {
     id: Number(row.id),
@@ -95,7 +98,7 @@ export class HubPrpProvider implements PrpProvider {
   async createPrp(data: PrpInput): Promise<Prp> {
     const request = useRequestFetch()
     try {
-      const res = await request<any>(BASE, { method: 'POST', body: toHub(data) })
+      const res = await request<HubPrpEnvelope>(BASE, { method: 'POST', body: toHub(data) })
       return fromHub(res.data)
     } catch (e) {
       throw toError(e)
@@ -105,7 +108,7 @@ export class HubPrpProvider implements PrpProvider {
   async updatePrp(id: number, data: Partial<PrpInput>): Promise<Prp> {
     const request = useRequestFetch()
     try {
-      const res = await request<any>(`${BASE}/${id}`, { method: 'PUT', body: toHub(data) })
+      const res = await request<HubPrpEnvelope>(`${BASE}/${id}`, { method: 'PUT', body: toHub(data) })
       return fromHub(res.data)
     } catch (e) {
       throw toError(e)
@@ -115,7 +118,7 @@ export class HubPrpProvider implements PrpProvider {
   async deactivatePrp(id: number): Promise<Prp> {
     const request = useRequestFetch()
     try {
-      const res = await request<any>(`${BASE}/${id}`, { method: 'DELETE' })
+      const res = await request<HubPrpEnvelope>(`${BASE}/${id}`, { method: 'DELETE' })
       return fromHub(res.data)
     } catch (e) {
       throw toError(e)

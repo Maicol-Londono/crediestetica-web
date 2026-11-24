@@ -62,7 +62,7 @@ describe('las páginas públicas declaran su canonical', () => {
   // procedimientos, subtemas de recomendaciones).
   const WITH_COMPOSABLE = [
     'pages/index.vue', 'pages/noticias/index.vue', 'pages/noticias/[slug].vue', 'pages/procedimientos/[slug].vue', 'pages/recomendaciones/[slug].vue',
-    'pages/recursos.vue', 'pages/informacion-precontractual.vue', 'pages/politica-datos-personales.vue',
+    'pages/recursos/index.vue', 'pages/recursos/[slug].vue', 'pages/informacion-precontractual.vue', 'pages/politica-datos-personales.vue',
     'pages/testimonios/index.vue', 'pages/testimonios/antes-y-despues.vue', 'pages/testimonios/programa-de-referidos.vue',
     'components/recommendations/ProcedureRecommendationIndex.vue', 'components/recommendations/ProcedureRecommendation.vue'
   ]
@@ -79,7 +79,7 @@ describe('las páginas públicas declaran su canonical', () => {
     const walk = d => { for (const n of readdirSync(d)) { const f = join(d, n); statSync(f).isDirectory() ? walk(f) : f.endsWith('.vue') && files.push(f) } }
     walk(join(ROOT, 'pages'))
     // Páginas que delegan en componentes: se revisa el componente.
-    const DELEGATED = { 'pages/recomendaciones/cuidados/index.vue': 'components/recommendations/ProcedureRecommendationIndex.vue', 'pages/recomendaciones/revision/index.vue': 'components/recommendations/ProcedureRecommendationIndex.vue', 'pages/recomendaciones/cuidados/[slug].vue': 'components/recommendations/ProcedureRecommendation.vue', 'pages/recomendaciones/revision/[slug].vue': 'components/recommendations/ProcedureRecommendation.vue', 'pages/clinicas-aliadas.vue': 'components/site/ManagedPage.vue' }
+    const DELEGATED = { 'pages/recomendaciones/cuidados/index.vue': 'components/recommendations/ProcedureRecommendationIndex.vue', 'pages/recomendaciones/revision/index.vue': 'components/recommendations/ProcedureRecommendationIndex.vue', 'pages/recomendaciones/cuidados/[slug].vue': 'components/recommendations/ProcedureRecommendation.vue', 'pages/recomendaciones/revision/[slug].vue': 'components/recommendations/ProcedureRecommendation.vue', 'pages/clinicas-aliadas/index.vue': 'components/site/ManagedPage.vue' }
     const missing = []
     for (const f of files) {
       const rel = relative(ROOT, f).split(sep).join('/')

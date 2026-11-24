@@ -1,18 +1,14 @@
 // Lectura pública de un micrositio PRP desde Wellezy Hub (GET /api/v1/web/prp/{slug}).
 // Hub resuelve empresa/línea con X-Tenant-Linea y solo devuelve PRP activos de ese tenant.
-// Nunca se reenvía nada más que los 4 campos públicos.
-
-import { crmDestinationProblem } from '#shared/utils/crmDestination'
+// Nunca se reenvía nada más que los 3 campos públicos (nombre, slug y título). El `external_code` del referidor NO se entrega al navegador: la
+// inscripción envía solo el slug y el servidor resuelve el código con Hub (server/utils/prpReferrer.ts).
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
 
-  // PRP deshabilitado mientras el destino del CRM de PRP sea el heredado de Planmed o no sea válido: el micrositio (y su formulario, que
-  // envía directo desde el navegador) no se ofrece. 404 = la página «no existe». No se consulta a Hub.
-  const crmProblem = crmDestinationProblem(useRuntimeConfig(event).public?.crmPrpFormUrl)
-  if (crmProblem) throw createError({ statusCode: 404, message: 'No encontrado' })
+  // El micrositio ya no depende del destino del CRM (crmPrpFormUrl): la inscripción se procesa en Wellezy Hub, no se envía directo al CRM.
 
   const slug = String(getRouterParam(event, 'slug') ?? '')
   if (!slug || slug.length > 255 || !SLUG_RE.test(slug)) {
@@ -30,14 +26,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const prp = res.data?.data
-  if (res.status !== 200 || !prp || typeof prp.name !== 'string' || typeof prp.slug !== 'string' || typeof prp.external_code !== 'string') {
+  if (res.status !== 200 || !prp || typeof prp.name !== 'string' || typeof prp.slug !== 'string') {
     throw createError({ statusCode: 503, message: 'No fue posible cargar esta página. Intenta nuevamente.' })
   }
 
   return {
     name: prp.name,
     slug: prp.slug,
-    title: typeof prp.title === 'string' && prp.title ? prp.title : null,
-    externalCode: prp.external_code
+    title: typeof prp.title === 'string' && prp.title ? prp.title : null
   }
 })

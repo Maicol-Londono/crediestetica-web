@@ -33,8 +33,11 @@
           <p class="text-base md:text-[18px] text-[#111111]/80 mt-4 max-w-2xl mx-auto">Nos asociamos solo con las clínicas y cirujanos más prestigiosos.</p>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6" data-testid="home-clinics">
-          <NuxtLink v-for="ally in allies" :key="ally.id" :to="`/clinicas-aliadas#${ally.id}`" class="bg-white p-6 md:p-8 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-1">
-            <img :src="ally.image" :alt="ally.name" loading="lazy" class="h-10 md:h-16 object-contain" />
+          <NuxtLink v-for="ally in allies" :key="ally.id" :to="`/clinicas-aliadas#${ally.id}`" class="group bg-white rounded-xl overflow-hidden flex flex-col transition-all shadow-sm hover:shadow-md hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#CBA36B]">
+            <div class="aspect-[4/3] w-full overflow-hidden bg-[#E7DDD1]">
+              <img :src="ally.image" :alt="ally.name" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+            </div>
+            <p class="px-4 py-4 text-center font-serif text-base md:text-lg font-bold text-[#111111] leading-snug">{{ ally.name }}</p>
           </NuxtLink>
         </div>
       </div>

@@ -21,6 +21,10 @@ export const PHONE_TEL = `tel:+57${PHONE_NUMBER}`
 export const CONTACT_EMAIL = 'legalmedcartera@gmail.com'
 export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`
 
+/** Correo que se muestra en el pie de página (convenios). */
+export const FOOTER_EMAIL = 'convenioscrediestetica@gmail.com'
+export const FOOTER_MAILTO = `mailto:${FOOTER_EMAIL}`
+
 /** Perfiles sociales de Crediestética. `url: null` = pendiente de recibir la URL oficial del titular: el Footer no muestra ese icono. */
 export type SocialKey = 'instagram' | 'facebook' | 'tiktok' | 'messenger'
 export interface SocialProfile { key: SocialKey, label: string, url: string | null }

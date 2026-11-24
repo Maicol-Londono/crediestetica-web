@@ -45,7 +45,7 @@
               <img v-if="form.hero.image" :src="form.hero.image" :alt="form.hero.imageAlt" class="w-full h-full object-cover" />
             </div>
             <input ref="imageInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onImage" />
-            <button type="button" class="mt-3 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#143c28] disabled:opacity-60" :disabled="processingImage" @click="imageInput?.click()">
+            <button type="button" class="mt-3 px-4 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase rounded-lg hover:bg-[#333333] disabled:opacity-60" :disabled="processingImage" @click="imageInput?.click()">
               {{ processingImage ? 'Procesando…' : 'Cambiar imagen' }}
             </button>
             <p class="hint">JPG, PNG o WebP, máximo 5 MB. Se optimiza automáticamente. Recomendado: formato horizontal.</p>

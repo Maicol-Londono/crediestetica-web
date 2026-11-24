@@ -96,7 +96,8 @@ describe('menú y páginas', () => {
   test('existen las rutas públicas y el submenú del admin solo lista las administrables', () => {
     const layout = readFileSync(join(ROOT, 'layouts/admin.vue'), 'utf8')
     for (const route of ['/quienes-somos', '/clinicas-aliadas', '/estudio-de-creditos', '/informacion-precontractual', '/politica-datos-personales']) {
-      const file = join(ROOT, 'pages', `${route.slice(1)}.vue`)
+      // «Clínicas aliadas» tiene lista (index.vue) y detalle (/clinicas-aliadas/[id]) en su propia carpeta.
+      const file = join(ROOT, 'pages', route === '/clinicas-aliadas' ? 'clinicas-aliadas/index.vue' : `${route.slice(1)}.vue`)
       assert.ok(existsSync(file), file)
     }
     assert.ok(!layout.includes('/admin/paginas/estudio-de-creditos'), 'Estudio de créditos no va en el menú del admin')
@@ -148,7 +149,10 @@ describe('menú y páginas', () => {
 
   test('Programa de referidos: contenido entregado y formulario que envía por ReferralService (no directo desde el componente) con estados de error y confirmación accesibles', () => {
     const page = readFileSync(join(ROOT, 'pages/testimonios/programa-de-referidos.vue'), 'utf8')
-    assert.ok(page.includes('<ReferralProgramContent') && page.includes('<ReferralForm'))
+    assert.ok(page.includes('<ReferralProgramContent'))
+    // La inscripción ya NO está en esta página genérica: solo se hace desde el micrositio del referidor (/prp/[slug]).
+    assert.ok(!page.includes('<ReferralForm'), 'la página genérica no inscribe al PRP')
+    assert.ok(readFileSync(join(ROOT, 'pages/prp/[slug].vue'), 'utf8').includes('<ReferralForm :slug="prp.slug" />'))
     const program = readFileSync(join(ROOT, 'components/referral/ProgramContent.vue'), 'utf8')
     assert.ok(/Crediestética/.test(program) && !/Plan Médico|Planmed/i.test(program), 'el programa estático está adaptado a Crediestética y no menciona a Planmed')
     const form = readFileSync(join(ROOT, 'components/referral/ReferralForm.vue'), 'utf8')

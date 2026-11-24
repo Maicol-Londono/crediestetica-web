@@ -3,7 +3,6 @@ import { mkdir, readFile, rename, writeFile, copyFile, unlink } from 'node:fs/pr
 import { join, isAbsolute, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
 // Ruta relativa con extensión: las pruebas de Node (sin alias de Nuxt) la resuelven; el bundler de Nitro también.
-// @ts-expect-error TS5097: la extensión .ts solo se permite con allowImportingTsExtensions.
 import { sanitizeRichHtml } from '../../utils/richText.ts'
 
 // Persistencia LOCAL de la página «Nosotros» (no usa Wellezy Hub: esta página se administra solo en esta web).

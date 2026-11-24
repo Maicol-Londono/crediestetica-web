@@ -1,13 +1,14 @@
 import type { H3Event } from 'h3'
 import { createHmac } from 'node:crypto'
-import { buildHubPayload, isTransfer, normalizeEnrollment, validateEnrollment, type EnrollmentInput } from '#shared/utils/prpEnrollment'
+import { buildHubPayload, isTransfer, normalizeEnrollment, readPrpSlug, validateEnrollment, type EnrollmentInput } from '#shared/utils/prpEnrollment'
+import { resolvePrpExternalCode } from './prpReferrer'
 import {
   REFERRAL_RECIPIENTS, cleanLine, formFail, isRateLimited, notificationState, notifyComplementary, renderFormEmail, resolveMailConfig,
   type MailSection, type NotifyResult
 } from './formMail'
 
 // Programa de referidos (ReferralForm, «Regístrate en el programa»): CORREO COMPLEMENTARIO. Solo servidor.
-// ATENCIÓN: NO es el PRP de pacientes (PrpLeadForm, /prp/[slug], CRM PTD).
+// Este formulario vive en el micrositio /prp/[slug]; el flujo de leads (PrpLeadForm → CRM PTD) es independiente y ya no se muestra ahí.
 // Wellezy Hub es el DESTINO PRINCIPAL y el único que confirma la inscripción (server/utils/prpEnrollment.ts → POST /v1/web/prp-enrollments). Este módulo
 // solo agrega un correo de RESPALDO que se envía DESPUÉS de que Hub confirmó:
 //  · El correo nunca altera el resultado de Hub: si falla, la inscripción sigue registrada, el usuario no ve ningún error y el envío queda en cola de
@@ -16,7 +17,7 @@ import {
 //    reinicio, en otra instancia o pasadas 24 h un reenvío puede volver a enviarlo. NO hay garantía de «exactamente una vez» (ver LÍMITES en ./formMail).
 //  · Destinatarios: NUXT_REFERRAL_TO/CC (servidor). Asunto fijo: «[Marca] Nueva inscripción al programa de referidos». Sin NUXT_REFERRAL_TO el correo se omite.
 //  · DATOS BANCARIOS: el correo lleva el titular y SOLO los últimos 4 dígitos del documento del titular y de la cuenta; el número completo no viaja por correo.
-//  · POST /api/forms/referral solo REINTENTA la notificación de una inscripción que Hub ya confirmó (no registra nada ni llama a Hub).
+//  · POST /api/forms/referral solo REINTENTA la notificación de una inscripción que Hub ya confirmó (no registra nada en Hub: solo LEE el referidor del micrositio para recalcular la clave).
 
 const TAG = 'referral'
 const FORM = 'referral'
@@ -97,7 +98,7 @@ export async function notifyReferralByEmail(event: H3Event, value: EnrollmentInp
 }
 
 /**
- * Manejador de POST /api/forms/referral: REINTENTA el correo de respaldo de una inscripción que Hub ya confirmó. No registra nada ni llama a Hub:
+ * Manejador de POST /api/forms/referral: REINTENTA el correo de respaldo de una inscripción que Hub ya confirmó. No registra nada en Hub (solo lee el referidor del micrositio):
  * si la inscripción no consta como confirmada en este proceso responde 409 y no envía correo (nadie puede usarlo para enviar correos sin Hub).
  */
 export async function handleReferral(event: H3Event) {
@@ -112,13 +113,15 @@ export async function handleReferral(event: H3Event) {
   if (!String(getRequestHeader(event, 'content-type') ?? '').toLowerCase().startsWith('application/json')) {
     formFail(415, 'No pudimos procesar el envío. Inténtalo de nuevo.', { reason: 'malformed' })
   }
-  const value = normalizeEnrollment(await readBody(event).catch(() => null))
+  const body = await readBody(event).catch(() => null)
+  const value = normalizeEnrollment(body)
   const errors = validateEnrollment(value)
   if (Object.keys(errors).length) formFail(422, 'Revisa los datos ingresados.', { reason: 'validation', errors })
 
   const secret = String(runtime.sessionPassword || '')
   if (secret.length < 32) formFail(503, 'No pudimos procesar el envío. Inténtalo de nuevo en unos minutos.', { reason: 'unavailable' })
-  const key = enrollmentKey(secret, buildHubPayload(value))
+  // La clave incluye el referidor: se resuelve igual que al inscribir (lectura de Hub; esta ruta sigue sin registrar nada).
+  const key = enrollmentKey(secret, buildHubPayload(value, await resolvePrpExternalCode(event, readPrpSlug(body))))
   const state = notificationState(key)
   if (state === 'sent') return { ok: true, notification: 'sent' as NotifyResult }
   if (state !== 'pending') formFail(409, 'Esta inscripción no consta como confirmada.', { reason: 'hub_not_confirmed' })

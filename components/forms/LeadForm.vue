@@ -58,7 +58,7 @@
               <p v-if="errors.requested_amount" class="text-red-500 text-xs mt-1">{{ errors.requested_amount }}</p>
             </div>
             <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Plazo (Cuotas)</label>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Plazo (Cuotas) *</label>
               <select v-model.number="form.installments" :class="['w-full p-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all', errors.installments ? 'border-red-500' : 'border-gray-200']">
                 <option :value="null" disabled>Selecciona el plazo</option>
                 <option :value="12">12 Meses</option>
@@ -248,7 +248,7 @@
 
 <script setup>
 import { legalDocLinkHtml } from '#shared/utils/legalDocuments'
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { WHATSAPP_URL } from '#shared/utils/contact'
 import { useRoute } from 'vue-router'
 import { useTracking } from '~/composables/useTracking'
@@ -418,7 +418,13 @@ const validateForm = () => {
 }
 
 const submitLead = async () => {
-  if (isSubmitting.value || !validateForm()) return
+  if (isSubmitting.value) return
+  if (!validateForm()) {
+    // Lleva a la vista el primer campo con error: el formulario es largo y el aviso puede quedar fuera de pantalla.
+    await nextTick()
+    document.querySelector('p.text-red-500')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    return
+  }
 
   isSubmitting.value = true
 

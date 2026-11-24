@@ -145,7 +145,7 @@ describe('Nosotros · video opcional y estado vacío (handlers, directorio tempo
 })
 
 describe('Plantillas y ausencia de contenido de Planmed (estáticas)', () => {
-  const files = ['components/home/ClinicsSection.vue', 'components/site/ClinicsList.vue', 'components/admin/ClinicsManager.vue', 'pages/nosotros.vue', 'pages/admin/nosotros.vue', 'pages/clinicas-aliadas.vue', 'shared/utils/clinics.ts', 'shared/utils/aboutContent.ts']
+  const files = ['components/home/ClinicsSection.vue', 'components/site/ClinicsList.vue', 'components/admin/ClinicsManager.vue', 'pages/nosotros.vue', 'pages/admin/nosotros.vue', 'pages/clinicas-aliadas/index.vue', 'pages/clinicas-aliadas/[id].vue', 'shared/utils/clinics.ts', 'shared/utils/aboutContent.ts']
   test('ningún archivo de «Nosotros»/«Clínicas» menciona a Planmed ni importa los logos o ciudades heredados', () => {
     for (const f of files) {
       const src = read(f)
@@ -161,9 +161,12 @@ describe('Plantillas y ausencia de contenido de Planmed (estáticas)', () => {
     const src = read('components/site/ClinicsList.vue')
     assert.match(src, /data-testid="clinics-empty"/)
     assert.match(src, /CommonHubUnavailable/)
-    assert.match(src, /rel="noopener noreferrer"/)
-    assert.match(src, /mailto:/)
-    assert.match(src, /tel:/)
+    // El contacto vive en el detalle de la clínica; la tarjeta de la lista es un único enlace a ese detalle.
+    assert.match(src, /\/clinicas-aliadas\/\$\{c\.id\}/)
+    const detail = read('pages/clinicas-aliadas/[id].vue')
+    assert.match(detail, /rel="noopener noreferrer"/)
+    assert.match(detail, /mailto:/)
+    assert.match(detail, /tel:/)
   })
   test('la administración ofrece visibilidad, orden (subir/bajar), contacto y confirmación antes de eliminar', () => {
     const src = read('components/admin/ClinicsManager.vue')
@@ -183,7 +186,8 @@ describe('Plantillas y ausencia de contenido de Planmed (estáticas)', () => {
   })
   test('responsive: las rejillas usan puntos de corte móviles y el hero de Nosotros mantiene las clases de alto adaptable', () => {
     assert.match(read('components/home/ClinicsSection.vue'), /grid-cols-2 lg:grid-cols-5/)
-    assert.match(read('components/site/ClinicsList.vue'), /md:grid-cols-5/)
+    assert.match(read('components/site/ClinicsList.vue'), /sm:grid-cols-2 lg:grid-cols-3/)
+    assert.match(read('pages/clinicas-aliadas/[id].vue'), /md:grid-cols-5/)
     assert.match(read('pages/nosotros.vue'), /md:/)
   })
 })
