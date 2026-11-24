@@ -37,3 +37,25 @@ export function validateValuationPay(v: ValuationPayContact): ValuationPayErrors
   if (!v.accept) e.accept = 'Debes aceptar la política de tratamiento de datos personales para continuar.'
   return e
 }
+
+// ── Clave de envío (`attempt`) del checkout ──────────────────────────────────────────────────────────────────────────────────────────────
+// El Hub es idempotente por clave: la misma clave con los mismos datos devuelve la misma valoración y el mismo pago abierto; con otros datos responde 409.
+// Por eso la clave se ata a los datos enviados y se conserva en la pestaña (recarga, reintento, cierre del widget), con vigencia corta: editar los datos o
+// pasar el tiempo genera una clave nueva, y un pago aprobado la descarta (ver ValuationPayModal.vue).
+export const VALUATION_ATTEMPT_TTL_MS = 30 * 60_000
+export interface StoredAttempt { key: string, fp: string, at: number }
+const ATTEMPT_KEY_RE = /^[A-Za-z0-9-]{16,64}$/
+
+/** Huella de lo que el Hub recibe (nombre, correo y celular): si cambia, es otro envío. */
+export function valuationAttemptFingerprint(c: { name: string, email: string, phone: string }): string {
+  return [String(c.name).trim().replace(/\s+/g, ' ').toLowerCase(), String(c.email).trim().toLowerCase(), String(c.phone).replace(/\D/g, '')].join('|')
+}
+
+/** Reutiliza la clave guardada si es del mismo envío (misma huella), válida y vigente; si no, crea una nueva con `make()`. */
+export function pickAttempt(stored: unknown, fp: string, now: number, make: () => string): StoredAttempt {
+  const s = stored as Partial<StoredAttempt> | null
+  if (s && typeof s.key === 'string' && ATTEMPT_KEY_RE.test(s.key) && s.fp === fp && typeof s.at === 'number' && s.at <= now && now - s.at < VALUATION_ATTEMPT_TTL_MS) {
+    return { key: s.key, fp, at: s.at }
+  }
+  return { key: make(), fp, at: now }
+}

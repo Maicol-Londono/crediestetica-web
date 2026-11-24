@@ -1,5 +1,7 @@
 # Paridad funcional con Planmed
 
+> **Documento histórico (2026-11-09).** La matriz no incluye el pago de valoración con Wompi ni la inscripción PRP vía Hub. Referencia vigente de la integración con el Hub: [docs/integrations/wellezy-hub/](../integrations/wellezy-hub/README.md) (ver §5 de `08-matriz-de-integracion.md`).
+
 Matriz de paridad entre el sitio de Planmed (`planmed-web`) y el de Crediestética. Fecha: 2026-11-09.
 
 ## Cómo se construyó

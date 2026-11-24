@@ -1,5 +1,7 @@
 # Verificación de lecturas públicas desde Hub (D5.0)
 
+> **Documento histórico (D5.0, 2026-11-09).** Verificación contra una copia local, sin datos; no demuestra datos publicados en ningún entorno. Referencia vigente de la integración con el Hub: [docs/integrations/wellezy-hub/](../integrations/wellezy-hub/README.md) (ver §5 de `08-matriz-de-integracion.md`).
+
 Fecha: 2026-11-09. Etapa de solo lectura: no se modificó código, datos, configuración ni el Hub.
 
 ## Resumen

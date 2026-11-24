@@ -69,7 +69,7 @@ import LegalDocLink from '~/components/legal/LegalDocLink.vue'
 // luego pide el checkout al servidor (que habla con el Hub), abre el widget de Wompi y confirma el pago; el correo con el comprobante lo envía el servidor.
 import { ref, reactive, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { whatsappUrlWithText } from '#shared/utils/contact'
-import { normalizeValuationPay, validateValuationPay, type ValuationPayContact, type ValuationPayErrors } from '#shared/utils/valuationPay'
+import { normalizeValuationPay, validateValuationPay, valuationAttemptFingerprint, pickAttempt, type StoredAttempt, type ValuationPayContact, type ValuationPayErrors } from '#shared/utils/valuationPay'
 
 defineProps<{ price: string }>()
 
@@ -99,19 +99,25 @@ const view = ref<'form' | 'verifying' | 'success' | 'pending'>('form')
 const paidName = ref('')
 const firstName = computed(() => paidName.value.trim().split(/\s+/)[0] || 'paciente')
 
-// Un identificador por envío del formulario: reintentar (doble clic, red) no crea otra valoración ni otro cobro en el Hub.
-let attempt = ''
+// Un identificador por envío del formulario: reintentar (doble clic, red, recarga, cerrar el widget) con los mismos datos no crea otra valoración ni otro cobro
+// en el Hub. Se guarda en la pestaña atado a los datos enviados y con vigencia corta (pickAttempt); un pago aprobado lo descarta.
+const ATTEMPT_STORE_KEY = 'valuation-pay:attempt'
+const attemptStore = {
+  get: (): unknown => { try { return JSON.parse(sessionStorage.getItem(ATTEMPT_STORE_KEY) || 'null') } catch { return null } },
+  set: (a: StoredAttempt) => { try { sessionStorage.setItem(ATTEMPT_STORE_KEY, JSON.stringify(a)) } catch { /* sin almacenamiento: solo se pierde la reanudación tras recargar */ } },
+  clear: () => { try { sessionStorage.removeItem(ATTEMPT_STORE_KEY) } catch { /* nada */ } }
+}
 const newAttempt = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`)
 const STORE_KEY = 'valuation-pay:payment'
-// Pago en curso en esta pestaña: id del pago en el Hub y cédula (solo la tiene la web; viaja a la confirmación para el correo). Sin otros datos personales.
+// Pago en curso en esta pestaña: solo el id del pago en el Hub (sin datos personales). La cédula ya viaja al Hub en el checkout.
 const store = {
-  get: (): { uuid: string, document: string } | null => {
+  get: (): { uuid: string } | null => {
     try {
       const p = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null')
-      return p && typeof p.uuid === 'string' ? { uuid: p.uuid, document: typeof p.document === 'string' ? p.document : '' } : null
+      return p && typeof p.uuid === 'string' ? { uuid: p.uuid } : null
     } catch { return null }
   },
-  set: (uuid: string, document: string) => { try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ uuid, document })) } catch { /* sin almacenamiento: solo se pierde la reanudación tras redirección */ } },
+  set: (uuid: string) => { try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ uuid })) } catch { /* sin almacenamiento: solo se pierde la reanudación tras redirección */ } },
   clear: () => { try { sessionStorage.removeItem(STORE_KEY) } catch { /* nada */ } }
 }
 
@@ -135,11 +141,12 @@ function loadWidget(): Promise<void> {
 
 interface ConfirmResult { status: string, name?: string }
 
-// La aprobación la decide el Hub (consulta a Wompi con su llave privada); aquí solo se muestra el resultado.
-async function confirm(paymentUuid: string, document: string, transactionId?: string): Promise<ConfirmResult | null> {
+// La aprobación la decide el Hub (consulta a Wompi con su llave privada) y él mismo ejecuta el correo a Convenios y el alta en el CRM: esta consulta es solo
+// para mostrar el resultado y NO es necesaria para completar el pago administrativamente.
+async function confirm(paymentUuid: string, transactionId?: string): Promise<ConfirmResult | null> {
   for (let i = 0; i < 5; i++) {
     try {
-      const res = await $fetch<ConfirmResult>('/api/forms/valuation-payment/confirm', { method: 'POST', body: { payment_uuid: paymentUuid, document, ...(transactionId ? { transaction_id: transactionId } : {}) } })
+      const res = await $fetch<ConfirmResult>('/api/forms/valuation-payment/confirm', { method: 'POST', body: { payment_uuid: paymentUuid, ...(transactionId ? { transaction_id: transactionId } : {}) } })
       if (res.status !== 'PENDING') return res
       if (i < 4) await new Promise(r => setTimeout(r, 3000))
       else return res
@@ -150,12 +157,13 @@ async function confirm(paymentUuid: string, document: string, transactionId?: st
   return null
 }
 
-async function finish(paymentUuid: string, document: string, transactionId?: string) {
+async function finish(paymentUuid: string, transactionId?: string) {
   view.value = 'verifying'
   isOpen.value = true
-  const res = await confirm(paymentUuid, document, transactionId)
+  const res = await confirm(paymentUuid, transactionId)
   if (res?.status === 'APPROVED') {
     store.clear()
+    attemptStore.clear()
     paidName.value = res.name || values.name
     view.value = 'success'
   } else if (res && ['DECLINED', 'ERROR', 'VOIDED'].includes(res.status)) {
@@ -170,13 +178,15 @@ async function finish(paymentUuid: string, document: string, transactionId?: str
 async function goToPay(contact: ValuationPayContact) {
   submitting.value = true
   try {
-    if (!attempt) attempt = newAttempt()
+    const picked = pickAttempt(attemptStore.get(), valuationAttemptFingerprint(contact), Date.now(), newAttempt)
+    attemptStore.set(picked)
+    const attempt = picked.key
     const res = await $fetch<{ payment_uuid: string, checkout: { public_key: string, reference: string, amount_in_cents: number, currency: string, signature_integrity: string, redirect_url: string | null } }>(
       '/api/forms/valuation-payment/checkout',
       { method: 'POST', body: { name: contact.name, document: contact.document, phone: contact.phone, email: contact.email, accept: contact.accept, attempt } }
     )
     paidName.value = contact.name
-    store.set(res.payment_uuid, contact.document)
+    store.set(res.payment_uuid)
     await loadWidget()
     const c = res.checkout
     const checkout = new (window as any).WidgetCheckout({
@@ -191,9 +201,8 @@ async function goToPay(contact: ValuationPayContact) {
     widgetOpen.value = true
     checkout.open((result: { transaction?: { id?: string } }) => {
       widgetOpen.value = false
-      attempt = ''
       const tx = result?.transaction?.id
-      if (tx) void finish(res.payment_uuid, contact.document, tx)
+      if (tx) void finish(res.payment_uuid, tx)
     })
   } catch (e: any) {
     widgetOpen.value = false
@@ -220,7 +229,7 @@ const route = useRoute()
 onMounted(() => {
   const id = typeof route.query.id === 'string' ? route.query.id : ''
   const stored = store.get()
-  if (id && stored) void finish(stored.uuid, stored.document, id)
+  if (id && stored) void finish(stored.uuid, id)
 })
 
 async function open() {
