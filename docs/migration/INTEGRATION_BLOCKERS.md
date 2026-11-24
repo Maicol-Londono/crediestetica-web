@@ -1,5 +1,7 @@
 # Dependencias externas
 
+> **Documento histórico (2026-11-24).** B-04 y otros bloqueos de PRP/`accepted_contract` pueden estar superados por el flujo actual de PRP (`POST /v1/web/prp-enrollments`, idempotente). No se reverificó. Referencia vigente de la integración con el Hub: [docs/integrations/wellezy-hub/](../integrations/wellezy-hub/README.md) (ver §5 de `08-matriz-de-integracion.md`).
+
 Elementos que no se pueden resolver dentro del repositorio de Crediestética y requieren información, configuración o confirmación de terceros. **Ninguno bloquea la migración** (ver `DECISIONS.md`): el sitio conserva el comportamiento heredado hasta que se resuelvan.
 
 Este documento no propone cambios en Wellezy Hub. Donde interviene Hub, solo se pide información o confirmación a quien lo administra.

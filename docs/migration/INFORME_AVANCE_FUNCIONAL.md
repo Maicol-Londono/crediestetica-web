@@ -1,5 +1,7 @@
 # D8.0 — Informe de avance funcional de Crediestética (2026-11-10)
 
+> **Documento histórico (D8.0, 2026-11-10).** No cubre el checkout Wompi, la posaprobación en el Hub ni PRP actual. Referencia vigente de la integración con el Hub: [docs/integrations/wellezy-hub/](../integrations/wellezy-hub/README.md) (ver §5 de `08-matriz-de-integracion.md`).
+
 Auditoría de solo lectura. Se contrastó la documentación de `docs/migration/` con el código, la copia local de la base (`wellezy_pd_copy`, solo lectura) y las respuestas del Hub local. No se volvieron a ejecutar las pruebas: las cifras son las de etapas anteriores. Git: HEAD `2e82615`, unos 203 cambios locales sin commit, preservados.
 
 ## 1. Resumen ejecutivo

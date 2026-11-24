@@ -1,5 +1,7 @@
 # Defectos y limitaciones conocidas
 
+> **Documento histórico (2026-11-24).** KI-03 y KI-08 describen el flujo PRP/CRM heredado previo a la inscripción vía Hub; no reflejan necesariamente el estado actual. Referencia vigente de la integración con el Hub: [docs/integrations/wellezy-hub/](../integrations/wellezy-hub/README.md) (ver §5 de `08-matriz-de-integracion.md`).
+
 Registro de hallazgos de las auditorías D4.6, D4.8-A y D5.0 (KI-10 a KI-14). **Ninguno se corrige en esta etapa** y ninguno bloquea la migración (ver `DECISIONS.md`). Todos están en estado **pendiente, no bloqueante**.
 
 Salvo que se indique otra cosa, el comportamiento descrito se verificó leyendo el código de Crediestética. Donde se comparó con Planmed se dice expresamente.
