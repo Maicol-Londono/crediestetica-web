@@ -240,6 +240,13 @@ export const CREDIT_STEPS: CreditStep[] = [
   }
 ]
 
+/**
+ * Autorización de tratamiento de datos (obligatoria para registrar al solicitante en el CRM). Va APARTE de los pasos: no es un procedimiento
+ * y no forma parte del contenido del correo.
+ */
+export const CREDIT_CONSENT_ID = 'acepta-datos'
+export const CREDIT_CONSENT_ERROR = 'Debes aceptar la política de tratamiento de datos personales para continuar.'
+
 export const CREDIT_FIELDS: CreditField[] = CREDIT_STEPS.flatMap(s => s.blocks.flatMap(b => b.fields))
 export const CREDIT_FILE_IDS: string[] = CREDIT_FIELDS.filter(x => x.type === 'file').map(x => x.id)
 /** Campos que llegan como texto o casilla (no archivos ni totales calculados). */

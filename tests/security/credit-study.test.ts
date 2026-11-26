@@ -1,7 +1,7 @@
 // @ts-nocheck -- pruebas ejecutadas con Node (node:test); fuera del alcance del typecheck de Nuxt.
 // Formulario «Estudio de créditos» → correo: reglas compartidas, validación en el servidor, documentos, destinatarios por marca, configuración SMTP
 // ausente, error del proveedor, envío exitoso y doble envío. Se ejecuta el código REAL del servidor con un transporte SMTP simulado: no se envía
-// ningún correo, no hay red y no se llama a ningún CRM. Las direcciones, contraseñas y datos de este archivo son FICTICIOS.
+// ningún correo, no hay red y el CRM es SIMULADO (el registro se prueba en crm-forms.test.ts). Las direcciones, contraseñas y datos de este archivo son FICTICIOS.
 import { test, describe, before, beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs'
@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { ROOT } from '../recommendations/harness.ts'
+import { CRM_CFG, installCrmStub } from './crm-stub.ts'
 
 const fileUrl = rel => pathToFileURL(join(ROOT, rel)).href
 const read = rel => readFileSync(join(ROOT, rel), 'utf8')
@@ -16,6 +17,7 @@ const SOCKET_IP = '203.0.113.9'
 const SECRET = 'p4ss-w0rd-FICTICIA-no-real'
 
 const CFG = {
+  ...CRM_CFG,
   mailHost: 'smtp.example.test',
   mailPort: 465,
   mailUsername: 'sender@example.test',
@@ -29,7 +31,8 @@ const CFG = {
 }
 
 const state = { cfg: {}, reads: 0, originChecks: 0, sent: [], closed: 0, sendImpl: null, factoryCalls: 0, logs: [] }
-let dir, mod, mail, S, svc, realError
+let dir, mod, mail, S, svc, realError, crm, reg
+const realInfo = console.info, realWarn = console.warn
 
 before(async () => {
   dir = mkdtempSync(join(tmpdir(), 'credit-study-'))
@@ -45,12 +48,18 @@ before(async () => {
   g.readMultipartFormData = async e => { state.reads++; if (e.partsError) throw new Error('multipart roto'); return e.parts }
 
   const base = fileUrl('shared/utils')
-  const src = read('server/utils/creditStudy.ts').replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'")
+  const src = read('server/utils/creditStudy.ts').replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace(/'\.\/(formMail|crmRegistration)'/g, (_, m) => `'./${m}.ts'`)
   writeFileSync(join(dir, 'creditStudy.ts'), src)
+  for (const n of ['crmClient', 'crmRegistration']) {
+    writeFileSync(join(dir, `${n}.ts`), read(`server/utils/${n}.ts`).replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace(/'\.\/(formMail|crmClient)'/g, (_, m) => `'./${m}.ts'`))
+  }
+  crm = installCrmStub()
+  console.info = console.warn = console.error
   // Núcleo de correo compartido (transporte, configuración, guardas, plantilla): el manejador lo importa con ruta relativa.
   writeFileSync(join(dir, 'formMail.ts'), read('server/utils/formMail.ts').replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`))
   mod = await import(pathToFileURL(join(dir, 'creditStudy.ts')).href)
   mail = await import(pathToFileURL(join(dir, 'formMail.ts')).href)
+  reg = await import(pathToFileURL(join(dir, 'crmRegistration.ts')).href)
   S = await import(fileUrl('shared/utils/creditStudy.ts'))
   const svcSrc = read('services/CreditStudyService.ts').replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`)
   writeFileSync(join(dir, 'CreditStudyService.ts'), svcSrc)
@@ -67,6 +76,8 @@ beforeEach(() => {
   state.logs = []
   state.sendImpl = async () => ({ accepted: ['destino@example.test', 'copia@example.test'], rejected: [] })
   mod.resetCreditStudyGuards()
+  reg.resetCrmRegistrationGuards()
+  crm.reset()
   mod.setCreditStudyTransportFactory(async (cfg) => {
     state.factoryCalls++
     return { sendMail: async (msg) => { state.sent.push({ cfg, msg }); return state.sendImpl(msg) }, close: () => { state.closed++ } }
@@ -75,6 +86,9 @@ beforeEach(() => {
 
 after(() => {
   console.error = realError
+  console.info = realInfo
+  console.warn = realWarn
+  crm.restore()
   mod.setCreditStudyTransportFactory()
   rmSync(dir, { recursive: true, force: true })
 })
@@ -103,6 +117,7 @@ function validRaw(over = {}) {
   raw['primer-nombre'] = 'Ana'
   raw['primer-apellido'] = 'Prueba'
   raw['proc-Rinoplastia'] = 'true'
+  raw[S.CREDIT_CONSENT_ID] = 'true'
   return { ...raw, ...over }
 }
 const part = (name, value) => ({ name, data: Buffer.from(String(value), 'utf8') })
@@ -501,7 +516,7 @@ describe('Formulario y archivos del proyecto', () => {
     assert.doesNotMatch(serverSrc, /writeFile|createWriteStream|mkdtemp|tmpdir|node:fs/)
   })
 
-  test('sin console.log y sin ninguna referencia al CRM en el código nuevo', () => {
+  test('sin console.log y sin destino, identificadores ni peticiones al CRM en el código del formulario', () => {
     for (const src of [form, serverSrc, sharedSrc, serviceSrc, read('server/api/forms/credit-study.post.ts')]) {
       assert.doesNotMatch(src, /console\.log/)
       assert.doesNotMatch(src, /pdtclientsolutions|form\/credit|crm-public|id_credit|id_line|(?<![$.\w])fetch\(/)

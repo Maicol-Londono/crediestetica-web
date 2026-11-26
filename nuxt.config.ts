@@ -38,7 +38,12 @@ export default defineNuxtConfig({
     // el responsable del CRM y no tienen valor por defecto: NUXT_CRM_FORM_USER_ID / _LINE_ID / _ADVISOR_ID.
     crmFormUserId: '',
     crmFormLineId: '30',
+    // Sede única de Crediestética en el CRM: `city` 3 = Medellín; `clinic` 6 = Clínica Especialista del Poblado. ÚNICO lugar donde se definen.
+    crmFormCityId: '3',
+    crmFormClinicId: '6',
     crmFormAdvisorId: '',
+    // `advisor_email` del CRM: correo de la asesora configurada en NUXT_CRM_FORM_ADVISOR_ID (403031). Si cambia la asesora, cambian ambos.
+    crmFormAdvisorEmail: 'convenioscrediestetica@gmail.com',
     // Correo SMTP (SOLO servidor, nunca en `public`) del formulario «Estudio de créditos» (POST /api/forms/credit-study). SIN credenciales por defecto:
     // las define el administrador por entorno con NUXT_MAIL_HOST / _PORT / _USERNAME / _PASSWORD / _FROM_ADDRESS / _FROM_NAME. Sin ellas el envío responde
     // 503 `not_configured`. Conexión cifrada obligatoria (puerto 465 = TLS; otros puertos exigen STARTTLS).

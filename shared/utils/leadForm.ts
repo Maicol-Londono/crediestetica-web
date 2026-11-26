@@ -1,5 +1,5 @@
 // Formulario «Solicitud de financiación» (LeadForm, modal del simulador): definición ÚNICA de campos, listas y reglas, compartida por el componente, el servicio,
-// el servidor (POST /api/forms/lead → correo) y las pruebas. Datos personales y financieros: la validación del servidor es la que manda.
+// el servidor (POST /api/forms/lead → correo y CRM) y las pruebas. Datos personales y financieros: la validación del servidor es la que manda.
 
 export const LEAD_LIMITS = {
   maxRequestBytes: 16 * 1024,
@@ -21,6 +21,7 @@ export const LEAD_INSTALLMENTS = [12, 18, 24, 36, 48, 60, 72] as const
 /** Carga que envía el navegador (mismo contrato que `LeadData`). */
 export interface LeadPayload {
   first_name: string
+  last_name: string
   phone: string
   email?: string
   city: string
@@ -35,6 +36,7 @@ export interface LeadPayload {
 /** Valores ya normalizados (todos texto o número; vacío = no informado). */
 export interface LeadValues {
   first_name: string
+  last_name: string
   phone: string
   email: string
   city: string
@@ -93,6 +95,10 @@ export function validateLead(input: unknown): { values: LeadValues | null, error
   const first_name = str(p.first_name)
   if (first_name.length < 2) errors.first_name = 'El nombre es obligatorio.'
   else if (first_name.length > 120) errors.first_name = 'El nombre es demasiado largo.'
+
+  const last_name = str(p.last_name)
+  if (last_name.length < 2) errors.last_name = 'Los apellidos son obligatorios.'
+  else if (last_name.length > 120) errors.last_name = 'Los apellidos son demasiado largos.'
 
   const phone = str(p.phone)
   const digits = phone.replace(/[\s()+-]/g, '')
@@ -153,7 +159,7 @@ export function validateLead(input: unknown): { values: LeadValues | null, error
 
   if (Object.keys(errors).length) return { values: null, errors }
   return {
-    values: { first_name, phone, email, city, procedure_name, requested_amount: amount!, installments: installments!, comments, accepted_habeas_data: true, meta },
+    values: { first_name, last_name, phone, email, city, procedure_name, requested_amount: amount!, installments: installments!, comments, accepted_habeas_data: true, meta },
     errors
   }
 }

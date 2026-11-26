@@ -4,13 +4,14 @@ import {
   LEAD_FORM_RECIPIENTS, cleanLine, contentFingerprint, deliverFormMail, fmtMoney, formFail, isRateLimited, renderFormEmail, requireMailConfig,
   type MailSection
 } from './formMail'
+import { leadCrmApplicant, sendMailAndRegisterInCrm } from './crmRegistration'
 
-// Formulario «Solicitud de financiación» (LeadForm) → CORREO ELECTRÓNICO. Solo servidor. Sin CRM: aquí no se llama a ningún CRM.
+// Formulario «Solicitud de financiación» (LeadForm) → CORREO ELECTRÓNICO y registro del solicitante en el CRM Médico (ver ./crmRegistration). Solo servidor.
 // Transporte SMTP, configuración, guardas, errores y plantilla base: los comunes de ./formMail. Aquí solo lo propio de este formulario:
 //  · El navegador envía JSON; esta ruta VALIDA todo de nuevo (shared/utils/leadForm). Los campos desconocidos se ignoran (cualquier destinatario, copia,
 //    remitente o asunto que venga del navegador no tiene efecto: salen de la configuración del servidor).
 //  · Destinatarios: NUXT_LEAD_FORM_TO/CC. Asunto fijo en el servidor: «[Marca] Nuevo prospecto de financiación».
-//  · Éxito SOLO si el SMTP aceptó el mensaje para todos los destinatarios. No se registran datos personales ni financieros.
+//  · Éxito SOLO si el SMTP aceptó el mensaje para todos los destinatarios y el CRM confirmó el registro. No se registran datos personales ni financieros.
 
 const TAG = 'lead-form'
 const FORM = 'lead-form'
@@ -45,7 +46,7 @@ function sectionsOf(v: LeadValues): MailSection[] {
   const rows = (keys: string[]) => keys.filter(k => v.meta[k] !== undefined).map(k => ({ label: META_LABELS[k]!, value: MONEY.has(k) ? fmtMoney(Number(v.meta[k])) : String(v.meta[k]) }))
   const out: MailSection[] = [
     { title: 'Prospecto', rows: [
-      { label: 'Nombre completo', value: v.first_name },
+      { label: 'Nombre completo', value: `${v.first_name} ${v.last_name}` },
       { label: 'Teléfono celular', value: v.phone },
       ...(v.email ? [{ label: 'Correo electrónico', value: v.email }] : []),
       { label: 'Ciudad', value: v.city }
@@ -81,7 +82,7 @@ export function buildLeadEmail(input: { brand: string, receivedAt: Date, values:
   return { subject, text, html }
 }
 
-/** Manejador de POST /api/forms/lead. Devuelve { ok: true } solo si el servidor SMTP aceptó el mensaje. */
+/** Manejador de POST /api/forms/lead. Devuelve { ok: true } solo si el SMTP aceptó el mensaje Y el CRM confirmó el registro. */
 export async function handleLead(event: H3Event) {
   assertSameOrigin(event)
   setHeader(event, 'Cache-Control', 'no-store')
@@ -105,15 +106,20 @@ export async function handleLead(event: H3Event) {
   if (!values) formFail(422, 'Revisa los datos ingresados.', { reason: 'validation', errors })
 
   const { subject, text, html } = buildLeadEmail({ brand: String(config.public?.appName || 'Crediestética'), receivedAt: new Date(now), values })
-  return await deliverFormMail({
+  return await sendMailAndRegisterInCrm({
     tag: TAG,
-    form: FORM,
-    print: contentFingerprint({ ...values, ...Object.fromEntries(Object.entries(values.meta).map(([k, v]) => [`m_${k}`, v])), meta: undefined }),
-    now,
-    mail,
-    subject,
-    text,
-    html,
-    ...(values.email ? { replyTo: values.email } : {})
+    runtime: config,
+    applicant: leadCrmApplicant(values),
+    send: () => deliverFormMail({
+      tag: TAG,
+      form: FORM,
+      print: contentFingerprint({ ...values, ...Object.fromEntries(Object.entries(values.meta).map(([k, v]) => [`m_${k}`, v])), meta: undefined }),
+      now,
+      mail,
+      subject,
+      text,
+      html,
+      ...(values.email ? { replyTo: values.email } : {})
+    })
   })
 }

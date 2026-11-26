@@ -79,7 +79,7 @@ const send = (status, body, headers = {}) => (_req, res) => {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Set-Cookie': 's=token-ficticio', ...headers })
   res.end(typeof body === 'string' ? body : JSON.stringify(body))
 }
-const config = url => crm.resolveCrmClientConfig({ crmFormUrl: url, crmFormUserId: IDS.userId, crmFormLineId: IDS.lineId, crmFormAdvisorId: IDS.advisorId }).config
+const config = url => crm.resolveCrmClientConfig({ crmFormUrl: url, crmFormUserId: IDS.userId, crmFormLineId: IDS.lineId, crmFormAdvisorId: IDS.advisorId, crmFormAdvisorEmail: 'asesora@example.test', crmFormCityId: 3, crmFormClinicId: 6 }).config
 const call = (url = `${origin}${SUBMIT_PATH}`, value = VALUE) => crm.registerCrmClient(config(url), value)
 /** Comprueba que hubo UNA línea de traza, sin fugas, y la devuelve troceada. */
 const trace = () => {
@@ -118,9 +118,9 @@ describe('Traza segura del registro en el CRM (simulado)', () => {
     assert.equal(received.headers.authorization, undefined)
     const form = await new Response(received.body, { headers: { 'Content-Type': type } }).formData()
     assert.deepEqual([...form.entries()], [
-      ['_token', TOKEN], ['_method', 'post'], ['nombres', 'Zoraida'], ['apellidos', 'Ficticia Quimbayo'], ['identificacion', 'PRUEBA90817263'], ['fecha_nacimiento', '1987-03-21'],
-      ['direccion', 'Medellín'], ['telefono', '3009998877'], ['email', 'zoraida@correo.test'], ['name_surgery', 'Blefaroplastia'], ['forma_pago', 'Financiacion'],
-      ['state', 'No Contactada'], ['origen', 'Formulario Web'], ['id_user', '911'], ['id_line', '922'], ['id_user_asesora', '933'], ['accept', '1']
+      ['_token', TOKEN], ['_method', 'post'], ['nombres', 'Zoraida'], ['apellidos', 'Ficticia Quimbayo'], ['name', 'Zoraida Ficticia Quimbayo'], ['identificacion', 'PRUEBA90817263'], ['fecha_nacimiento', '1987-03-21'],
+      ['direccion', 'Medellín'], ['city', '3'], ['clinic', '6'], ['telefono', '3009998877'], ['phone', '3009998877'], ['email', 'zoraida@correo.test'], ['name_surgery', 'Blefaroplastia'], ['forma_pago', 'Financiacion'],
+      ['state', 'No Contactada'], ['origen', 'Formulario Web'], ['id_user', '911'], ['id_line', '922'], ['id_user_asesora', '933'], ['advisor_email', 'asesora@example.test'], ['accept', '1']
     ])
   })
 

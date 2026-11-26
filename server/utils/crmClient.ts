@@ -23,14 +23,14 @@ export const CRM_SUCCESS_TEXT = 'los datos fueron registrados satisfactoriamente
 export const CRM_CLIENT_TIMEOUT_MS = 15_000
 
 /** Destino, formulario público (derivado del destino y los identificadores) e identificadores del CRM. Salen de la configuración del servidor. */
-export interface CrmClientConfig { url: string, formUrl: string, userId: number, lineId: number, advisorId: number }
+export interface CrmClientConfig { url: string, formUrl: string, userId: number, lineId: number, advisorId: number, advisorEmail: string, cityId: number, clinicId: number }
 
 const CRM_SUBMIT_PATH = '/api/clients/forms'
 
 const oneLine = (s: string) => cleanLine(s).replace(/\s+/g, ' ')
 
 /** Campos EXACTOS (nombre → valor), en el orden observado, a partir del formulario ya validado. */
-export function buildCrmFields(v: ValuationInput, cfg: Pick<CrmClientConfig, 'userId' | 'lineId' | 'advisorId'>, token: string): Array<[string, string]> {
+export function buildCrmFields(v: ValuationInput, cfg: Pick<CrmClientConfig, 'userId' | 'lineId' | 'advisorId' | 'advisorEmail' | 'cityId' | 'clinicId'>, token: string): Array<[string, string]> {
   const pago = PAYMENT_OPTIONS.find(o => o.label === v.forma_pago)
   if (!v.accept || !pago || !token) throw new Error('Formulario no validado o sin token.')
   return [
@@ -38,10 +38,16 @@ export function buildCrmFields(v: ValuationInput, cfg: Pick<CrmClientConfig, 'us
     ['_method', 'post'],
     ['nombres', oneLine(v.nombres)],
     ['apellidos', oneLine(v.apellidos)],
+    // `name`, `phone`, `id_line` y `advisor_email`: los obligatorios del CRM para guardar un cliente.
+    ['name', oneLine(`${v.nombres} ${v.apellidos}`)],
     ['identificacion', v.identificacion],
     ['fecha_nacimiento', v.fecha_nacimiento], // AAAA-MM-DD, tal como la entrega y valida el formulario
     ['direccion', oneLine(v.direccion)],
+    // Identificadores fijos de la sede (configuración): no dependen de lo que escriba la persona ni sustituyen a `direccion`.
+    ['city', String(cfg.cityId)],
+    ['clinic', String(cfg.clinicId)],
     ['telefono', v.telefono.replace(/\D/g, '')], // el formulario original usa un campo numérico: solo dígitos
+    ['phone', v.telefono.replace(/\D/g, '')],
     ['email', v.email],
     ['name_surgery', oneLine(v.name_surgery)],
     ['forma_pago', pago.value],
@@ -50,6 +56,7 @@ export function buildCrmFields(v: ValuationInput, cfg: Pick<CrmClientConfig, 'us
     ['id_user', String(cfg.userId)],
     ['id_line', String(cfg.lineId)],
     ['id_user_asesora', String(cfg.advisorId)],
+    ['advisor_email', cfg.advisorEmail],
     ['accept', '1']
   ]
 }
@@ -69,12 +76,15 @@ function validDestination(url: string): boolean {
 export function resolveCrmClientConfig(runtime: Record<string, unknown>): { ok: true, config: CrmClientConfig } | { ok: false, invalid: string[] } {
   const text = (k: string) => String(runtime[k] ?? '').trim()
   const id = (k: string) => (/^[1-9]\d{0,9}$/.test(text(k)) ? Number(text(k)) : 0)
-  const config: CrmClientConfig = { url: text('crmFormUrl'), formUrl: '', userId: id('crmFormUserId'), lineId: id('crmFormLineId'), advisorId: id('crmFormAdvisorId') }
+  const config: CrmClientConfig = { url: text('crmFormUrl'), formUrl: '', userId: id('crmFormUserId'), lineId: id('crmFormLineId'), advisorId: id('crmFormAdvisorId'), advisorEmail: text('crmFormAdvisorEmail'), cityId: id('crmFormCityId'), clinicId: id('crmFormClinicId') }
   const invalid: string[] = []
   if (!validDestination(config.url)) invalid.push('NUXT_CRM_FORM_URL')
   if (!config.userId) invalid.push('NUXT_CRM_FORM_USER_ID')
   if (!config.lineId) invalid.push('NUXT_CRM_FORM_LINE_ID')
   if (!config.advisorId) invalid.push('NUXT_CRM_FORM_ADVISOR_ID')
+  if (!/^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]{2,}$/.test(config.advisorEmail)) invalid.push('NUXT_CRM_FORM_ADVISOR_EMAIL')
+  if (!config.cityId) invalid.push('NUXT_CRM_FORM_CITY_ID')
+  if (!config.clinicId) invalid.push('NUXT_CRM_FORM_CLINIC_ID')
   if (invalid.length) return { ok: false, invalid }
   // …/crm-public/api/clients/forms → …/crm-public/forms/{usuario}/{línea}, siempre en el mismo origen que el destino.
   const form = new URL(config.url)
@@ -153,9 +163,9 @@ export function crmResponseKeys(data: unknown, value: ValuationInput): string[] 
 const LOG_CLASS = { sent: 'confirmado', failed: 'rechazado', unknown: 'incierto' } as const
 
 /** Línea de traza. Solo recibe datos ya saneados; un fallo al escribirla no puede alterar el resultado del registro. */
-function logCrmCall(entry: { id: string, result: CrmClientResult, ms: number, kind: CrmResponseKind, keys: string[] }) {
-  const { id, result, ms, kind, keys } = entry
-  const line = `[valuation] crm-registro id=${id} clasificacion=${LOG_CLASS[result.state]} motivo=${result.reason} http=${result.status ?? '-'} duracion_ms=${ms} respuesta=${kind} claves=${keys.join(',') || '-'}`
+function logCrmCall(entry: { tag: string, id: string, result: CrmClientResult, ms: number, kind: CrmResponseKind, keys: string[] }) {
+  const { tag, id, result, ms, kind, keys } = entry
+  const line = `[${tag}] crm-registro id=${id} clasificacion=${LOG_CLASS[result.state]} motivo=${result.reason} http=${result.status ?? '-'} duracion_ms=${ms} respuesta=${kind} claves=${keys.join(',') || '-'}`
   try {
     if (result.state === 'sent') console.info(line)
     else console.warn(line)
@@ -213,14 +223,14 @@ async function openCrmSession(config: CrmClientConfig): Promise<CrmSession> {
   }
 }
 
-/** Abre sesión y envía el paciente UNA sola vez. Nunca lanza: devuelve la clasificación del resultado. */
-export async function registerCrmClient(config: CrmClientConfig, value: ValuationInput): Promise<CrmClientResult> {
+/** Abre sesión y envía el paciente UNA sola vez. Nunca lanza: devuelve la clasificación del resultado. `tag` solo identifica el formulario en la traza. */
+export async function registerCrmClient(config: CrmClientConfig, value: ValuationInput, tag = 'valuation'): Promise<CrmClientResult> {
   const id = randomUUID()
   const started = performance.now()
   let kind: CrmResponseKind = 'sin_respuesta'
   let keys: string[] = []
   const done = (result: CrmClientResult): CrmClientResult => {
-    logCrmCall({ id, result, ms: Math.round(performance.now() - started), kind, keys })
+    logCrmCall({ tag, id, result, ms: Math.round(performance.now() - started), kind, keys })
     return result
   }
 

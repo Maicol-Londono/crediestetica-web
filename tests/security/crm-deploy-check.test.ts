@@ -38,6 +38,19 @@ describe('variables del CRM antes del despliegue', () => {
     for (const override of bad) assert.equal(crmEnvProblems({ ...OK, ...override }).length, 1, JSON.stringify(override))
   })
 
+  test('ciudad y clínica se pueden omitir o fijar en 3 y 6; otro valor bloquea', () => {
+    assert.deepEqual(crmEnvProblems({ ...OK, NUXT_CRM_FORM_CITY_ID: '3', NUXT_CRM_FORM_CLINIC_ID: '6' }), [])
+    for (const override of [{ NUXT_CRM_FORM_CITY_ID: '' }, { NUXT_CRM_FORM_CITY_ID: '5' }, { NUXT_CRM_FORM_CLINIC_ID: '' }, { NUXT_CRM_FORM_CLINIC_ID: '7' }]) {
+      assert.equal(crmEnvProblems({ ...OK, ...override }).length, 1, JSON.stringify(override))
+    }
+    for (const [name, id] of [['crmFormCityId', '3'], ['crmFormClinicId', '6']]) assert.match(read('nuxt.config.ts'), new RegExp(`^    ${name}: '${id}',\r?$`, 'm'))
+  })
+
+  test('el correo de la asesora se puede omitir; si se define debe ser el acordado', () => {
+    assert.deepEqual(crmEnvProblems({ ...OK, NUXT_CRM_FORM_ADVISOR_EMAIL: 'convenioscrediestetica@gmail.com' }), [])
+    for (const bad of ['', 'otra@example.test']) assert.equal(crmEnvProblems({ ...OK, NUXT_CRM_FORM_ADVISOR_EMAIL: bad }).length, 1)
+  })
+
   test('el comando termina con error y sin mostrar valores', () => {
     const r = run('scripts/check-crm-env.mjs', { NUXT_CRM_FORM_USER_ID: 'valor-secreto' })
     assert.equal(r.status, 1)
@@ -57,7 +70,8 @@ describe('variables del CRM antes del despliegue', () => {
   test('coincide con el destino documentado y con la línea por defecto, y la guía usa el arranque protegido', () => {
     assert.ok(read('.env.production.example').includes(CRM_PRODUCTION_URL))
     assert.match(read('nuxt.config.ts'), /^    crmFormLineId: '30',\r?$/m)
-    assert.match(read('package.json'), /"check:deploy": "node scripts\/check-crm-env\.mjs"/)
+    // `-if-exists`: en local carga .env; en el servidor, sin ese archivo, usa las variables del proceso (que además tienen prioridad).
+    assert.match(read('package.json'), /"check:deploy": "node --env-file-if-exists=\.env scripts\/check-crm-env\.mjs"/)
     assert.match(read('package.json'), /"start:production": "node scripts\/start-production\.mjs"/)
     const guide = read('docs/despliegue/guia-despliegue-crediestetica.md')
     assert.match(guide, /script: 'scripts\/start-production\.mjs'/)

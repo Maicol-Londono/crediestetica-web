@@ -15,7 +15,7 @@ import { ROOT } from '../recommendations/harness.ts'
 const fileUrl = rel => pathToFileURL(join(ROOT, rel)).href
 const read = rel => readFileSync(join(ROOT, rel), 'utf8')
 const CRM_URL = 'https://crm.example.test/crm-public/api/clients/forms' // CRM simulado (la prueba nunca usa el real)
-const CRM_CFG = { crmFormUrl: CRM_URL, crmFormUserId: 101, crmFormLineId: 30, crmFormAdvisorId: '103' } // usuario y asesora ficticios; 30 = línea de Crediestética en el CRM
+const CRM_CFG = { crmFormUrl: CRM_URL, crmFormUserId: 101, crmFormLineId: 30, crmFormAdvisorId: '103', crmFormAdvisorEmail: 'asesora@example.test', crmFormCityId: 3, crmFormClinicId: 6 } // usuario y asesora ficticios; línea 30, ciudad 3 y clínica 6 de Crediestética
 const OK_BODY = { mensagge: 'Los datos fueron registrados satisfactoriamente' }
 const FORM_PAGE = 'https://crm.example.test/crm-public/forms/101/30' // formulario público derivado del destino y los identificadores
 const TOKEN = 'tokenFicticio0123456789abcdefghijklmnop'
@@ -123,11 +123,12 @@ describe('CRM principal + correo complementario', () => {
       'X-Requested-With': 'XMLHttpRequest', Origin: 'https://crm.example.test', Referer: FORM_PAGE
     })
     assert.deepEqual(sentFields(), [
-      ['_token', TOKEN], ['_method', 'post'], ['nombres', 'Ana María'], ['apellidos', 'Prueba Ficticia'], ['identificacion', '12345678'], ['fecha_nacimiento', '1990-05-10'],
-      ['direccion', 'Santa Rosa de Osos'], ['telefono', '3001234567'], ['email', 'ana@example.com'], ['name_surgery', 'Rinoplastia'], ['forma_pago', 'Financiacion'],
-      ['state', 'No Contactada'], ['origen', 'Formulario Web'], ['id_user', '101'], ['id_line', '30'], ['id_user_asesora', '103'], ['accept', '1']
+      ['_token', TOKEN], ['_method', 'post'], ['nombres', 'Ana María'], ['apellidos', 'Prueba Ficticia'], ['name', 'Ana María Prueba Ficticia'], ['identificacion', '12345678'], ['fecha_nacimiento', '1990-05-10'],
+      ['direccion', 'Santa Rosa de Osos'], ['city', '3'], ['clinic', '6'], ['telefono', '3001234567'], ['phone', '3001234567'], ['email', 'ana@example.com'], ['name_surgery', 'Rinoplastia'], ['forma_pago', 'Financiacion'],
+      ['state', 'No Contactada'], ['origen', 'Formulario Web'], ['id_user', '101'], ['id_line', '30'], ['id_user_asesora', '103'], ['advisor_email', 'asesora@example.test'], ['accept', '1']
     ])
-    for (const old of ['name', 'phone', 'city', 'ad_headline', 'advisor_email']) assert.equal(old in sentBody(), false, old)
+    // Del contrato JSON anterior solo se envían `name`, `phone`, `city` y `advisor_email`.
+    assert.equal('ad_headline' in sentBody(), false)
   })
 
   test('«Contado» se envía como lo rotula el formulario del CRM', async () => {
@@ -170,7 +171,7 @@ describe('CRM principal + correo complementario', () => {
       assert.equal(r.error.data.reason, 'not_configured')
       assert.equal(state.fetchCalls.length + state.pageCalls.length, 0)
     }
-    assert.deepEqual(crm.resolveCrmClientConfig({}).invalid, ['NUXT_CRM_FORM_URL', 'NUXT_CRM_FORM_USER_ID', 'NUXT_CRM_FORM_LINE_ID', 'NUXT_CRM_FORM_ADVISOR_ID'])
+    assert.deepEqual(crm.resolveCrmClientConfig({}).invalid, ['NUXT_CRM_FORM_URL', 'NUXT_CRM_FORM_USER_ID', 'NUXT_CRM_FORM_LINE_ID', 'NUXT_CRM_FORM_ADVISOR_ID', 'NUXT_CRM_FORM_ADVISOR_EMAIL', 'NUXT_CRM_FORM_CITY_ID', 'NUXT_CRM_FORM_CLINIC_ID'])
     assert.equal(state.sent.length, 0)
   })
 
@@ -529,7 +530,7 @@ describe('Identificador de Crediestética e IP del cliente', () => {
   const fromNuxt = name => new RegExp('^    ' + name + ": '([^']*)',\\r?$", 'm').exec(read('nuxt.config.ts'))[1]
 
   test('con los valores por defecto del proyecto, el formulario y el POST usan id_line = 30', async () => {
-    state.cfg = { crmFormUrl: CRM_URL, crmFormUserId: 101, crmFormLineId: fromNuxt('crmFormLineId'), crmFormAdvisorId: 103 }
+    state.cfg = { crmFormUrl: CRM_URL, crmFormUserId: 101, crmFormLineId: fromNuxt('crmFormLineId'), crmFormAdvisorId: 103, crmFormAdvisorEmail: 'asesora@example.test', crmFormCityId: fromNuxt('crmFormCityId'), crmFormClinicId: fromNuxt('crmFormClinicId') }
     assert.deepEqual((await submit()).value, { ok: true })
     assert.equal(state.pageCalls[0][0], FORM_PAGE)
     assert.equal(sentBody().id_line, '30')
@@ -538,7 +539,7 @@ describe('Identificador de Crediestética e IP del cliente', () => {
   })
 
   test('solo con los valores por defecto (sin usuario ni asesora) no se envía ni se informa éxito, aunque el correo esté configurado', async () => {
-    state.cfg = { ...MAIL_CFG, crmFormUrl: CRM_URL, crmFormUserId: fromNuxt('crmFormUserId'), crmFormLineId: fromNuxt('crmFormLineId'), crmFormAdvisorId: fromNuxt('crmFormAdvisorId') }
+    state.cfg = { ...MAIL_CFG, crmFormUrl: CRM_URL, crmFormUserId: fromNuxt('crmFormUserId'), crmFormLineId: fromNuxt('crmFormLineId'), crmFormAdvisorId: fromNuxt('crmFormAdvisorId'), crmFormAdvisorEmail: 'asesora@example.test', crmFormCityId: fromNuxt('crmFormCityId'), crmFormClinicId: fromNuxt('crmFormClinicId') }
     const r = await submit()
     assert.equal(r.value, undefined)
     assert.equal(r.error.data.reason, 'not_configured')

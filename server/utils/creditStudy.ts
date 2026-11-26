@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import {
-  CREDIT_FIELDS, CREDIT_FILE_IDS, CREDIT_FILE_KINDS, CREDIT_INPUT_IDS, CREDIT_LIMITS, CREDIT_STEPS, EGR, ING,
+  CREDIT_CONSENT_ERROR, CREDIT_CONSENT_ID, CREDIT_FIELDS, CREDIT_FILE_IDS, CREDIT_FILE_KINDS, CREDIT_INPUT_IDS, CREDIT_LIMITS, CREDIT_STEPS, EGR, ING,
   detectFileKind, isEnabled, isVisible, normalizeCreditValues, sumFields, validateCreditStudy,
   type CreditFileKind, type CreditValues
 } from '#shared/utils/creditStudy'
@@ -8,8 +8,9 @@ import {
   CREDIT_STUDY_RECIPIENTS, cleanLine, contentFingerprint, deliverFormMail, fmtMoney, formFail, isRateLimited, renderFormEmail, requireMailConfig,
   resetMailGuards, setMailTransportFactory, type MailSection
 } from './formMail'
+import { creditStudyCrmApplicant, sendMailAndRegisterInCrm } from './crmRegistration'
 
-// Formulario «Estudio de créditos» → CORREO ELECTRÓNICO. Solo servidor. La integración con el CRM está aplazada: aquí no se llama a ningún CRM.
+// Formulario «Estudio de créditos» → CORREO ELECTRÓNICO y registro del solicitante en el CRM Médico (ver ./crmRegistration). Solo servidor.
 // El transporte SMTP, la configuración, los guardas (límite y duplicados), el manejo de errores y la plantilla base son COMUNES a todos los formularios
 // por correo y viven en ./formMail. Aquí queda solo lo propio del estudio de crédito:
 //  · El navegador envía multipart/form-data (campos + documentos). Esta ruta VALIDA todo de nuevo y solo después arma y envía el correo.
@@ -71,7 +72,7 @@ export function buildCreditStudyEmail(input: { brand: string, receivedAt: Date, 
 
 const slug = (id: string) => id.replace(/^archivo-/, '').replace(/[^a-z0-9-]/g, '')
 
-/** Manejador de POST /api/forms/credit-study. Devuelve { ok: true } solo si el servidor SMTP aceptó el mensaje. */
+/** Manejador de POST /api/forms/credit-study. Devuelve { ok: true } solo si el SMTP aceptó el mensaje Y el CRM confirmó el registro. */
 export async function handleCreditStudy(event: H3Event) {
   assertSameOrigin(event)
   setHeader(event, 'Cache-Control', 'no-store')
@@ -102,7 +103,7 @@ export async function handleCreditStudy(event: H3Event) {
     const name = part.name
     if (!name) continue
     const isFile = CREDIT_FILE_IDS.includes(name)
-    if (!isFile && !CREDIT_INPUT_IDS.includes(name)) continue
+    if (!isFile && !CREDIT_INPUT_IDS.includes(name) && name !== CREDIT_CONSENT_ID) continue
     if (seen.has(name)) formFail(400, 'No pudimos procesar el envío. Inténtalo de nuevo.', { reason: 'malformed' })
     seen.add(name)
     if (isFile) buffers[name] = part.data
@@ -116,6 +117,8 @@ export async function handleCreditStudy(event: H3Event) {
     if (buffers[id] && isVisible(fd, values)) metas[id] = { size: buffers[id]!.byteLength }
   }
   const errors = validateCreditStudy(values, metas)
+  const accepted = raw[CREDIT_CONSENT_ID] === 'true'
+  if (!accepted) errors[CREDIT_CONSENT_ID] = CREDIT_CONSENT_ERROR
 
   // Tipo real de cada documento (firma de los primeros bytes).
   const kinds: Record<string, CreditFileKind> = {}
@@ -137,17 +140,22 @@ export async function handleCreditStudy(event: H3Event) {
 
   const { subject, text, html } = buildCreditStudyEmail({ brand: String(config.public?.appName || 'Crediestética'), receivedAt: new Date(now), values, attachments })
   try {
-    return await deliverFormMail({
+    return await sendMailAndRegisterInCrm({
       tag: TAG,
-      form: FORM,
-      print: contentFingerprint(values, attachments.map(a => ({ id: a.fieldId, content: a.content }))),
-      now,
-      mail,
-      subject,
-      text,
-      html,
-      replyTo: String(values.email),
-      attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: CREDIT_FILE_KINDS[a.kind].mime }))
+      runtime: config,
+      applicant: creditStudyCrmApplicant(values, accepted),
+      send: () => deliverFormMail({
+        tag: TAG,
+        form: FORM,
+        print: contentFingerprint(values, attachments.map(a => ({ id: a.fieldId, content: a.content }))),
+        now,
+        mail,
+        subject,
+        text,
+        html,
+        replyTo: String(values.email),
+        attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: CREDIT_FILE_KINDS[a.kind].mime }))
+      })
     })
   } finally {
     // Los documentos solo existían en memoria: se sueltan las referencias, haya habido éxito o error.

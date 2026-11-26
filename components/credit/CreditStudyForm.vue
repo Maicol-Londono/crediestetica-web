@@ -93,6 +93,15 @@
           <p v-if="s.key === 'actividad'" class="mt-6 text-xs text-gray-500">Documentos: PDF, PNG o JPG; máximo {{ CREDIT_LIMITS.maxFileBytes / 1024 / 1024 }} MB cada uno y {{ CREDIT_LIMITS.maxTotalFileBytes / 1024 / 1024 }} MB en total. Se envían por correo a nuestro equipo.</p>
           <p v-if="errors.archivos && s.key === 'actividad'" class="mt-2 text-xs text-red-600" data-testid="credit-error-archivos">{{ errors.archivos }}</p>
 
+          <!-- Autorización de datos (obligatoria): mismo texto y documento que «Pide tu cita». -->
+          <div v-if="i === CREDIT_STEPS.length - 1" class="mt-8">
+            <div class="flex items-start gap-3">
+              <input :id="`cf-${CREDIT_CONSENT_ID}`" v-model="accepted" type="checkbox" class="mt-1 w-4 h-4 accent-[#111111]" :aria-invalid="!!errors[CREDIT_CONSENT_ID]" />
+              <label :for="`cf-${CREDIT_CONSENT_ID}`" class="text-sm text-gray-600 leading-relaxed">He leído y acepto las Políticas de Tratamiento de Datos Personales <LegalDocLink doc="politicaDatos" class="text-[#111111] font-semibold underline underline-offset-2" /></label>
+            </div>
+            <p v-if="errors[CREDIT_CONSENT_ID]" class="mt-1 text-xs text-red-600" :data-testid="`credit-error-${CREDIT_CONSENT_ID}`">{{ errors[CREDIT_CONSENT_ID] }}</p>
+          </div>
+
           <div class="mt-8 flex items-center justify-between gap-3">
             <button type="button" class="px-6 py-3 border border-[#111111] text-[#111111] text-xs font-bold tracking-widest uppercase hover:bg-[#111111]/5 disabled:opacity-40" :disabled="i === 0 || status === 'submitting'" @click="go(i - 1)">Atrás</button>
             <button v-if="i < CREDIT_STEPS.length - 1" type="submit" class="px-8 py-3 bg-[#111111] text-white text-xs font-bold tracking-widest uppercase hover:bg-[#333333]">Siguiente</button>
@@ -109,20 +118,22 @@
 
 <script setup lang="ts">
 // «Formulario de crédito paciente» (Estudio de créditos). Pasos, campos y reglas viven en #shared/utils/creditStudy (los usa también el servidor).
-// Envía a POST /api/forms/credit-study (servidor → correo electrónico). Los datos y los documentos solo viven en memoria: no se guardan en el
+// Envía a POST /api/forms/credit-study (servidor → correo electrónico y CRM Médico). Los datos y los documentos solo viven en memoria: no se guardan en el
 // almacenamiento del navegador ni se registran. Las opciones de las listas son PROVISIONALES y deben confirmarse con la marca.
 import { reactive, ref, nextTick } from 'vue'
 import {
-  CREDIT_ACCEPT, CREDIT_FIELDS, CREDIT_LIMITS, CREDIT_STEPS, isEnabled, isRequired, isVisible, normalizeCreditValues, sumFields, validateCreditStudy,
+  CREDIT_ACCEPT, CREDIT_CONSENT_ERROR, CREDIT_CONSENT_ID, CREDIT_FIELDS, CREDIT_LIMITS, CREDIT_STEPS, isEnabled, isRequired, isVisible, normalizeCreditValues, sumFields, validateCreditStudy,
   type CreditBlock, type CreditField, type CreditValues
 } from '#shared/utils/creditStudy'
 import { creditStudyService, CreditStudyError } from '~/services/CreditStudyService'
+import LegalDocLink from '~/components/legal/LegalDocLink.vue'
 
 const emptyValues = (): CreditValues => Object.fromEntries(CREDIT_FIELDS.filter(x => x.type !== 'file' && !x.sum).map(x => [x.id, x.type === 'checkbox' ? false : '']))
 
 const values = reactive<CreditValues>(emptyValues())
 const files = reactive<Record<string, File | null>>({})
 const errors = reactive<Record<string, string>>({})
+const accepted = ref(false)
 
 type Status = 'idle' | 'submitting' | 'success' | 'error'
 const status = ref<Status>('idle')
@@ -198,6 +209,8 @@ async function onSubmit() {
   const payload = normalizeCreditValues({ ...values })
   const metas = Object.fromEntries(Object.entries(files).map(([id, f]) => [id, f ? { size: f.size } : null]))
   const found = validateCreditStudy(payload, metas)
+  payload[CREDIT_CONSENT_ID] = accepted.value
+  if (!accepted.value) found[CREDIT_CONSENT_ID] = CREDIT_CONSENT_ERROR
   if (Object.keys(found).length) { await showErrors(found, 'Revisa los campos marcados en rojo antes de enviar.'); return }
 
   status.value = 'submitting'
@@ -207,6 +220,7 @@ async function onSubmit() {
     // Éxito confirmado por el servidor: recién ahora se descartan los datos y los documentos.
     Object.assign(values, emptyValues())
     for (const k of Object.keys(files)) delete files[k]
+    accepted.value = false
     current.value = 0
     status.value = 'success'
   } catch (e) {

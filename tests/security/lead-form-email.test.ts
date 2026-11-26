@@ -1,7 +1,7 @@
 // @ts-nocheck -- pruebas ejecutadas con Node (node:test); fuera del alcance del typecheck de Nuxt.
 // Formulario «Solicitud de financiación» (LeadForm) → correo: validación, destinatarios y asunto definidos en el servidor, configuración SMTP ausente, errores
 // del proveedor, envío exitoso, duplicados y límite de intentos. Se ejecuta el código REAL del servidor con un transporte SMTP simulado: no se envía ningún
-// correo, no hay red y no se llama a ningún CRM. Las direcciones, contraseñas y datos de este archivo son FICTICIOS.
+// correo, no hay red y el CRM es SIMULADO (el registro se prueba en crm-forms.test.ts). Las direcciones, contraseñas y datos de este archivo son FICTICIOS.
 import { test, describe, before, beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs'
@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { ROOT } from '../recommendations/harness.ts'
+import { CRM_CFG, installCrmStub } from './crm-stub.ts'
 
 const fileUrl = rel => pathToFileURL(join(ROOT, rel)).href
 const read = rel => readFileSync(join(ROOT, rel), 'utf8')
@@ -16,6 +17,7 @@ const SOCKET_IP = '203.0.113.20'
 const SECRET = 'p4ss-w0rd-FICTICIA-no-real'
 
 const CFG = {
+  ...CRM_CFG,
   mailHost: 'smtp.example.test',
   mailPort: 465,
   mailUsername: 'sender@example.test',
@@ -31,7 +33,8 @@ const CFG = {
 }
 
 const state = { cfg: {}, reads: 0, sent: [], closed: 0, sendImpl: null, factoryCalls: 0, logs: [] }
-let dir, mod, mail, L, svc, realError
+let dir, mod, mail, L, svc, realError, crm, reg
+const realInfo = console.info, realWarn = console.warn
 
 before(async () => {
   dir = mkdtempSync(join(tmpdir(), 'lead-form-'))
@@ -47,12 +50,18 @@ before(async () => {
   g.readBody = async e => { state.reads++; if (e.bodyError) throw new Error('json roto'); return e.body }
 
   const base = fileUrl('shared/utils')
-  const fix = s => s.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'")
+  const fix = s => s.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace(/'\.\/(formMail|crmRegistration)'/g, (_, m) => `'./${m}.ts'`)
+  for (const n of ['crmClient', 'crmRegistration']) {
+    writeFileSync(join(dir, `${n}.ts`), read(`server/utils/${n}.ts`).replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace(/'\.\/(formMail|crmClient)'/g, (_, m) => `'./${m}.ts'`))
+  }
+  crm = installCrmStub()
+  console.info = console.warn = console.error
   writeFileSync(join(dir, 'leadForm.ts'), fix(read('server/utils/leadForm.ts')))
   writeFileSync(join(dir, 'formMail.ts'), fix(read('server/utils/formMail.ts')))
   writeFileSync(join(dir, 'LeadService.ts'), fix(read('services/LeadService.ts')))
   mod = await import(pathToFileURL(join(dir, 'leadForm.ts')).href)
   mail = await import(pathToFileURL(join(dir, 'formMail.ts')).href)
+  reg = await import(pathToFileURL(join(dir, 'crmRegistration.ts')).href)
   svc = await import(pathToFileURL(join(dir, 'LeadService.ts')).href)
   L = await import(fileUrl('shared/utils/leadForm.ts'))
 })
@@ -66,6 +75,8 @@ beforeEach(() => {
   state.logs = []
   state.sendImpl = async () => ({ accepted: ['leads@example.test', 'copia-leads@example.test'], rejected: [] })
   mail.resetMailGuards()
+  reg.resetCrmRegistrationGuards()
+  crm.reset()
   mail.setMailTransportFactory(async (cfg) => {
     state.factoryCalls++
     return { sendMail: async (msg) => { state.sent.push({ cfg, msg }); return state.sendImpl(msg) }, close: () => { state.closed++ } }
@@ -74,6 +85,9 @@ beforeEach(() => {
 
 after(() => {
   console.error = realError
+  console.info = realInfo
+  console.warn = realWarn
+  crm.restore()
   mail.setMailTransportFactory()
   rmSync(dir, { recursive: true, force: true })
 })
@@ -81,7 +95,8 @@ after(() => {
 // ── Datos de prueba ──────────────────────────────────────────────────────────
 
 const payload = (over = {}, meta = {}) => ({
-  first_name: 'Ana Prueba',
+  first_name: 'Ana',
+  last_name: 'Prueba',
   phone: '300 123 4567',
   email: 'ana.prueba@example.com',
   city: 'Medellín',
@@ -116,18 +131,19 @@ describe('Validación de campos (reglas compartidas)', () => {
   test('una solicitud completa es válida y se normaliza', () => {
     const r = L.validateLead(payload())
     assert.deepEqual(r.errors, {})
-    assert.equal(r.values.first_name, 'Ana Prueba')
+    assert.equal(r.values.first_name, 'Ana')
+    assert.equal(r.values.last_name, 'Prueba')
     assert.equal(r.values.meta.doc_number, '1234567890')
   })
   test('solo lo obligatorio basta: el preaprobado es opcional', () => {
-    const r = L.validateLead({ first_name: 'Ana', phone: '3001234567', city: 'Cali', procedure_name: 'Lipo', requested_amount: 5000000, installments: 12, accepted_habeas_data: true })
+    const r = L.validateLead({ first_name: 'Ana', last_name: 'Prueba', phone: '3001234567', city: 'Cali', procedure_name: 'Lipo', requested_amount: 5000000, installments: 12, accepted_habeas_data: true })
     assert.deepEqual(r.errors, {})
     assert.equal(r.values.email, '')
     assert.deepEqual(r.values.meta, {})
   })
   test('obligatorios vacíos y consentimiento ausente se marcan', () => {
     const r = L.validateLead({})
-    for (const k of ['first_name', 'phone', 'city', 'procedure_name', 'requested_amount', 'installments', 'accepted_habeas_data']) assert.ok(r.errors[k], k)
+    for (const k of ['first_name', 'last_name', 'phone', 'city', 'procedure_name', 'requested_amount', 'installments', 'accepted_habeas_data']) assert.ok(r.errors[k], k)
     assert.equal(L.validateLead(payload({ accepted_habeas_data: 'true' })).errors.accepted_habeas_data !== undefined, true, 'solo true booleano')
   })
   test('correo, teléfono, monto, plazo y listas inválidos', () => {
@@ -245,7 +261,7 @@ describe('Envío', () => {
     assert.ok(html.includes('&lt;script&gt;'))
   })
   test('no hay objetos por secciones vacías: sin preaprobado no se listan sus secciones', async () => {
-    await submit({ first_name: 'Ana', phone: '3001234567', city: 'Cali', procedure_name: 'Lipo', requested_amount: 5000000, installments: 12, accepted_habeas_data: true })
+    await submit({ first_name: 'Ana', last_name: 'Prueba', phone: '3001234567', city: 'Cali', procedure_name: 'Lipo', requested_amount: 5000000, installments: 12, accepted_habeas_data: true })
     const { text } = state.sent[0].msg
     assert.ok(!text.includes('ACTIVIDAD ECONÓMICA') && !text.includes('DATOS DEL TOMADOR'))
     assert.equal(state.sent[0].msg.replyTo, undefined)
@@ -331,7 +347,7 @@ describe('LeadService', () => {
 // ── Código del proyecto ───────────────────────────────────────────────────────
 
 describe('Formulario y archivos del proyecto', () => {
-  test('LeadForm usa el servicio real: sin proveedor simulado, sin console.log y sin CRM', () => {
+  test('LeadForm usa el servicio real: sin proveedor simulado, sin console.log y sin destino ni identificadores del CRM en el código', () => {
     assert.doesNotMatch(read('services/LeadService.ts'), /MockLeadProvider/)
     for (const f of ['services/LeadService.ts', 'server/utils/leadForm.ts', 'server/api/forms/lead.post.ts', 'shared/utils/leadForm.ts', 'components/forms/LeadForm.vue']) {
       const s = read(f)

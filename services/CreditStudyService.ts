@@ -1,4 +1,4 @@
-import { CREDIT_FIELDS, isEnabled, isVisible, type CreditValues } from '#shared/utils/creditStudy'
+import { CREDIT_CONSENT_ID, CREDIT_FIELDS, isEnabled, isVisible, type CreditValues } from '#shared/utils/creditStudy'
 
 // Envío del formulario «Estudio de créditos» a la ruta de servidor (POST /api/forms/credit-study), que valida de nuevo y lo reenvía por correo. El navegador
 // nunca conoce el SMTP, las credenciales ni los destinatarios. Sin reintentos automáticos (podrían duplicar el correo).
@@ -38,6 +38,7 @@ export function buildCreditStudyFormData(values: CreditValues, files: Record<str
       if (v) form.append(fd.id, v)
     }
   }
+  if (values[CREDIT_CONSENT_ID] === true) form.append(CREDIT_CONSENT_ID, 'true')
   return form
 }
 
@@ -55,7 +56,7 @@ export class CreditStudyService {
     } catch (e: any) {
       throw CreditStudyService.toError(e)
     }
-    // Éxito SOLO si el servidor confirma que el correo fue aceptado por el proveedor SMTP.
+    // Éxito SOLO si el servidor confirma el correo aceptado por SMTP y el registro del solicitante.
     if (!res || res.ok !== true) throw new CreditStudyError('server', 'No recibimos la confirmación del envío. Inténtalo de nuevo en unos minutos.')
   }
 

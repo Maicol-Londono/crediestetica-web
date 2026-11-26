@@ -20,10 +20,17 @@
 
         <!-- Formulario (Scroll Interno) -->
         <div class="p-4 md:p-8 overflow-y-auto space-y-5">
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">{{ 'Nombre Completo *' }}</label>
-            <input v-model="form.full_name" type="text" :class="['w-full p-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all', errors.full_name ? 'border-red-500' : 'border-gray-200']" />
-            <p v-if="errors.full_name" class="text-red-500 text-xs mt-1">{{ errors.full_name }}</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1" for="lf-nombres">Nombres *</label>
+              <input id="lf-nombres" v-model="form.first_name" type="text" autocomplete="given-name" :class="['w-full p-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all', errors.first_name ? 'border-red-500' : 'border-gray-200']" />
+              <p v-if="errors.first_name" class="text-red-500 text-xs mt-1">{{ errors.first_name }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1" for="lf-apellidos">Apellidos *</label>
+              <input id="lf-apellidos" v-model="form.last_name" type="text" autocomplete="family-name" :class="['w-full p-3 rounded-xl border bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all', errors.last_name ? 'border-red-500' : 'border-gray-200']" />
+              <p v-if="errors.last_name" class="text-red-500 text-xs mt-1">{{ errors.last_name }}</p>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -302,7 +309,8 @@ const TIPOS_CONTRATO = ['Fijo', 'Indefinido', 'Prestacion de servicio']
 const DURACIONES_CONTRATO = ['2 años o mas', 'Menos de 1 año', '1 año o mas']
 
 const form = reactive({
-  full_name: '',
+  first_name: '',
+  last_name: '',
   phone: '',
   city: '',
   procedure: '',
@@ -352,7 +360,6 @@ watch(() => props.isOpen, async (newVal) => {
     form.requested_amount = props.amount || null
     form.installments = props.installments || null
     form.city = props.city || ''
-    if (!form.residence_city) form.residence_city = props.city || ''
 
     // Cotización con la tasa mensual configurada en el panel (QuotationService), sin conocer la fórmula en la UI
     await refreshQuote()
@@ -385,8 +392,13 @@ const validateForm = () => {
   let isValid = true
   Object.keys(errors).forEach(key => errors[key] = null)
 
-  if (!form.full_name.trim()) {
-    errors.full_name = 'El nombre es obligatorio.'
+  // Mismo mínimo que exige el servidor.
+  if (form.first_name.trim().length < 2) {
+    errors.first_name = 'El nombre es obligatorio.'
+    isValid = false
+  }
+  if (form.last_name.trim().length < 2) {
+    errors.last_name = 'Los apellidos son obligatorios.'
     isValid = false
   }
   if (!form.phone.trim()) {
@@ -429,7 +441,8 @@ const submitLead = async () => {
   isSubmitting.value = true
 
   const payload = {
-    first_name: form.full_name,
+    first_name: form.first_name,
+    last_name: form.last_name,
     phone: form.phone,
     email: form.email,
     city: form.city,
@@ -483,7 +496,7 @@ const submitLead = async () => {
 
 const openWhatsApp = () => {
   trackWhatsAppClick(route.fullPath)
-  const text = `Nuevo lead generado desde Crediestética\n\nNombre:\n${form.full_name}\n\nTeléfono:\n${form.phone}\n\nProcedimiento:\n${form.procedure}\n\nMonto:\n$${form.requested_amount.toLocaleString('es-CO')}`
+  const text = `Nuevo lead generado desde Crediestética\n\nNombre:\n${form.first_name.trim()} ${form.last_name.trim()}\n\nTeléfono:\n${form.phone}\n\nProcedimiento:\n${form.procedure}\n\nMonto:\n$${form.requested_amount.toLocaleString('es-CO')}`
   const url = `${WHATSAPP_URL}?text=${encodeURIComponent(text)}`
   window.open(url, '_blank')
   closeModal()

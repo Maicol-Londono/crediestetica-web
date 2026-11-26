@@ -1,7 +1,7 @@
 import type { LeadPayload } from '#shared/utils/leadForm'
 
-// Envío de la solicitud de financiación (LeadForm) a la ruta de servidor POST /api/forms/lead, que valida y la envía por CORREO. El destino lo define solo
-// el servidor. Éxito = el servidor SMTP aceptó el mensaje (no implica lectura ni entrega en bandeja). Sin reintentos automáticos.
+// Envío de la solicitud de financiación (LeadForm) a la ruta de servidor POST /api/forms/lead, que valida, la envía por CORREO y registra a la persona. El destino
+// lo define solo el servidor. Éxito = correo aceptado por SMTP (no implica lectura ni entrega en bandeja) y registro confirmado. Sin reintentos automáticos.
 
 export type LeadErrorKind = 'validation' | 'duplicate' | 'rate_limited' | 'unavailable' | 'server'
 

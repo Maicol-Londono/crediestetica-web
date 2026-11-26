@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 
 export const CRM_PRODUCTION_URL = 'https://pdtclientsolutions.com/crm-public/api/clients/forms'
 export const CRM_LINE_ID = '30'
+// Con valor por defecto en nuxt.config.ts: se pueden omitir, pero si se definen deben ser los de Crediestética.
+const OPTIONAL_FIXED = { NUXT_CRM_FORM_LINE_ID: CRM_LINE_ID, NUXT_CRM_FORM_CITY_ID: '3', NUXT_CRM_FORM_CLINIC_ID: '6', NUXT_CRM_FORM_ADVISOR_EMAIL: 'convenioscrediestetica@gmail.com' }
 
 const ID_RE = /^[1-9]\d{0,9}$/
 
@@ -20,9 +22,11 @@ export function crmEnvProblems(env) {
     if (!value(name)) problems.push(`${name}: falta`)
     else if (!ID_RE.test(value(name))) problems.push(`${name}: debe ser un entero positivo`)
   }
-  // La línea tiene valor por defecto (30): puede omitirse, pero si se define debe ser la de Crediestética.
-  const line = value('NUXT_CRM_FORM_LINE_ID')
-  if (line !== undefined && line !== CRM_LINE_ID) problems.push(`NUXT_CRM_FORM_LINE_ID: omitirla o usar ${CRM_LINE_ID}`)
+  // Línea, ciudad, clínica y correo de la asesora.
+  for (const [name, expected] of Object.entries(OPTIONAL_FIXED)) {
+    const current = value(name)
+    if (current !== undefined && current !== expected) problems.push(`${name}: omitirla o usar ${expected}`)
+  }
   return problems
 }
 

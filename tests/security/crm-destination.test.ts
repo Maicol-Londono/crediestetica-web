@@ -69,7 +69,7 @@ describe('POST /api/forms/valuation (handleValuation)', () => {
   test('sin destino, vacío o inválido => 503 y ninguna petición al CRM', async () => {
     const body = { nombres: 'Ana', apellidos: 'Prueba', identificacion: '12345678', fecha_nacimiento: '1990-05-10', direccion: 'Bogotá', telefono: '3001234567', email: 'ana@example.com', name_surgery: 'Rinoplastia', forma_pago: 'Contado', accept: true }
     for (const [i, crmFormUrl] of [undefined, '', '  ', 'x', 'http://crm.example/crm-public/api/clients/forms', SHARED_PRP].entries()) {
-      state.cfg = { crmFormUrl, crmFormUserId: '9101', crmFormLineId: '30', crmFormAdvisorId: '9103' }
+      state.cfg = { crmFormUrl, crmFormUserId: '9101', crmFormLineId: '30', crmFormAdvisorId: '9103', crmFormAdvisorEmail: 'asesora@example.test', crmFormCityId: '3', crmFormClinicId: '6' }
       const r = await run(handleValuation, { method: 'POST', body: { ...body, identificacion: '1000000' + i }, headers: {} })
       assert.equal(r.error?.statusCode, 503, String(crmFormUrl))
       assert.equal(r.error.data.reason, 'not_configured')
