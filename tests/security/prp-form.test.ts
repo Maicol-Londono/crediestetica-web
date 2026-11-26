@@ -12,7 +12,6 @@ import { ROOT } from '../recommendations/harness.ts'
 const fileUrl = rel => pathToFileURL(join(ROOT, rel)).href
 const read = rel => readFileSync(join(ROOT, rel), 'utf8')
 const PRP_URL = 'https://pdtclientsolutions.com/crm-public/api/forms-px-prp'
-const LEGACY_VALUATION = 'https://pdtclientsolutions.com/crm-public/api/clients/forms'
 
 const state = { cfg: { public: { crmPrpFormUrl: PRP_URL } }, calls: [], reply: null }
 let dir, P, F, ERR
@@ -98,7 +97,7 @@ describe('envío del formulario PRP', () => {
 
 describe('bloqueo de destinos inválidos (sin cambios)', () => {
   test('destino ausente, inválido, sin https, con credenciales o del CRM de valoración heredado: no sale ninguna petición', async () => {
-    for (const crmPrpFormUrl of [undefined, '', '   ', 'x', 'http://crm.example/x', 'ftp://crm.example/x', 'https://u:p@crm.example/x', LEGACY_VALUATION]) {
+    for (const crmPrpFormUrl of [undefined, '', '   ', 'x', 'http://crm.example/x', 'ftp://crm.example/x', 'https://u:p@crm.example/x']) {
       state.cfg = { public: { crmPrpFormUrl } }
       await assert.rejects(() => new P.CrmPrpLeadProvider().submit(LEAD), e => e instanceof ERR && e.kind === 'server', String(crmPrpFormUrl))
     }
@@ -145,10 +144,11 @@ describe('los demás formularios no cambian', () => {
       assert.doesNotMatch(read(f), /utils\/features/, f)
     }
   })
-  test('la valoración sigue sin destino (503 not_configured) y no recibe id_line de PRP', () => {
-    assert.match(read('nuxt.config.ts'), /^    crmValuationUrl: '',$/m)
-    assert.doesNotMatch(read('shared/utils/valuation.ts'), /id_line', '30'|CRM_PRP_ID_LINE/)
-    assert.match(read('shared/utils/valuation.ts'), /\['id_line', crm\.lineId\]/)
+  test('la valoración no tiene destino por defecto, usa la línea 30 propia del servidor y no depende del proveedor PRP', () => {
+    assert.match(read('nuxt.config.ts'), /^    crmFormUrl: '',\r?$/m)
+    assert.match(read('nuxt.config.ts'), /^    crmFormLineId: '30',\r?$/m)
+    assert.doesNotMatch(read('server/utils/crmClient.ts'), /CRM_PRP_ID_LINE|CrmPrpLeadProvider/)
+    assert.match(read('server/utils/crmClient.ts'), /\['id_line', String\(cfg\.lineId\)\]/)
   })
   test('el preaprobado del simulador se envía por correo (/api/forms/lead), sin CRM ni PRP', () => {
     const svc = read('services/LeadService.ts')

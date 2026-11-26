@@ -31,18 +31,14 @@ export default defineNuxtConfig({
     // Directorio persistente del contenido administrado localmente en la web (página «Nosotros»). NUXT_CONTENT_DIR.
     // Vacío => `<directorio de trabajo>/.data/crediestetica-content`. Debe quedar FUERA de `.output/` para sobrevivir a los despliegues.
     contentDir: '',
-    // Formulario de valoración → CRM médico (POST multipart desde el SERVIDOR; el navegador nunca lo llama). NUXT_CRM_VALUATION_URL.
-    // SIN destino por defecto: el CRM heredado de Planmed se retiró de aquí. Vacío => la valoración responde 503 `not_configured` (y, si alguien
-    // define ese endpoint heredado, 503 igualmente: ver shared/utils/crmDestination.ts). Lo define el responsable del CRM.
-    crmValuationUrl: '',
-    // Identificadores del CRM de Crediestética para la valoración (SOLO servidor, nunca en `public`). SIN valor por defecto a propósito: los que traía
-    // el clon (73/16) eran de Planmed. Los confirma el responsable del CRM. Mientras falte o sea inválido cualquiera, la valoración responde 503
-    // `not_configured`. NUXT_CRM_VALUATION_USER_ID / _LINE_ID / _ADVISOR_ID (enteros positivos) y NUXT_CRM_VALUATION_STATE / _ORIGIN (texto).
-    crmValuationUserId: '',
-    crmValuationLineId: '',
-    crmValuationAdvisorId: '',
-    crmValuationState: '',
-    crmValuationOrigin: '',
+    // Formulario de valoración → CRM Médico: el SERVIDOR carga el formulario público del CRM (sesión y token) y envía los datos; el navegador nunca lo llama.
+    // Destino: NUXT_CRM_FORM_URL (ver .env.example), SIN valor por defecto. Vacío => 503 `not_configured` y ninguna petición.
+    crmFormUrl: '',
+    // Identificadores del CRM (SOLO servidor). La línea de Crediestética en el CRM es la 30 (no es el linea_id del Hub). Usuario y asesora los confirma
+    // el responsable del CRM y no tienen valor por defecto: NUXT_CRM_FORM_USER_ID / _LINE_ID / _ADVISOR_ID.
+    crmFormUserId: '',
+    crmFormLineId: '30',
+    crmFormAdvisorId: '',
     // Correo SMTP (SOLO servidor, nunca en `public`) del formulario «Estudio de créditos» (POST /api/forms/credit-study). SIN credenciales por defecto:
     // las define el administrador por entorno con NUXT_MAIL_HOST / _PORT / _USERNAME / _PASSWORD / _FROM_ADDRESS / _FROM_NAME. Sin ellas el envío responde
     // 503 `not_configured`. Conexión cifrada obligatoria (puerto 465 = TLS; otros puertos exigen STARTTLS).
@@ -63,7 +59,7 @@ export default defineNuxtConfig({
     leadFormCc: 'disenadoraplanmed@gmail.com',
     // Destinatarios del correo de RESPALDO de la valoración y de la notificación complementaria del programa de referidos (Hub → correo): solo servidor,
     // sustituibles con NUXT_VALUATION_TO/CC y NUXT_REFERRAL_TO/CC. Son los de Crediestética: no se comparten con Planmed.
-    // El correo NO sustituye al CRM ni a Hub: se envía después de que ellos confirmen (en valoración es además el canal principal mientras el CRM no esté configurado).
+    // El correo NO sustituye al CRM ni a Hub: se envía después de que ellos confirmen (en valoración nunca reemplaza al CRM).
     valuationTo: 'convenioscrediestetica@gmail.com',
     valuationCc: 'disenadoraplanmed@gmail.com',
     referralTo: 'convenioscrediestetica@gmail.com',

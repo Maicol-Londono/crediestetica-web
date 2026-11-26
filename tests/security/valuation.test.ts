@@ -1,464 +1,474 @@
 // @ts-nocheck -- pruebas ejecutadas con Node (node:test); fuera del alcance del typecheck de Nuxt.
-// Solicitud de valoración (server/utils/valuation.ts): configuración del CRM sin valores por defecto, IP no falsificable, límite por ventana,
-// duplicados y tratamiento de errores del CRM. Se ejecuta el código REAL del servidor con el CRM simulado: no hay red ni escrituras externas.
-// Los ids y textos de configuración de este archivo son FICTICIOS (solo para las pruebas): no son valores de ningún CRM.
+// Solicitud de valoración («Pide tu cita») de Crediestética: el CRM Médico (formulario multipart) es el destino PRINCIPAL y el correo es una notificación
+// COMPLEMENTARIA que sale solo DESPUÉS de que el CRM confirma. Se ejecuta el código REAL del servidor con CRM y SMTP SIMULADOS: no se llama al CRM real
+// ni se envía ningún correo. Del CRM se conocen el formulario público (sesión Laravel y `_token`) y la respuesta de éxito (`mensagge`); las demás respuestas son
+// INVENTADAS. Datos, tokens, cookies, claves e identificadores son FICTICIOS.
 import { test, describe, before, beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { createHash } from 'node:crypto'
 import { ROOT } from '../recommendations/harness.ts'
 
 const fileUrl = rel => pathToFileURL(join(ROOT, rel)).href
-const OWN_CRM = 'https://crm.crediestetica.example/api/forms' // destino hipotético válido SOLO para las pruebas
-const SOCKET_IP = '203.0.113.9'
+const read = rel => readFileSync(join(ROOT, rel), 'utf8')
+const CRM_URL = 'https://crm.example.test/crm-public/api/clients/forms' // CRM simulado (la prueba nunca usa el real)
+const CRM_CFG = { crmFormUrl: CRM_URL, crmFormUserId: 101, crmFormLineId: 30, crmFormAdvisorId: '103' } // usuario y asesora ficticios; 30 = línea de Crediestética en el CRM
+const OK_BODY = { mensagge: 'Los datos fueron registrados satisfactoriamente' }
+const FORM_PAGE = 'https://crm.example.test/crm-public/forms/101/30' // formulario público derivado del destino y los identificadores
+const TOKEN = 'tokenFicticio0123456789abcdefghijklmnop'
+const COOKIES = ['XSRF-TOKEN=xsrfFicticia%3D; expires=Wed, 25-Nov-2026 23:00:00 GMT; Max-Age=7200; path=/', 'laravel_session=sesionFicticia%3D; path=/; httponly']
+const formHtml = (token = TOKEN) => `<form id="store" method="post"><input type="hidden" name="_token" value="${token}"><input type="text" name="nombres"></form>`
+/** Respuesta simulada del GET del formulario público. */
+const page = ({ status = 200, cookies = COOKIES, html = formHtml() } = {}) => async () => ({ status, headers: { getSetCookie: () => cookies }, text: async () => html, body: null })
 const WINDOW = 10 * 60_000
-const DUP_WINDOW = 2 * 60_000
 
-const CRM_CFG = {
-  crmValuationUrl: OWN_CRM,
-  crmValuationUserId: '9101',
-  crmValuationLineId: '9102',
-  crmValuationAdvisorId: '9103',
-  crmValuationState: 'Estado de prueba',
-  crmValuationOrigin: 'Origen de prueba',
-  trustedProxyHops: 0
+const MAIL_CFG = {
+  mailHost: 'smtp.example.test', mailPort: 465, mailUsername: 'sender@example.test', mailPassword: 'clave-ficticia', mailFromAddress: '', mailFromName: 'Marca de prueba',
+  valuationTo: 'valoracion@example.test', valuationCc: 'copia@example.test', public: { appName: 'Marca de prueba' }
 }
-
-const state = { cfg: {}, fetchCalls: [], bodyReads: 0, fetchImpl: null, clock: 1_800_000_000_000, sent: [], sendImpl: null }
-let dir, mod, mailMod, realNow
-
-const copyServer = (rel, name) => {
-  const base = fileUrl('shared/utils')
-  const fix = src => src.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'")
-  writeFileSync(join(dir, 'formMail.ts'), fix(readFileSync(join(ROOT, 'server/utils/formMail.ts'), 'utf8')))
-  writeFileSync(join(dir, name), fix(readFileSync(join(ROOT, rel), 'utf8')))
-  return import(pathToFileURL(join(dir, name)).href)
-}
-const run = async (fn, e) => { try { return { value: await fn(e) } } catch (error) { return { error } } }
-
-const VALID = {
-  nombres: 'Ana', apellidos: 'Prueba', identificacion: '12345678', fecha_nacimiento: '1990-05-10', direccion: 'Bogotá',
-  telefono: '3001234567', email: 'ana@example.com', name_surgery: 'Rinoplastia', forma_pago: 'Financiación', accept: true
-}
-const event = (over = {}) => ({ method: 'POST', body: { ...VALID }, headers: {}, ip: SOCKET_IP, ...over })
-const submit = async (over = {}) => { const r = await run(mod.handleValuation, event(over)); await mailMod?.settleNotifications(); return r }
-const okFetch = async () => ({ ok: true, status: 200, json: async () => ({ mensagge: 'Registro creado' }) })
+const state = { cfg: {}, fetchCalls: [], fetchImpl: null, pageCalls: [], pageImpl: null, clock: 1_800_000_000_000, sent: [], sendImpl: null, order: [], logs: [] }
+let dir, mod, mail, crm, realNow, realError, realFetch
 
 before(async () => {
   dir = mkdtempSync(join(tmpdir(), 'valuation-'))
   realNow = Date.now
-  Date.now = () => state.clock // reloj determinista: nada depende de esperas reales
+  realError = console.error
+  console.error = (...a) => { state.logs.push(a.map(String).join(' ')) }
+  Date.now = () => state.clock
   const g = globalThis
   g.createError = o => Object.assign(new Error(o.message ?? 'error'), o)
   g.useRuntimeConfig = () => state.cfg
   g.setHeader = () => {}
   g.assertSameOrigin = () => {}
-  g.getRequestIP = e => e.ip
+  g.getRequestIP = () => '203.0.113.9'
   g.getRequestHeader = (e, name) => e.headers?.[name.toLowerCase()]
-  g.readBody = async e => { state.bodyReads++; return e.body }
-  g.fetch = (...args) => { state.fetchCalls.push(args); return state.fetchImpl(...args) }
-  mod = await copyServer('server/utils/valuation.ts', 'valuation.ts')
-  mailMod = await import(pathToFileURL(join(dir, 'formMail.ts')).href)
+  g.readBody = async e => e.body
+  realFetch = g.fetch
+  // `fetchCalls` = envíos del paciente (POST); `pageCalls` = cargas del formulario público (GET).
+  g.fetch = (url, init) => {
+    if (init.method === 'GET') { state.pageCalls.push([url, init]); return state.pageImpl(url, init) }
+    state.fetchCalls.push([url, init]); state.order.push('crm'); return state.fetchImpl(url, init)
+  }
+  const base = fileUrl('shared/utils')
+  const fix = s => s.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'").replace("'./crmClient'", "'./crmClient.ts'")
+  writeFileSync(join(dir, 'formMail.ts'), fix(read('server/utils/formMail.ts')))
+  writeFileSync(join(dir, 'crmClient.ts'), fix(read('server/utils/crmClient.ts')))
+  writeFileSync(join(dir, 'valuation.ts'), fix(read('server/utils/valuation.ts')))
+  mod = await import(pathToFileURL(join(dir, 'valuation.ts')).href)
+  mail = await import(pathToFileURL(join(dir, 'formMail.ts')).href)
+  crm = await import(pathToFileURL(join(dir, 'crmClient.ts')).href)
 })
 beforeEach(() => {
-  state.cfg = { ...CRM_CFG }
+  state.cfg = { ...CRM_CFG, ...MAIL_CFG }
   state.fetchCalls = []
-  state.bodyReads = 0
-  state.fetchImpl = okFetch
-  state.clock += 3 * WINDOW // cada prueba parte de una ventana limpia
-  mod.resetValuationGuards()
+  state.pageCalls = []
+  state.pageImpl = page()
+  state.order = []
+  state.logs = []
   state.sent = []
-  state.sendImpl = async () => ({ accepted: ['valoracion@example.test'], rejected: [] })
-  mailMod.resetMailGuards()
-  mailMod.setMailTransportFactory(async () => ({ sendMail: async (msg) => { state.sent.push(msg); return state.sendImpl(msg) }, close: () => {} }))
+  state.fetchImpl = async () => ({ ok: true, status: 200, json: async () => OK_BODY })
+  state.sendImpl = async () => { state.order.push('mail'); return { accepted: ['valoracion@example.test', 'copia@example.test'], rejected: [] } }
+  state.clock += 3 * WINDOW
+  mod.resetValuationGuards()
+  mail.resetMailGuards()
+  mail.setMailTransportFactory(async () => ({ sendMail: async (msg) => { state.sent.push(msg); return state.sendImpl(msg) }, close: () => {} }))
 })
-after(() => { mailMod.setMailTransportFactory(); Date.now = realNow; rmSync(dir, { recursive: true, force: true }) })
-
-const sentFields = () => [...state.fetchCalls[0][1].body.entries()]
-
-describe('configuración del CRM (sin valores por defecto)', () => {
-  const KEYS = ['crmValuationUserId', 'crmValuationLineId', 'crmValuationAdvisorId', 'crmValuationState', 'crmValuationOrigin']
-
-  test('sin configuración => 503 not_configured, sin leer el cuerpo y sin llamar al CRM', async () => {
-    state.cfg = { crmValuationUrl: OWN_CRM, trustedProxyHops: 0 }
-    const r = await submit()
-    assert.equal(r.error.statusCode, 503)
-    assert.equal(r.error.data.reason, 'not_configured')
-    assert.equal(state.bodyReads, 0, 'no se lee el cuerpo')
-    assert.equal(state.fetchCalls.length, 0)
-  })
-
-  test('falta CUALQUIERA de los cinco valores (ausente, vacío o solo espacios) => 503 not_configured', async () => {
-    for (const key of KEYS) {
-      for (const blank of [undefined, '', '   ']) {
-        state.cfg = { ...CRM_CFG, [key]: blank }
-        const r = await submit()
-        assert.equal(r.error?.statusCode, 503, `${key}=${JSON.stringify(blank)}`)
-        assert.equal(r.error.data.reason, 'not_configured', key)
-      }
-    }
-    assert.equal(state.bodyReads, 0)
-    assert.equal(state.fetchCalls.length, 0)
-  })
-
-  test('valores inválidos => 503: ids que no son enteros positivos, textos demasiado largos o con caracteres de control', async () => {
-    for (const bad of ['0', '-1', '1.5', '01', 'abc', '12abc', '1 2', '12345678901', 'NaN']) {
-      for (const key of ['crmValuationUserId', 'crmValuationLineId', 'crmValuationAdvisorId']) {
-        state.cfg = { ...CRM_CFG, [key]: bad }
-        assert.equal((await submit()).error?.statusCode, 503, `${key}=${bad}`)
-      }
-    }
-    for (const bad of ['x'.repeat(101), 'con\nsalto', 'con\u0000nulo']) {
-      for (const key of ['crmValuationState', 'crmValuationOrigin']) {
-        state.cfg = { ...CRM_CFG, [key]: bad }
-        assert.equal((await submit()).error?.statusCode, 503, key)
-      }
-    }
-    assert.equal(state.fetchCalls.length, 0)
-  })
-
-  test('la comprobación va ANTES del límite por IP: con la configuración incompleta no se consume ningún intento', async () => {
-    state.cfg = { ...CRM_CFG, crmValuationLineId: '' }
-    for (let i = 0; i < 30; i++) assert.equal((await submit()).error.statusCode, 503)
-    state.cfg = { ...CRM_CFG }
-    const r = await submit()
-    assert.equal(r.value?.ok, true, 'la primera petición con configuración válida no queda limitada por las 503 anteriores')
-  })
-
-  test('la comprobación va también ANTES de validar el cuerpo (cuerpo inválido con configuración incompleta => 503, no 422)', async () => {
-    state.cfg = { ...CRM_CFG, crmValuationOrigin: '' }
-    for (const body of [undefined, null, {}, 'x']) assert.equal((await submit({ body })).error.statusCode, 503)
-  })
-
-  test('los ids numéricos que Nitro puede entregar como número (NUXT_* => 9101) también son válidos', async () => {
-    state.cfg = { ...CRM_CFG, crmValuationUserId: 9101, crmValuationLineId: 9102, crmValuationAdvisorId: 9103 }
-    assert.equal((await submit()).value?.ok, true)
-    const f = Object.fromEntries(sentFields())
-    assert.deepEqual([f.id_user, f.id_line, f.id_user_asesora], ['9101', '9102', '9103'])
-  })
-
-  test('con configuración válida se envían EXACTAMENTE los cinco valores configurados', async () => {
-    const r = await submit()
-    assert.equal(r.value.ok, true)
-    assert.equal(state.fetchCalls.length, 1)
-    assert.equal(state.fetchCalls[0][0], OWN_CRM)
-    const f = Object.fromEntries(sentFields())
-    assert.equal(f.id_user, '9101')
-    assert.equal(f.id_line, '9102')
-    assert.equal(f.id_user_asesora, '9103')
-    assert.equal(f.state, 'Estado de prueba')
-    assert.equal(f.origen, 'Origen de prueba')
-  })
-
-  test('el contrato conserva nombres, orden y formato de los campos', async () => {
-    await submit()
-    assert.deepEqual(sentFields().map(([k]) => k), [
-      'nombres', 'apellidos', 'identificacion', 'fecha_nacimiento', 'direccion', 'telefono', 'email', 'name_surgery',
-      'forma_pago', 'state', 'origen', 'id_user', 'id_line', 'id_user_asesora', 'accept'
-    ])
-    const f = Object.fromEntries(sentFields())
-    assert.equal(f.nombres, 'Ana')
-    assert.equal(f.fecha_nacimiento, '1990-05-10')
-    assert.equal(f.direccion, 'Bogotá')
-    assert.equal(f.forma_pago, 'financiacion')
-    assert.equal(f.accept, '1')
-    assert.equal(state.fetchCalls[0][1].method, 'POST')
-    assert.equal(state.fetchCalls[0][1].headers.Accept, 'application/json')
-    assert.equal('Content-Type' in state.fetchCalls[0][1].headers, false, 'fetch genera el multipart con su boundary')
-  })
-
-  test('«Contado» se envía como `contado`', async () => {
-    await submit({ body: { ...VALID, forma_pago: 'Contado' } })
-    assert.equal(Object.fromEntries(sentFields()).forma_pago, 'contado')
-  })
-
-  test('ningún 73 ni 16 de Planmed queda como valor de respaldo en el código ni en la configuración pública', () => {
-    for (const rel of ['shared/utils/valuation.ts', 'server/utils/valuation.ts']) {
-      const src = readFileSync(join(ROOT, rel), 'utf8')
-      assert.doesNotMatch(src, /['"`](73|16)['"`]/, rel)
-      assert.doesNotMatch(src, /(?<![A-Z_])VALUATION_(CRM_IDS|STATE|ORIGIN)(?![A-Z_])/, `${rel}: constantes heredadas eliminadas`)
-    }
-    const cfg = readFileSync(join(ROOT, 'nuxt.config.ts'), 'utf8')
-    const publicAt = cfg.indexOf('public: {')
-    for (const key of ['crmValuationUserId', 'crmValuationLineId', 'crmValuationAdvisorId', 'crmValuationState', 'crmValuationOrigin']) {
-      const at = cfg.indexOf(`${key}: ''`)
-      assert.ok(at > -1, `${key} existe con valor por defecto vacío`)
-      assert.ok(at < publicAt, `${key} está en el runtimeConfig del servidor, no en public`)
-    }
-  })
-
-  test('el módulo compartido no lee variables de entorno ni runtimeConfig', () => {
-    const src = readFileSync(join(ROOT, 'shared/utils/valuation.ts'), 'utf8')
-    assert.doesNotMatch(src, /process\.env|useRuntimeConfig|runtimeConfig/)
-  })
+after(() => {
+  mail.resetMailGuards()
+  mail.setMailTransportFactory()
+  Date.now = realNow
+  console.error = realError
+  globalThis.fetch = realFetch
+  rmSync(dir, { recursive: true, force: true })
 })
 
-describe('límite de intentos por IP', () => {
-  const ten = i => ({ body: { ...VALID, identificacion: `1000000${i}` } }) // cada envío distinto: no choca con el bloqueo de duplicados
-
-  test('ocho intentos desde la misma IP se aceptan y el noveno devuelve 429', async () => {
-    for (let i = 0; i < 8; i++) assert.equal((await submit(ten(i))).value?.ok, true, `intento ${i + 1}`)
-    const r = await submit(ten(8))
-    assert.equal(r.error.statusCode, 429)
-    assert.equal(r.error.data.reason, 'rate_limited')
-    assert.equal(state.fetchCalls.length, 8, 'el noveno no llega al CRM')
-  })
-
-  test('otra IP no queda limitada por la primera', async () => {
-    for (let i = 0; i < 9; i++) await submit(ten(i))
-    assert.equal((await submit({ ...ten(20), ip: '203.0.113.77' })).value?.ok, true)
-  })
-
-  test('con cero saltos, variar X-Forwarded-For NO permite evadir el límite ni cambiar la IP real', async () => {
-    for (let i = 0; i < 8; i++) {
-      const r = await submit({ ...ten(i), headers: { 'x-forwarded-for': `198.51.100.${i + 1}` } })
-      assert.equal(r.value?.ok, true)
-    }
-    const r = await submit({ ...ten(8), headers: { 'x-forwarded-for': '198.51.100.200' } })
-    assert.equal(r.error.statusCode, 429)
-  })
-
-  test('con un proxy de confianza (1 salto), variar el inicio de X-Forwarded-For tampoco evade el límite', async () => {
-    state.cfg = { ...CRM_CFG, trustedProxyHops: 1 }
-    const REAL = '192.0.2.50' // la entrada que añade el proxy
-    for (let i = 0; i < 8; i++) {
-      const r = await submit({ ...ten(i), headers: { 'x-forwarded-for': `198.51.100.${i + 1}, ${REAL}` } })
-      assert.equal(r.value?.ok, true)
-    }
-    const r = await submit({ ...ten(8), headers: { 'x-forwarded-for': `198.51.100.99, ${REAL}` } })
-    assert.equal(r.error.statusCode, 429)
-  })
-
-  test('con un salto, clientes reales distintos (última entrada distinta) no comparten el límite', async () => {
-    state.cfg = { ...CRM_CFG, trustedProxyHops: 1 }
-    for (let i = 0; i < 8; i++) await submit({ ...ten(i), headers: { 'x-forwarded-for': '192.0.2.50' } })
-    assert.equal((await submit({ ...ten(8), headers: { 'x-forwarded-for': '192.0.2.50' } })).error.statusCode, 429)
-    assert.equal((await submit({ ...ten(9), headers: { 'x-forwarded-for': '192.0.2.51' } })).value?.ok, true)
-  })
-
-  test('la ventana de diez minutos se reinicia (reloj simulado, sin esperas)', async () => {
-    for (let i = 0; i < 8; i++) await submit(ten(i))
-    assert.equal((await submit(ten(8))).error.statusCode, 429)
-    state.clock += WINDOW - 1
-    assert.equal((await submit(ten(9))).error.statusCode, 429, 'un milisegundo antes de cumplirse la ventana sigue limitado')
-    state.clock += 1
-    assert.equal((await submit(ten(10))).value?.ok, true, 'al cumplirse la ventana vuelve a aceptar')
-  })
-
-  test('las peticiones rechazadas por validación también consumen el límite (comportamiento existente)', async () => {
-    for (let i = 0; i < 8; i++) assert.equal((await submit({ body: {} })).error.statusCode, 422)
-    assert.equal((await submit({ body: {} })).error.statusCode, 429)
-  })
-})
-
-describe('duplicados y envíos simultáneos', () => {
-  test('el mismo envío repetido devuelve 409 y no llega dos veces al CRM', async () => {
-    assert.equal((await submit()).value?.ok, true)
-    const r = await submit()
-    assert.equal(r.error.statusCode, 409)
-    assert.equal(r.error.data.reason, 'duplicate')
-    assert.equal(state.fetchCalls.length, 1)
-  })
-
-  test('la huella ignora el formato del teléfono y las mayúsculas de la cirugía', async () => {
-    await submit()
-    const r = await submit({ body: { ...VALID, telefono: '300 123 4567', name_surgery: 'RINOPLASTIA' } })
-    assert.equal(r.error.statusCode, 409)
-  })
-
-  test('pasada la ventana de dos minutos se acepta de nuevo (reloj simulado)', async () => {
-    await submit()
-    state.clock += DUP_WINDOW - 1
-    assert.equal((await submit()).error.statusCode, 409)
-    state.clock += 1
-    assert.equal((await submit()).value?.ok, true)
-    assert.equal(state.fetchCalls.length, 2)
-  })
-
-  test('dos envíos simultáneos idénticos generan UN solo registro: uno responde ok y el otro 409', async () => {
-    state.fetchImpl = async () => { await new Promise(r => setTimeout(r, 25)); return okFetch() }
-    const results = await Promise.all([submit(), submit()])
-    const codes = results.map(r => r.value ? 200 : r.error.statusCode).sort()
-    assert.deepEqual(codes, [200, 409])
-    assert.equal(state.fetchCalls.length, 1, 'el CRM recibe una sola petición')
-  })
-
-  test('seis envíos simultáneos idénticos: un único registro', async () => {
-    state.fetchImpl = async () => { await new Promise(r => setTimeout(r, 25)); return okFetch() }
-    const results = await Promise.all(Array.from({ length: 6 }, () => submit()))
-    assert.equal(results.filter(r => r.value?.ok).length, 1)
-    assert.equal(results.filter(r => r.error?.statusCode === 409).length, 5)
-    assert.equal(state.fetchCalls.length, 1)
-  })
-
-  test('si el CRM falla, el envío no queda marcado como aceptado: se puede reintentar', async () => {
-    state.fetchImpl = async () => ({ ok: false, status: 500, json: async () => ({}) })
-    assert.equal((await submit()).error.statusCode, 502)
-    state.fetchImpl = okFetch
-    assert.equal((await submit()).value?.ok, true)
-  })
-})
-
-describe('tratamiento de errores del CRM (sin cambios)', () => {
-  test('el CRM responde 422 => 422 con los errores conocidos por campo', async () => {
-    state.fetchImpl = async () => ({ ok: false, status: 422, json: async () => ({ errors: { email: ['El email ya existe'], otro: ['x'] } }) })
-    const r = await submit()
-    assert.equal(r.error.statusCode, 422)
-    assert.equal(r.error.data.reason, 'crm_validation')
-    assert.deepEqual(r.error.data.errors, { email: 'El email ya existe' })
-  })
-
-  test('el CRM responde otro error => 502 crm_error', async () => {
-    for (const status of [400, 401, 403, 404, 500, 503]) {
-      mod.resetValuationGuards()
-      state.fetchImpl = async () => ({ ok: false, status, json: async () => ({}) })
-      const r = await submit()
-      assert.equal(r.error.statusCode, 502, String(status))
-      assert.equal(r.error.data.reason, 'crm_error')
-    }
-  })
-
-  test('2xx sin confirmación en el cuerpo => 502 unconfirmed e incierto', async () => {
-    for (const body of [{}, null, { message: 'Algo pasó' }, { mensagge: '  ' }]) {
-      mod.resetValuationGuards()
-      state.fetchImpl = async () => ({ ok: true, status: 200, json: async () => body })
-      const r = await submit()
-      assert.equal(r.error.statusCode, 502, JSON.stringify(body))
-      assert.equal(r.error.data.reason, 'unconfirmed')
-      assert.equal(r.error.data.uncertain, true)
-    }
-  })
-
-  test('timeout => 504 (incierto) y sin conexión => 503; no se reintenta', async () => {
-    state.fetchImpl = async () => { throw Object.assign(new Error('abort'), { name: 'AbortError' }) }
-    const t = await submit()
-    assert.equal(t.error.statusCode, 504)
-    assert.equal(t.error.data.reason, 'timeout')
-    mod.resetValuationGuards()
-    state.fetchImpl = async () => { throw new TypeError('fetch failed') }
-    const n = await submit()
-    assert.equal(n.error.statusCode, 503)
-    assert.equal(n.error.data.reason, 'network')
-    assert.equal(state.fetchCalls.length, 2, 'una sola petición por intento')
-  })
-
-  test('la confirmación acepta `mensagge` o un `message` que hable de registro', async () => {
-    for (const body of [{ mensagge: 'ok' }, { message: 'Cliente registrado' }]) {
-      mod.resetValuationGuards()
-      state.fetchImpl = async () => ({ ok: true, status: 200, json: async () => body })
-      assert.equal((await submit()).value?.ok, true, JSON.stringify(body))
-    }
-  })
-
-  test('destino ausente, inválido o heredado de Planmed sigue bloqueado (503) aunque la configuración esté completa', async () => {
-    for (const crmValuationUrl of [undefined, '', 'x', 'http://crm.example/x', 'https://pdtclientsolutions.com/crm-public/api/clients/forms']) {
-      state.cfg = { ...CRM_CFG, crmValuationUrl }
-      const r = await submit()
-      assert.equal(r.error?.statusCode, 503, String(crmValuationUrl))
-      assert.equal(r.error.data.reason, 'not_configured')
-    }
-    assert.equal(state.fetchCalls.length, 0)
-  })
-})
-
-// ── Correo COMPLEMENTARIO y canal principal sin CRM ──────────────────────────────────────────────────────────────────────────────────────────────────
-// Todo con CRM simulado y transporte SMTP simulado: no hay red ni correos reales. Direcciones y contraseñas FICTICIAS.
-const MAIL_CFG = {
-  mailHost: 'smtp.example.test', mailPort: 465, mailUsername: 'sender@example.test', mailPassword: 'clave-ficticia', mailFromAddress: '', mailFromName: 'Marca de prueba',
-  valuationTo: 'valoracion@example.test', valuationCc: '', public: { appName: 'Marca de prueba' }
+const VALID = {
+  nombres: 'Ana', apellidos: 'Prueba', identificacion: '12345678', fecha_nacimiento: '1990-05-10', direccion: 'Bogotá',
+  telefono: '3001234567', email: 'ana@example.com', name_surgery: 'Rinoplastia', forma_pago: 'Financiación', accept: true
 }
+const sentFields = (i = 0) => [...state.fetchCalls[i][1].body.entries()]
+const sentBody = (i = 0) => Object.fromEntries(sentFields(i))
+const reply = (status, body) => async () => ({ ok: status >= 200 && status < 300, status, json: async () => { if (body === undefined) throw new SyntaxError('no json'); return body } })
+const netError = code => async () => { throw Object.assign(new TypeError('fetch failed'), { cause: Object.assign(new Error(code), { code }) }) }
+const run = async (fn, e) => { try { return { value: await fn(e) } } catch (error) { return { error } } }
+const submit = async (body = { ...VALID }) => { const r = await run(mod.handleValuation, { method: 'POST', body, headers: {} }); await mail.settleNotifications(); return r }
+const smtpDown = () => { state.sendImpl = async () => { state.order.push('mail-fail'); throw Object.assign(new Error('boom'), { code: 'ECONNREFUSED' }) } }
+const key = () => `valuation|${createHash('sha256').update(`${VALID.identificacion}|${VALID.telefono}`).digest('hex')}`
 
-async function keyOf() {
-  const { createHash } = await import('node:crypto')
-  return createHash('sha256').update(`${VALID.identificacion}|${VALID.telefono.replace(/\D/g, '')}|${VALID.name_surgery.toLowerCase()}`).digest('hex')
-}
-
-describe('CRM configurado: el CRM es el destino principal y el correo es complementario', () => {
+describe('CRM principal + correo complementario', () => {
   test('CRM ok + correo ok => {ok:true}; el CRM se llama primero y el correo sale después, con asunto y destinatarios del servidor', async () => {
-    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
-    const order = []
-    state.fetchImpl = async () => { order.push('crm'); return okFetch() }
-    state.sendImpl = async () => { order.push('mail'); return { accepted: ['valoracion@example.test'], rejected: [] } }
     const r = await submit()
-    assert.equal(r.value?.ok, true)
-    assert.deepEqual(order, ['crm', 'mail'])
+    assert.deepEqual(r.value, { ok: true })
+    assert.deepEqual(state.order, ['crm', 'mail'])
     assert.equal(state.fetchCalls.length, 1)
+    assert.equal(state.fetchCalls[0][0], CRM_URL)
     assert.equal(state.sent.length, 1)
     assert.equal(state.sent[0].subject, '[Marca de prueba] Nueva solicitud de valoración')
     assert.deepEqual(state.sent[0].to, ['valoracion@example.test'])
+    assert.deepEqual(state.sent[0].cc, ['copia@example.test'])
   })
 
-  test('CRM ok + correo FALLA => sigue {ok:true} (el registro del CRM se conserva), el usuario no ve error y queda pendiente de reintento', async () => {
-    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
-    state.sendImpl = async () => { throw Object.assign(new Error('boom'), { code: 'ECONNREFUSED' }) }
+  test('el CRM recibe un formulario multipart con los nombres exactos, con la sesión y el token del formulario público, sin Content-Type manual ni redirecciones', async () => {
+    await submit({ ...VALID, nombres: '  Ana   María ', apellidos: ' Prueba   Ficticia ', direccion: '  Santa   Rosa de Osos ' })
+    const [url, init] = state.fetchCalls[0]
+    assert.equal(url, CRM_URL)
+    assert.equal(init.method, 'POST')
+    assert.equal(init.redirect, 'manual')
+    assert.ok(init.body instanceof FormData)
+    assert.deepEqual(init.headers, {
+      Accept: 'application/json', Cookie: 'XSRF-TOKEN=xsrfFicticia%3D; laravel_session=sesionFicticia%3D',
+      'X-Requested-With': 'XMLHttpRequest', Origin: 'https://crm.example.test', Referer: FORM_PAGE
+    })
+    assert.deepEqual(sentFields(), [
+      ['_token', TOKEN], ['_method', 'post'], ['nombres', 'Ana María'], ['apellidos', 'Prueba Ficticia'], ['identificacion', '12345678'], ['fecha_nacimiento', '1990-05-10'],
+      ['direccion', 'Santa Rosa de Osos'], ['telefono', '3001234567'], ['email', 'ana@example.com'], ['name_surgery', 'Rinoplastia'], ['forma_pago', 'Financiacion'],
+      ['state', 'No Contactada'], ['origen', 'Formulario Web'], ['id_user', '101'], ['id_line', '30'], ['id_user_asesora', '103'], ['accept', '1']
+    ])
+    for (const old of ['name', 'phone', 'city', 'ad_headline', 'advisor_email']) assert.equal(old in sentBody(), false, old)
+  })
+
+  test('«Contado» se envía como lo rotula el formulario del CRM', async () => {
+    assert.deepEqual((await submit({ ...VALID, forma_pago: 'Contado' })).value, { ok: true })
+    assert.equal(sentBody().forma_pago, 'Contado')
+  })
+
+  test('la fecha viaja en AAAA-MM-DD y el teléfono solo con dígitos (campo numérico en el formulario original)', async () => {
+    await submit({ ...VALID, fecha_nacimiento: '2000-01-09', telefono: '+57 (300) 123-4567' })
+    assert.equal(sentBody().fecha_nacimiento, '2000-01-09')
+    assert.equal(sentBody().telefono, '573001234567')
+  })
+
+  test('una fecha en otro formato o inexistente no llega al CRM', async () => {
+    for (const fecha_nacimiento of ['10/05/1990', '1990-5-1', '1990-02-30', '']) {
+      mod.resetValuationGuards(); state.fetchCalls = []
+      const r = await submit({ ...VALID, fecha_nacimiento })
+      assert.equal(r.error?.statusCode, 422, fecha_nacimiento)
+      assert.equal(state.fetchCalls.length, 0)
+    }
+  })
+
+  test('el correo complementario conserva los datos tal como se muestran en el formulario', async () => {
+    await submit({ ...VALID, direccion: 'Santa Rosa de Osos' })
+    assert.match(state.sent[0].text, /Ciudad: Santa Rosa de Osos/)
+    assert.match(state.sent[0].text, /Forma de pago: Financiación/)
+  })
+
+  test('destino e identificadores salen solo de la configuración; si falta o es inválido uno => 503 sin petición', async () => {
+    const bad = [
+      { crmFormUrl: '' }, { crmFormUserId: '' }, { crmFormLineId: '' }, { crmFormAdvisorId: '' }, { crmFormLineId: 'abc' }, { crmFormUserId: '-1' },
+      { crmFormAdvisorId: '0' }, { crmFormLineId: '1.5' }, { crmFormUrl: 'http://crm.dominio.com/api' }, { crmFormUrl: 'https://user:clave@crm.example.test/crm-public/api/clients/forms' }, { crmFormUrl: 'no es url' },
+      { crmFormUrl: 'https://crm.example.test/api/chat/create/client' }, { crmFormUrl: `${CRM_URL}?a=1` }, { crmFormUrl: 'http://crm.dominio.com/crm-public/api/clients/forms' }
+    ]
+    for (const override of bad) {
+      state.cfg = { ...CRM_CFG, ...override }
+      mod.resetValuationGuards(); state.fetchCalls = []
+      const r = await submit()
+      assert.equal(r.error?.statusCode, 503, JSON.stringify(override))
+      assert.equal(r.error.data.reason, 'not_configured')
+      assert.equal(state.fetchCalls.length + state.pageCalls.length, 0)
+    }
+    assert.deepEqual(crm.resolveCrmClientConfig({}).invalid, ['NUXT_CRM_FORM_URL', 'NUXT_CRM_FORM_USER_ID', 'NUXT_CRM_FORM_LINE_ID', 'NUXT_CRM_FORM_ADVISOR_ID'])
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('las variables de la integración anterior ya no activan ningún envío', async () => {
+    state.cfg = { crmClientUrl: 'https://crm.example.test/api/chat/create/client', crmClientLineId: 12, crmClientAdvisorEmail: 'x@example.test' }
     const r = await submit()
-    assert.equal(r.value?.ok, true)
-    assert.equal(r.error, undefined)
-    assert.equal(state.fetchCalls.length, 1, 'el CRM se llamó una sola vez')
-    assert.equal(mailMod.notificationState(`valuation|${await keyOf()}`), 'pending')
+    assert.equal(r.error?.data.reason, 'not_configured')
+    assert.equal(state.fetchCalls.length, 0)
   })
 
-  test('CRM ok + sin correo configurado => {ok:true} y no se intenta ningún envío', async () => {
+  test('CRM ok + correo FALLA => el usuario ve el mismo éxito, el registro del CRM se conserva y el correo queda pendiente de reintento', async () => {
+    smtpDown()
+    const r = await submit()
+    assert.equal(r.error, undefined)
+    assert.deepEqual(r.value, { ok: true })
+    assert.equal(state.fetchCalls.length, 1)
+    assert.equal(mail.notificationState(key()), 'pending')
+    assert.doesNotMatch(state.logs.join('\n'), /Ana|Prueba|example\.com|12345678/)
+  })
+
+  test('CRM ok + correo sin configurar (destinatario vacío) => éxito normal y ningún envío', async () => {
     state.cfg = { ...CRM_CFG }
     const r = await submit()
-    assert.equal(r.value?.ok, true)
+    assert.deepEqual(r.value, { ok: true })
     assert.equal(state.sent.length, 0)
   })
 
-  test('CRM FALLA => no se envía correo ni se afirma que se registró', async () => {
-    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
-    state.fetchImpl = async () => ({ ok: false, status: 500, json: async () => ({}) })
-    const r = await submit()
-    assert.equal(r.error?.statusCode, 502)
-    assert.equal(r.error.data.reason, 'crm_error')
-    assert.equal(state.sent.length, 0)
-    state.fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({}) })
-    mod.resetValuationGuards()
-    const u = await submit()
-    assert.equal(u.error?.data?.reason, 'unconfirmed')
+  test('el correo no se duplica si el mismo envío se repite tras fallar el correo', async () => {
+    smtpDown()
+    await submit()
+    state.sendImpl = async () => ({ accepted: ['valoracion@example.test', 'copia@example.test'], rejected: [] })
+    mod.resetValuationGuards() // el bloqueo de doble envío del CRM es independiente: aquí se aísla la lógica del correo
+    await submit()
+    await submit()
+    assert.equal(state.sent.filter((m, i) => i > 0).length, 1, 'solo un correo aceptado tras el fallo')
+  })
+})
+
+describe('Sesión y CSRF', () => {
+  test('primero un GET del formulario público, sin datos ni credenciales; después el POST', async () => {
+    const sequence = []
+    state.pageImpl = async (...a) => { sequence.push('GET'); return page()(...a) }
+    state.fetchImpl = async () => { sequence.push('POST'); return { status: 200, json: async () => OK_BODY } }
+    assert.deepEqual((await submit()).value, { ok: true })
+    assert.deepEqual(sequence, ['GET', 'POST'])
+    const [url, init] = state.pageCalls[0]
+    assert.equal(url, FORM_PAGE)
+    assert.deepEqual([init.method, init.redirect, init.headers, init.body], ['GET', 'manual', { Accept: 'text/html' }, undefined])
+  })
+
+  test('cada paciente usa su propia sesión: no se reutilizan token ni cookies', async () => {
+    await submit()
+    state.pageImpl = page({ html: formHtml('otroTokenFicticio987654321'), cookies: ['laravel_session=otraSesion; path=/'] })
+    await submit({ ...VALID, identificacion: '99999999' })
+    assert.equal(state.pageCalls.length, 2)
+    assert.equal(sentBody(1)._token, 'otroTokenFicticio987654321')
+    assert.equal(state.fetchCalls[1][1].headers.Cookie, 'laravel_session=otraSesion')
+  })
+
+  test('token y cookies: extracción tolerante al HTML y cabecera solo con nombre=valor', () => {
+    assert.equal(crm.extractCsrfToken(`<input value='${TOKEN}' type='hidden' name='_token' />`), TOKEN)
+    for (const html of ['', '<input name="_token">', '<input name="_token" value="">', '<input name="_token" value="a b c d e f g h i j">', '<input name="token" value="abcdefghijklmnopqrst">']) {
+      assert.equal(crm.extractCsrfToken(html), '', html)
+    }
+    assert.equal(crm.cookieHeader(['a=1; path=/', 'b=x=y; Secure', 'c=deleted', 'sin-igual', 'a=2']), 'a=2; b=x=y')
+  })
+
+  test('sin sesión válida no se envía el paciente: 503 crm_session, sin correo y se puede reintentar', async () => {
+    const cases = [
+      ...[302, 403, 404, 419, 500, 503].map(status => [`HTTP ${status}`, page({ status })]),
+      ['sin token', page({ html: '<form></form>' })], ['sin cookies', page({ cookies: [] })],
+      ['sin conexión', netError('ECONNREFUSED')], ['corte', netError('ECONNRESET')],
+      ['cuerpo cortado', async () => ({ status: 200, headers: { getSetCookie: () => COOKIES }, text: async () => { throw new Error('corte') } })]
+    ]
+    for (const [label, impl] of cases) {
+      mod.resetValuationGuards(); state.fetchCalls = []; state.pageCalls = []; state.sent = []
+      state.pageImpl = impl
+      const r = await submit()
+      assert.equal(r.error?.statusCode, 503, label)
+      assert.equal(r.error.data.reason, 'crm_session', label)
+      assert.equal(r.error.data.uncertain, undefined, label)
+      assert.equal(state.pageCalls.length, 1, `sin reintentos: ${label}`)
+      assert.equal(state.fetchCalls.length, 0, label)
+      assert.equal(state.sent.length, 0, label)
+      state.pageImpl = page()
+      assert.deepEqual((await submit()).value, { ok: true }, label)
+    }
+  })
+
+  test('tiempo agotado al cargar el formulario: 503, sin POST', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] })
+    state.pageImpl = (_url, init) => new Promise((_res, rej) => { init.signal.addEventListener('abort', () => rej(Object.assign(new Error('abort'), { name: 'AbortError' }))) })
+    const pending = run(mod.handleValuation, { method: 'POST', body: { ...VALID }, headers: {} })
+    await new Promise(res => setImmediate(res))
+    t.mock.timers.tick(15_000)
+    const r = await pending
+    assert.equal(r.error?.statusCode, 503)
+    assert.equal(r.error.data.reason, 'crm_session')
+    assert.equal(state.fetchCalls.length, 0)
+  })
+})
+
+describe('Confirmación del CRM', () => {
+  test('un 2xx con `mensagge` de registro satisfactorio confirma', async () => {
+    for (const [status, mensagge] of [[200, OK_BODY.mensagge], [201, OK_BODY.mensagge], [200, '  los datos fueron  registrados SATISFACTORIAMENTE. ']]) {
+      mod.resetValuationGuards(); mail.resetMailGuards()
+      state.fetchImpl = reply(status, { mensagge })
+      assert.deepEqual((await submit()).value, { ok: true }, mensagge)
+    }
+  })
+
+  test('cualquier otro 2xx es INCIERTO: sin éxito, sin correo y sin reintento', async () => {
+    const bodies = [undefined, {}, [], null, { data: {}, created: true }, { success: true }, { ok: true }, { status: 'success' }, { message: OK_BODY.mensagge },
+      { mensagge: '' }, { mensagge: true }, { mensagge: [OK_BODY.mensagge] }, { mensagge: 'Los datos no fueron registrados satisfactoriamente' }, { mensagge: 'Registro creado' }]
+    for (const body of bodies) {
+      mod.resetValuationGuards(); state.fetchCalls = []
+      state.fetchImpl = reply(200, body)
+      const r = await submit()
+      assert.equal(r.value, undefined, JSON.stringify(body))
+      assert.equal(r.error?.statusCode, 502, JSON.stringify(body))
+      assert.equal(r.error.data.reason, 'unconfirmed')
+      assert.equal(r.error.data.uncertain, true)
+      assert.equal(state.fetchCalls.length, 1, 'sin reintentos')
+    }
     assert.equal(state.sent.length, 0)
   })
 })
 
-const JSON_HDRS = { headers: { 'content-length': '900', 'content-type': 'application/json' } }
+describe('CRM falla: rechazo o resultado incierto, y NINGÚN correo', () => {
+  const check = async (impl, status, reason, isUncertain, label) => {
+    mod.resetValuationGuards(); state.fetchCalls = []
+    state.fetchImpl = impl
+    const r = await submit()
+    assert.equal(r.value, undefined, label)
+    assert.equal(r.error?.statusCode, status, label)
+    assert.equal(r.error.data.reason, reason, label)
+    assert.equal(r.error.data.uncertain === true, isUncertain, label)
+    assert.equal(state.fetchCalls.length, 1, `sin reintentos: ${label}`)
+    return r
+  }
 
-describe('CRM NO configurado: el correo es el canal principal', () => {
-  test('sin CRM propio pero con correo => {ok:true} por correo, sin llamar al CRM', async () => {
-    state.cfg = { ...MAIL_CFG, trustedProxyHops: 0 }
-    const r = await submit(JSON_HDRS)
-    assert.equal(r.value?.ok, true)
-    assert.equal(state.fetchCalls.length, 0)
-    assert.equal(state.sent.length, 1)
+  test('422: solo se devuelven errores de campos del formulario', async () => {
+    const errors = { telefono: ['teléfono inválido'], direccion: 'ciudad inválida', fecha_nacimiento: ['fecha inválida'], id_user: ['x'], _token: ['x'], phone: ['x'] }
+    const r = await check(reply(422, { errors }), 422, 'crm_validation', false, '422')
+    assert.deepEqual(r.error.data.errors, { fecha_nacimiento: 'fecha inválida', direccion: 'ciudad inválida', telefono: 'teléfono inválido' })
+    assert.equal(state.sent.length, 0)
   })
 
-  test('ids del CRM incompletos o destino heredado de Planmed + correo => correo principal; nunca se llama al CRM', async () => {
-    for (const cfg of [{ ...CRM_CFG, crmValuationLineId: '' }, { ...CRM_CFG, crmValuationUrl: 'https://pdtclientsolutions.com/crm-public/api/clients/forms' }]) {
-      state.cfg = { ...cfg, ...MAIL_CFG }
-      mod.resetValuationGuards(); mailMod.resetMailGuards(); state.sent = []
-      const r = await submit(JSON_HDRS)
-      assert.equal(r.value?.ok, true)
+  test('4xx (incluido 419, sesión/CSRF) y 5xx son errores; una redirección es incierta', async () => {
+    for (const s of [400, 401, 403, 404, 408, 409, 419, 429, 500, 502, 503]) await check(reply(s, OK_BODY), 502, 'crm_error', false, `HTTP ${s}`)
+    for (const s of [301, 302, 307]) await check(reply(s, OK_BODY), 502, 'crm_error', true, `HTTP ${s}`)
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('sin conexión demostrable es un fallo; cortes y errores sin causa son inciertos', async () => {
+    for (const code of ['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN']) await check(netError(code), 503, 'network', false, code)
+    for (const code of ['ECONNRESET', 'UND_ERR_SOCKET', 'UND_ERR_CONNECT_TIMEOUT']) await check(netError(code), 503, 'network', true, code)
+    await check(async () => { throw new TypeError('fetch failed') }, 503, 'network', true, 'sin causa')
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('un fallo interno al preparar el envío => 500 (no 502), sin petición y se puede reintentar', async () => {
+    const Original = globalThis.FormData
+    globalThis.FormData = class { constructor() { throw new Error('Ana 12345678') } }
+    try {
+      const r = await submit()
+      assert.equal(r.error?.statusCode, 500)
+      assert.equal(r.error.data.reason, 'internal_error')
       assert.equal(state.fetchCalls.length, 0)
-      assert.equal(state.sent.length, 1)
-    }
+    } finally { globalThis.FormData = Original }
+    assert.deepEqual((await submit()).value, { ok: true })
+    assert.doesNotMatch(state.logs.join('\n'), /Ana|12345678/)
   })
 
-  test('ni CRM ni correo => 503 not_configured sin leer el cuerpo', async () => {
-    state.cfg = { trustedProxyHops: 0 }
-    const r = await submit(JSON_HDRS)
+  test('timeout: la petición se aborta a los 15 s y el resultado es incierto, no un fallo definitivo', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] })
+    let signal
+    state.fetchImpl = (_url, init) => new Promise((_res, rej) => { signal = init.signal; signal.addEventListener('abort', () => rej(Object.assign(new Error('abort'), { name: 'AbortError' }))) })
+    const pending = run(mod.handleValuation, { method: 'POST', body: { ...VALID }, headers: {} })
+    await new Promise(res => setImmediate(res))
+    t.mock.timers.tick(14_999)
+    assert.equal(signal.aborted, false)
+    t.mock.timers.tick(1)
+    const r = await pending
+    assert.equal(r.error?.statusCode, 504)
+    assert.equal(r.error.data.reason, 'timeout')
+    assert.equal(r.error.data.uncertain, true)
+    assert.equal(state.fetchCalls.length, 1)
+    assert.equal(state.sent.length, 0)
+  })
+
+  test('ningún registro contiene datos personales, el destino ni el cuerpo de la respuesta', async () => {
+    for (const impl of [reply(500, { detail: 'Ana Prueba 3001234567' }), reply(422, { errors: { telefono: ['Ana 12345678'] } }), netError('ECONNRESET')]) {
+      mod.resetValuationGuards(); state.fetchImpl = impl
+      await submit()
+    }
+    assert.ok(state.logs.length >= 3)
+    assert.doesNotMatch(state.logs.join('\n'), /Ana|Prueba|3001234567|12345678|ana@|Bogotá|Rinoplastia|crm\.example|_token|tokenFicticio|sesionFicticia|xsrfFicticia|laravel_session/)
+  })
+
+  test('sin destino del CRM => 503 not_configured y sin correo ni petición', async () => {
+    state.cfg = { ...MAIL_CFG }
+    const r = await submit()
     assert.equal(r.error?.statusCode, 503)
     assert.equal(r.error.data.reason, 'not_configured')
-    assert.equal(state.bodyReads, 0)
     assert.equal(state.fetchCalls.length, 0)
     assert.equal(state.sent.length, 0)
   })
 
-  test('correo principal con SMTP caído => error al usuario (no hay registro que conservar)', async () => {
-    state.cfg = { ...MAIL_CFG, trustedProxyHops: 0 }
-    state.sendImpl = async () => { throw Object.assign(new Error('x'), { code: 'ECONNREFUSED' }) }
-    const r = await submit(JSON_HDRS)
-    assert.equal(r.error?.statusCode, 503)
+  test('validación inválida => 422 sin CRM ni correo', async () => {
+    const r = await submit({ ...VALID, accept: false })
+    assert.equal(r.error?.statusCode, 422)
+    assert.equal(state.fetchCalls.length, 0)
+    assert.equal(state.sent.length, 0)
+  })
+})
+
+describe('Protección contra duplicados', () => {
+  const again = (body = { ...VALID }) => submit(body)
+
+  test('tras confirmar, el mismo cliente (aunque cambie el formato del teléfono o la cirugía) recibe 409 durante 2 minutos', async () => {
+    await submit()
+    const r = await again({ ...VALID, telefono: '+57 300 123 4567', name_surgery: 'Otra' })
+    assert.equal(r.error?.statusCode, 409)
+    assert.equal(r.error.data.reason, 'duplicate')
+    assert.equal(state.fetchCalls.length, 1)
+    state.clock += 2 * 60_000
+    assert.deepEqual((await again()).value, { ok: true })
+    assert.equal(state.fetchCalls.length, 2)
+  })
+
+  test('dos envíos simultáneos => una sola petición al CRM', async () => {
+    let release
+    state.fetchImpl = () => new Promise((res) => { release = () => res({ ok: true, status: 200, json: async () => OK_BODY }) })
+    const first = run(mod.handleValuation, { method: 'POST', body: { ...VALID }, headers: {} })
+    await new Promise(res => setImmediate(res))
+    const second = await run(mod.handleValuation, { method: 'POST', body: { ...VALID }, headers: {} })
+    assert.equal(second.error?.statusCode, 409)
+    release()
+    assert.deepEqual((await first).value, { ok: true })
+    await mail.settleNotifications()
+    assert.equal(state.fetchCalls.length, 1)
+  })
+
+  test('tras un resultado incierto o un 5xx del CRM no se reenvía durante 24 horas', async () => {
+    for (const impl of [reply(200, { data: {}, created: true }), reply(500, {}), netError('ECONNRESET')]) {
+      mod.resetValuationGuards(); mail.resetMailGuards(); state.fetchCalls = []; state.sent = []
+      state.fetchImpl = impl
+      await submit()
+      state.fetchImpl = reply(200, OK_BODY)
+      state.clock += 23 * 60 * 60_000
+      const r = await again()
+      assert.equal(r.error?.statusCode, 409)
+      assert.equal(r.error.data.uncertain, true)
+      assert.equal(state.fetchCalls.length, 1)
+      assert.equal(state.sent.length, 0)
+      state.clock += 2 * 60 * 60_000
+      assert.deepEqual((await again()).value, { ok: true })
+    }
+  })
+
+  test('tras un rechazo demostrado se puede volver a enviar', async () => {
+    for (const impl of [reply(422, {}), reply(429, {}), netError('ECONNREFUSED')]) {
+      mod.resetValuationGuards(); state.fetchCalls = []
+      state.fetchImpl = impl
+      await submit()
+      state.fetchImpl = reply(200, OK_BODY)
+      assert.deepEqual((await again()).value, { ok: true })
+      assert.equal(state.fetchCalls.length, 2)
+    }
+  })
+
+  test('límite por IP: el noveno intento en 10 minutos => 429', async () => {
+    for (let i = 0; i < 8; i++) await submit({ ...VALID, identificacion: `1000000${i}` })
+    const r = await submit({ ...VALID, identificacion: '20000000' })
+    assert.equal(r.error?.statusCode, 429)
+    assert.equal(state.fetchCalls.length, 8)
+  })
+})
+
+describe('La solicitud se conserva en el correo y la integración queda en el servidor', () => {
+  test('el correo posterior a la confirmación contiene todos los datos del formulario', async () => {
+    await submit()
+    for (const value of Object.values(VALID).filter(v => typeof v === 'string')) assert.ok(state.sent[0].text.includes(value), String(value))
+    assert.match(state.sent[0].text, /Aceptada/)
+  })
+
+  test('destino vacío por defecto, nada público y el navegador sigue usando la ruta propia', () => {
+    const cfg = read('nuxt.config.ts')
+    assert.match(cfg, /^    crmFormUrl: '',\r?$/m)
+    // Línea 30 por defecto; usuario y asesora sin valor (nunca los de otra marca); el destino sigue vacío.
+    for (const [name, id] of [['crmFormUserId', ''], ['crmFormLineId', '30'], ['crmFormAdvisorId', '']]) assert.match(cfg, new RegExp(`^    ${name}: '${id}',\r?$`, 'm'))
+    assert.doesNotMatch(cfg, /clients\/forms|crmValuationUrl|crmClient/)
+    assert.doesNotMatch(cfg, /public: \{[^}]*crmForm/s)
+    assert.match(read('services/ValuationService.ts'), /\/api\/forms\/valuation/)
+    for (const f of ['services/ValuationService.ts', 'components/forms/ValuationRequest.vue', 'shared/utils/valuation.ts']) {
+      assert.doesNotMatch(read(f), /crmedic|clients\/forms|chat\/create|id_user|id_line/, f)
+    }
   })
 })
 
@@ -468,53 +478,86 @@ describe('Blindaje y respuesta independiente del correo complementario', () => {
     Object.defineProperty(cfg, 'mailHost', { get() { throw new Error('config corrupta') }, enumerable: true, configurable: true })
     state.cfg = cfg
     const r = await submit()
-    assert.equal(r.value?.ok, true)
+    assert.deepEqual(r.value, { ok: true })
     assert.equal(state.fetchCalls.length, 1)
     assert.equal(state.sent.length, 0)
+    assert.doesNotMatch(state.logs.join('\n'), /config corrupta|Ana/)
   })
 
   test('SMTP mal configurado (sin contraseña o puerto inválido) => el CRM confirma igual y no se intenta el envío', async () => {
     for (const bad of [{ mailPassword: '' }, { mailPort: 'abc' }]) {
       state.cfg = { ...CRM_CFG, ...MAIL_CFG, ...bad }
-      mod.resetValuationGuards(); mailMod.resetMailGuards(); state.fetchCalls = []
+      mod.resetValuationGuards(); mail.resetMailGuards(); state.fetchCalls = []
       const r = await submit()
-      assert.equal(r.value?.ok, true, JSON.stringify(bad))
+      assert.deepEqual(r.value, { ok: true }, JSON.stringify(bad))
       assert.equal(state.sent.length, 0)
     }
   })
 
   test('la respuesta NO espera al SMTP: con el SMTP colgado responde {ok:true} de inmediato y el correo queda pendiente hasta que termina', async () => {
-    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
     let release
-    state.sendImpl = () => new Promise((res) => { release = () => res({ accepted: ['valoracion@example.test'], rejected: [] }) })
-    const r = await run(mod.handleValuation, event()) // sin esperar al correo
-    assert.equal(r.value?.ok, true)
-    const k = `valuation|${await keyOf()}`
-    assert.equal(mailMod.notificationState(k), 'pending', 'no se informa como enviado mientras no lo esté')
+    state.sendImpl = () => new Promise((res) => { release = () => res({ accepted: ['valoracion@example.test', 'copia@example.test'], rejected: [] }) })
+    const r = await run(mod.handleValuation, { method: 'POST', body: { ...VALID }, headers: {} }) // sin esperar al correo
+    assert.deepEqual(r.value, { ok: true })
+    assert.equal(mail.notificationState(key()), 'pending', 'no se informa como enviado mientras no lo esté')
     await new Promise(res => setImmediate(res))
     assert.equal(typeof release, 'function')
     release()
-    await mailMod.settleNotifications()
-    assert.equal(mailMod.notificationState(k), 'sent')
+    await mail.settleNotifications()
+    assert.equal(mail.notificationState(key()), 'sent')
   })
 
   test('REINICIO simulado: el estado del correo se pierde y un reenvío puede enviar OTRO correo (límite documentado, sin garantía de «exactamente una vez»)', async () => {
-    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
     await submit()
     assert.equal(state.sent.length, 1)
-    mailMod.resetMailGuards()
+    mail.resetMailGuards()
     mod.resetValuationGuards() // el reinicio también borra el bloqueo de doble envío del CRM, que es de memoria
     await submit()
     assert.equal(state.sent.length, 2)
   })
 
-  test('el pendiente no retiene el formulario completo: tras fallar, el correo reintentado es el mensaje ya construido', async () => {
-    state.cfg = { ...CRM_CFG, ...MAIL_CFG }
+  test('el formulario y el destino del CRM no cambian aunque falle el correo', async () => {
     state.sendImpl = async () => { throw Object.assign(new Error('x'), { code: 'ECONNREFUSED' }) }
     await submit()
-    const src = readFileSync(join(ROOT, 'server/utils/formMail.ts'), 'utf8')
-    const entry = src.slice(src.indexOf('interface NotifyEntry'), src.indexOf('const pending'))
-    assert.match(entry, /msg\?: ComplementaryMessage/)
-    assert.doesNotMatch(entry, /build|value/)
+    assert.equal(state.fetchCalls[0][0], CRM_URL)
+    assert.equal(sentBody().nombres, 'Ana')
+    assert.equal(sentBody().origen, 'Formulario Web')
+  })
+})
+
+describe('Identificador de Crediestética e IP del cliente', () => {
+  const fromNuxt = name => new RegExp('^    ' + name + ": '([^']*)',\\r?$", 'm').exec(read('nuxt.config.ts'))[1]
+
+  test('con los valores por defecto del proyecto, el formulario y el POST usan id_line = 30', async () => {
+    state.cfg = { crmFormUrl: CRM_URL, crmFormUserId: 101, crmFormLineId: fromNuxt('crmFormLineId'), crmFormAdvisorId: 103 }
+    assert.deepEqual((await submit()).value, { ok: true })
+    assert.equal(state.pageCalls[0][0], FORM_PAGE)
+    assert.equal(sentBody().id_line, '30')
+    assert.equal(sentFields().filter(([k]) => k === 'id_line').length, 1)
+    assert.equal(sentBody().origen, 'Formulario Web')
+  })
+
+  test('solo con los valores por defecto (sin usuario ni asesora) no se envía ni se informa éxito, aunque el correo esté configurado', async () => {
+    state.cfg = { ...MAIL_CFG, crmFormUrl: CRM_URL, crmFormUserId: fromNuxt('crmFormUserId'), crmFormLineId: fromNuxt('crmFormLineId'), crmFormAdvisorId: fromNuxt('crmFormAdvisorId') }
+    const r = await submit()
+    assert.equal(r.value, undefined)
+    assert.equal(r.error.data.reason, 'not_configured')
+    assert.equal(state.fetchCalls.length + state.pageCalls.length + state.sent.length, 0)
+    assert.match(state.logs.join('\n'), /NUXT_CRM_FORM_USER_ID, NUXT_CRM_FORM_ADVISOR_ID/)
+  })
+
+  test('el navegador no puede cambiar la línea ni los demás identificadores', async () => {
+    await submit({ ...VALID, id_line: '16', id_user: '1', id_user_asesora: '1', origen: 'x', state: 'x' })
+    assert.deepEqual([sentBody().id_line, sentBody().id_user, sentBody().id_user_asesora, sentBody().origen, sentBody().state], ['30', '101', '103', 'Formulario Web', 'No Contactada'])
+  })
+
+  test('sin proxies de confianza, rotar X-Forwarded-For no evita el límite por IP', async () => {
+    let last
+    for (let i = 0; i < 9; i++) {
+      last = await run(mod.handleValuation, { method: 'POST', body: { ...VALID, identificacion: '3000000' + i }, headers: { 'x-forwarded-for': '198.51.100.' + i } })
+    }
+    await mail.settleNotifications()
+    assert.equal(last.error?.statusCode, 429)
+    assert.equal(state.fetchCalls.length, 8)
   })
 })

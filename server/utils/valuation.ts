@@ -1,46 +1,44 @@
 import type { H3Event } from 'h3'
 import { createHash } from 'node:crypto'
 import { resolveClientIp } from '#shared/utils/clientIp'
-import { crmDestinationProblem, MSG_CRM_UNAVAILABLE } from '#shared/utils/crmDestination'
-import { buildCrmFields, crmConfirmed, normalizeValuation, resolveValuationCrmConfig, validateValuation, VALUATION_CRM_ENV, VALUATION_FIELDS, type ValuationInput } from '#shared/utils/valuation'
+import { normalizeValuation, validateValuation, type ValuationErrors, type ValuationInput } from '#shared/utils/valuation'
 
 import {
-  VALUATION_RECIPIENTS, cleanLine, contentFingerprint, deliverFormMail, formFail, isRateLimited, notifyComplementary, renderFormEmail, requireMailConfig, resolveMailConfig,
+  VALUATION_RECIPIENTS, cleanLine, notifyComplementary, renderFormEmail, resolveMailConfig,
   type MailSection, type NotifyResult
 } from './formMail'
+import { registerCrmClient, resolveCrmClientConfig, type CrmClientResult } from './crmClient'
 
-// Solicitud de valoración → CRM médico (POST multipart a /crm-public/api/clients/forms). Solo servidor.
+// Solicitud de valoración → CRM Médico (formulario multipart, ver ./crmClient). Solo servidor.
 //  · Valida TODO antes de llamar al CRM (una petición inválida nunca llega a él).
-//  · Sin reintentos: un timeout o una respuesta ambigua puede haber creado el registro; repetirlo duplicaría.
-//  · No se registra ningún dato personal ni el payload (solo el resultado: estado HTTP del CRM o el tipo de fallo).
-//  · Límite por IP y bloqueo de doble envío (huella SHA-256 de cédula + teléfono + cirugía, sin guardar los datos).
-//  · La IP sale de resolveClientIp (shared/utils/clientIp.ts), igual que la inscripción de Referidos: X-Forwarded-For solo cuenta con
-//    `trustedProxyHops` > 0; con 0 se usa la dirección del socket y la cabecera se IGNORA (un cliente no puede falsearla para evadir el límite).
-//  · Estado, origen y los tres ids del CRM son configuración del servidor (NUXT_CRM_VALUATION_*), sin valores por defecto: si falta o es inválida
-//    cualquiera, responde 503 `not_configured` antes de leer el cuerpo y de consumir el límite, y no sale ninguna petición al CRM.
-//  · Los guardas de límite y duplicados viven en la memoria de ESTE proceso: la aplicación debe ejecutarse como una sola instancia.
+//  · Sin reintentos: un timeout, un error del servidor del CRM o una respuesta ambigua pueden haber creado el registro; repetirlo duplicaría.
+//  · No se registra ningún dato personal ni el payload (solo el resultado: estado HTTP del CRM y el motivo).
+//  · Límite por IP y bloqueo de reenvíos por huella SHA-256 de cédula + teléfono (sin guardar los datos): 2 minutos tras un registro confirmado y
+//    24 horas tras un resultado incierto o un error 5xx del CRM. Vive en memoria: se pierde al reiniciar y no se comparte entre instancias.
+//  · La IP sale de resolveClientIp (shared/utils/clientIp.ts): X-Forwarded-For solo cuenta con `trustedProxyHops` > 0.
+//  · El correo NUNCA sustituye al CRM: sin configuración del CRM la ruta responde 503 y no envía correo ni afirma que registró.
 
-//  · CORREO COMPLEMENTARIO: después de que el CRM CONFIRMA el registro se envía un correo de respaldo (NUXT_VALUATION_TO/CC). Nunca sustituye al CRM ni
+//  · CORREO COMPLEMENTARIO: después de que el CRM CONFIRMA el registro se envía un correo con la solicitud (NUXT_VALUATION_TO/CC). Nunca sustituye al CRM ni
 //    altera su resultado: si el correo falla el registro sigue vigente y el usuario no ve error (cola de reintento en memoria, ver ./formMail).
-//    Si el CRM falla no se envía correo ni se afirma que se registró.
-//  · Mientras el CRM propio NO esté configurado/validado (destino o ids ausentes/ inválidos) el CORREO es el canal principal (`handleValuationByEmail`);
-//    en cuanto el CRM se habilite, el CRM pasa a ser el destino principal y el correo, complementario. No se inventan ids de CRM.
+//    Si el CRM no confirma no se envía correo ni se afirma que se registró.
 
 const TAG = 'valuation'
 const FORM = 'valuation'
-const TIMEOUT_MS = 15_000
 const RATE = { max: 8, windowMs: 10 * 60_000 }
 const DUPLICATE_WINDOW_MS = 2 * 60_000
+const UNCERTAIN_WINDOW_MS = 24 * 60 * 60_000
 
 const hits = new Map<string, number[]>()
 const inflight = new Set<string>()
 const accepted = new Map<string, number>()
+const uncertain = new Map<string, number>()
 
 /** Solo pruebas: vacía el estado en memoria. */
 export function resetValuationGuards() {
   hits.clear()
   inflight.clear()
   accepted.clear()
+  uncertain.clear()
 }
 
 function fail(statusCode: number, message: string, data: Record<string, unknown> = {}): never {
@@ -56,33 +54,54 @@ function rateLimited(key: string, now: number): boolean {
   return false
 }
 
-const fingerprint = (v: { identificacion: string, telefono: string, name_surgery: string }) =>
-  createHash('sha256').update(`${v.identificacion}|${v.telefono.replace(/\D/g, '')}|${v.name_surgery.toLowerCase()}`).digest('hex')
+/** Mismo celular colombiano escrito con o sin indicativo (3001234567, +57 300 123 4567) => misma huella. */
+const phoneKey = (phone: string) => phone.replace(/\D/g, '').replace(/^57(?=3\d{9}$)/, '')
 
-/** Manejador de POST /api/public/valuation. Devuelve { ok: true } solo si el CRM confirma el registro. */
+const fingerprint = (v: { identificacion: string, telefono: string }) =>
+  createHash('sha256').update(`${v.identificacion.toUpperCase()}|${phoneKey(v.telefono)}`).digest('hex')
+
+const MSG_UNCERTAIN = 'No pudimos confirmar el registro. Antes de reenviar, comunícate con nosotros para evitar duplicados.'
+const MSG_NOT_REGISTERED = 'No pudimos registrar tus datos. Inténtalo de nuevo en unos minutos.'
+
+/** Campos que el CRM y el formulario llaman igual. Los identificadores internos (id_user, id_line…) no son campos del usuario. */
+const CRM_FORM_FIELDS: ReadonlyArray<keyof ValuationInput> = [
+  'nombres', 'apellidos', 'identificacion', 'fecha_nacimiento', 'direccion', 'telefono', 'email', 'name_surgery', 'forma_pago', 'accept'
+]
+
+/** Errores del CRM por campo, para señalar un error de validación (422) sin repetir el cuerpo del CRM. */
+function crmFieldErrors(body: unknown): ValuationErrors {
+  const src = ((body && typeof body === 'object' ? (body as { errors?: unknown }).errors : null) ?? {}) as Record<string, unknown>
+  const out: Record<string, string> = {}
+  for (const field of CRM_FORM_FIELDS) {
+    const raw = src[field]
+    const msg = Array.isArray(raw) ? raw[0] : raw
+    if (typeof msg === 'string' && msg.length < 200) out[field] = msg
+  }
+  return out as ValuationErrors
+}
+
+/** Traduce un resultado no confirmado a la respuesta de la ruta. */
+function failFromCrm(result: CrmClientResult): never {
+  if (result.state === 'unknown') {
+    if (result.reason === 'timeout') fail(504, MSG_UNCERTAIN, { reason: 'timeout', uncertain: true })
+    if (result.reason === 'no_response') fail(503, MSG_UNCERTAIN, { reason: 'network', uncertain: true })
+    fail(502, MSG_UNCERTAIN, { reason: result.reason === 'unconfirmed_response' ? 'unconfirmed' : 'crm_error', uncertain: true })
+  }
+  if (result.reason === 'internal_error') fail(500, MSG_NOT_REGISTERED, { reason: 'internal_error' })
+  // No se pudo abrir la sesión: los datos del paciente no llegaron a enviarse y se puede reintentar.
+  if (result.reason.startsWith('session_')) fail(503, MSG_NOT_REGISTERED, { reason: 'crm_session' })
+  if (result.reason === 'no_connection') fail(503, 'No pudimos conectar para registrar tus datos. Inténtalo de nuevo en unos minutos.', { reason: 'network' })
+  if (result.status === 422) fail(422, 'El registro no pudo validarse. Revisa los datos ingresados.', { reason: 'crm_validation', errors: crmFieldErrors(result.body) })
+  if (result.reason === 'http_retryable') fail(502, MSG_NOT_REGISTERED, { reason: 'crm_error' })
+  fail(502, 'No pudimos registrar tus datos. Comunícate con nosotros para completar tu solicitud.', { reason: 'crm_error' })
+}
+
+/** Manejador de POST /api/forms/valuation. Devuelve { ok: true } solo si el CRM confirma el registro. */
 export async function handleValuation(event: H3Event) {
   assertSameOrigin(event)
   setHeader(event, 'Cache-Control', 'no-store')
 
-  // ¿Hay un CRM propio utilizable? Destino válido (no el heredado de Planmed) E identificadores completos. Si no, el correo es el canal PRINCIPAL.
-  const config = useRuntimeConfig(event)
-  const url = String(config.crmValuationUrl || '')
-  const problem = crmDestinationProblem(url)
-  const crm = resolveValuationCrmConfig({
-    userId: config.crmValuationUserId,
-    lineId: config.crmValuationLineId,
-    advisorId: config.crmValuationAdvisorId,
-    state: config.crmValuationState,
-    origin: config.crmValuationOrigin
-  })
-  if (problem || !crm.ok) {
-    // Solo NOMBRES de variables o el motivo del destino: nunca valores.
-    console.error(`[valuation] CRM no configurado o inválido (${problem || (crm.ok ? '' : crm.invalid.map(k => VALUATION_CRM_ENV[k]).join(', '))}): la valoración usa el correo como canal principal.`)
-    // Sin CRM ni correo: comportamiento original (503 sin leer el cuerpo ni consumir el límite).
-    if (!resolveMailConfig(config as Record<string, any>, VALUATION_RECIPIENTS).ok) fail(503, MSG_CRM_UNAVAILABLE, { reason: 'not_configured' })
-    return await handleValuationByEmail(event)
-  }
-
+  const config = useRuntimeConfig(event) as Record<string, any>
   const now = Date.now()
   const ip = resolveClientIp(getRequestIP(event), getRequestHeader(event, 'x-forwarded-for'), Number(config.trustedProxyHops) || 0)
   if (rateLimited(ip, now)) fail(429, 'Recibimos demasiados intentos. Espera unos minutos e inténtalo de nuevo.', { reason: 'rate_limited' })
@@ -92,49 +111,30 @@ export async function handleValuation(event: H3Event) {
   if (Object.keys(errors).length) fail(422, 'Revisa los datos ingresados.', { reason: 'validation', errors })
 
   const print = fingerprint(value)
+  const doubt = uncertain.get(print)
+  if (doubt && now - doubt < UNCERTAIN_WINDOW_MS) fail(409, MSG_UNCERTAIN, { reason: 'duplicate', uncertain: true })
   const last = accepted.get(print)
   if (inflight.has(print) || (last && now - last < DUPLICATE_WINDOW_MS)) {
     fail(409, 'Ya recibimos tu solicitud. No es necesario enviarla de nuevo.', { reason: 'duplicate' })
   }
 
-  const form = new FormData()
-  for (const [name, val] of buildCrmFields(value, crm.config)) form.append(name, val)
+  const crm = resolveCrmClientConfig(config)
+  if (!crm.ok) {
+    console.error(`[${TAG}] registro en el CRM no configurado (${crm.invalid.join(', ')})`)
+    fail(503, 'El envío no está disponible en este momento.', { reason: 'not_configured' })
+  }
 
   inflight.add(print)
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   try {
-    let res: Response
-    try {
-      // Sin Content-Type manual: fetch genera el multipart con su boundary.
-      res = await fetch(url, { method: 'POST', body: form, headers: { Accept: 'application/json' }, signal: controller.signal })
-    } catch (e: any) {
-      const timeout = e?.name === 'AbortError'
-      console.error(`[valuation] ${timeout ? 'timeout' : 'sin conexión'} con el CRM`)
-      // Resultado INCIERTO: puede haberse registrado. No se reintenta.
-      fail(timeout ? 504 : 503, 'No pudimos confirmar el envío. Revisa tu conexión e inténtalo en unos minutos.', { reason: timeout ? 'timeout' : 'network', uncertain: true })
-    }
-
-    if (res.status === 422) {
-      console.error('[valuation] el CRM respondió 422')
-      const body: any = await res.json().catch(() => null)
-      const known: Record<string, string> = {}
-      const src = body && typeof body === 'object' ? (body.errors ?? {}) : {}
-      for (const f of VALUATION_FIELDS) {
-        const msg = Array.isArray(src?.[f]) ? src[f][0] : src?.[f]
-        if (typeof msg === 'string' && msg.length < 200) known[f] = msg
+    const result = await registerCrmClient(crm.config, value)
+    if (result.state !== 'sent') {
+      console.error(`[${TAG}] CRM: ${result.state} (${result.reason}${result.status ? `, HTTP ${result.status}` : ''})`)
+      // Un 5xx se informa como error, pero el CRM pudo haber guardado el registro antes de fallar: tampoco se permite reenviar.
+      if (result.state === 'unknown' || result.reason === 'http_server_error') {
+        if (uncertain.size > 5000) for (const [k, t] of uncertain) if (now - t >= UNCERTAIN_WINDOW_MS) uncertain.delete(k)
+        uncertain.set(print, now)
       }
-      fail(422, 'El registro no pudo validarse. Revisa los datos ingresados.', { reason: 'crm_validation', errors: known })
-    }
-    if (!res.ok) {
-      console.error(`[valuation] el CRM respondió ${res.status}`)
-      fail(502, 'No pudimos registrar tus datos. Inténtalo de nuevo en unos minutos.', { reason: 'crm_error' })
-    }
-
-    const body = await res.json().catch(() => null)
-    if (!crmConfirmed(body)) {
-      console.error('[valuation] respuesta del CRM sin confirmación')
-      fail(502, 'No recibimos la confirmación del registro. Antes de reenviar, comunícate con nosotros para evitar duplicados.', { reason: 'unconfirmed', uncertain: true })
+      failFromCrm(result)
     }
 
     accepted.set(print, now)
@@ -142,7 +142,6 @@ export async function handleValuation(event: H3Event) {
     void notifyValuationByEmail(event, value, print)
     return { ok: true }
   } finally {
-    clearTimeout(timer)
     inflight.delete(print)
   }
 }
@@ -202,41 +201,4 @@ export async function notifyValuationByEmail(event: H3Event, value: ValuationInp
     console.error(`[${TAG}] correo complementario omitido: error inesperado`)
     return 'skipped'
   }
-}
-
-/** Valoración por CORREO como canal PRINCIPAL (solo cuando el CRM no está configurado/validado). Devuelve { ok: true } solo si el SMTP aceptó el mensaje. */
-async function handleValuationByEmail(event: H3Event) {
-  assertSameOrigin(event)
-  setHeader(event, 'Cache-Control', 'no-store')
-
-  // Configuración de correo y destinatarios (solo servidor): ANTES de leer el cuerpo y de consumir el límite por IP.
-  const { runtime: config, config: mail } = requireMailConfig(event, TAG, VALUATION_RECIPIENTS)
-
-  const now = Date.now()
-  if (isRateLimited(FORM, event, config, now)) formFail(429, 'Recibimos demasiados intentos. Espera unos minutos e inténtalo de nuevo.', { reason: 'rate_limited' })
-
-  const length = Number(getRequestHeader(event, 'content-length'))
-  if (!Number.isFinite(length) || length <= 0) formFail(411, 'No pudimos procesar el envío. Inténtalo de nuevo.', { reason: 'length_required' })
-  if (length > 16 * 1024) formFail(413, 'El envío es demasiado grande.', { reason: 'too_large' })
-  if (!String(getRequestHeader(event, 'content-type') ?? '').toLowerCase().startsWith('application/json')) {
-    formFail(415, 'No pudimos procesar el envío. Inténtalo de nuevo.', { reason: 'malformed' })
-  }
-
-  const value = normalizeValuation(await readBody(event).catch(() => null))
-  const errors = validateValuation(value)
-  if (Object.keys(errors).length) formFail(422, 'Revisa los datos ingresados.', { reason: 'validation', errors })
-
-  const { subject, text, html } = buildValuationEmail({ brand: String(config.public?.appName || 'Crediestética'), receivedAt: new Date(now), value })
-  return await deliverFormMail({
-    tag: TAG,
-    form: FORM,
-    // Misma persona + mismo procedimiento = mismo envío (ignora formato del teléfono y mayúsculas de la cirugía).
-    print: contentFingerprint({ id: value.identificacion, tel: value.telefono.replace(/\D/g, ''), cirugia: value.name_surgery.toLowerCase(), pago: value.forma_pago }),
-    now,
-    mail,
-    subject,
-    text,
-    html,
-    replyTo: value.email
-  })
 }

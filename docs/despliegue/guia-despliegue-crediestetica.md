@@ -14,12 +14,10 @@ Plantilla sin secretos: `.env.production.example`. Nitro lee estas variables del
 | `NUXT_SESSION_PASSWORD` | Sí | vacío | Cifra la cookie `crediestetica-admin` y deriva la clave de idempotencia de inscripciones | Secreto nuevo, de al menos 32 caracteres aleatorios |
 | `NUXT_PUBLIC_SITE_URL` | Sí | `https://crediestetica.com` (`site.url`) | Canonical, sitemap y Open Graph | `https://crediestetica.com` |
 | `NUXT_CONTENT_DIR` | Sí | `<cwd>/.data/crediestetica-content` | Contenido local: Nosotros, Clínicas, páginas, orientación de imágenes y `financing-rate.json` | Ruta persistente fuera de `.output/`, con lectura y escritura. Sugerida: `/var/lib/crediestetica/content`. **Confirmar.** |
-| `NUXT_CRM_VALUATION_URL` | Sí, para el formulario «Pide tu cita» | vacío (el CRM de Planmed se retiró del código; si se define ese endpoint heredado, también se bloquea) | Destino del CRM al que el servidor envía las valoraciones | El CRM **propio** de Crediestética. **Pendiente.** Sin él el formulario responde 503 y no envía nada. |
-| `NUXT_CRM_VALUATION_USER_ID` | Sí, para la valoración | vacío (sin respaldo) | `id_user` que recibe el CRM | Entero positivo que confirma el **responsable del CRM**. **Pendiente.** |
-| `NUXT_CRM_VALUATION_LINE_ID` | Sí, para la valoración | vacío (sin respaldo) | `id_line` que recibe el CRM | Entero positivo que confirma el responsable del CRM. **Pendiente.** |
-| `NUXT_CRM_VALUATION_ADVISOR_ID` | Sí, para la valoración | vacío (sin respaldo) | `id_user_asesora` que recibe el CRM | Entero positivo que confirma el responsable del CRM. **Pendiente.** |
-| `NUXT_CRM_VALUATION_STATE` | Sí, para la valoración | vacío (sin respaldo) | `state` inicial del registro en el CRM (texto, hasta 100 caracteres) | Lo confirma el responsable del CRM. **Pendiente.** |
-| `NUXT_CRM_VALUATION_ORIGIN` | Sí, para la valoración | vacío (sin respaldo) | `origen` del registro en el CRM (texto, hasta 100 caracteres) | Lo confirma el responsable del CRM. **Pendiente.** |
+| `NUXT_CRM_FORM_URL` | Sí, para «Pide tu cita» | vacío | Destino del registro de clientes en el CRM Médico | `https://pdtclientsolutions.com/crm-public/api/clients/forms`. Solo en producción: crea clientes reales |
+| `NUXT_CRM_FORM_USER_ID` | Sí, para la valoración | vacío (sin respaldo) | `id_user` del CRM; también arma la URL del formulario que abre la sesión | `73`. **Por confirmar** con el administrador del CRM su permiso sobre la línea 30 |
+| `NUXT_CRM_FORM_ADVISOR_ID` | Sí, para la valoración | vacío (sin respaldo) | `id_user_asesora` del CRM | `73`. **Por confirmar** que deba recibir las solicitudes de Crediestética |
+| `NUXT_CRM_FORM_LINE_ID` | No | `30` | `id_line` del CRM (línea de Crediestética) | No definir; definida y vacía invalida la configuración |
 | `NUXT_RATE_EDITOR_ROLE_IDS` | No | vacío | Roles adicionales que editan la tasa | **Vacía** |
 | `NUXT_CONTENT_EDITOR_ROLE_IDS` | No | vacío | Roles adicionales que editan el contenido local | Vacía |
 | `NUXT_ADMIN_ROLE_IDS` | No | vacío | No interviene en el acceso al panel | Vacía |
@@ -28,7 +26,7 @@ Plantilla sin secretos: `.env.production.example`. Nitro lee estas variables del
 | `NUXT_PUBLIC_APP_NAME`, `NUXT_PUBLIC_LOCAL_DOMAIN` | No | `Crediestética`, `crediestetica.com` | Valores informativos | No definir |
 | `PORT` / `NITRO_PORT`, `HOST` / `NITRO_HOST` | Según el servidor | Nitro: 3000 | Puerto y dirección de escucha | Los que use el proxy |
 
-**Valoración y CRM.** Los cinco valores `NUXT_CRM_VALUATION_*` (ids, estado y origen) sustituyen a los 73 y 16 que el clon heredó de Planmed y que ya no existen en el código. Son variables **solo del servidor** (no están en `runtimeConfig.public`) y no tienen valor por defecto. Si falta cualquiera, o no es válida, o el destino `NUXT_CRM_VALUATION_URL` está vacío o es el CRM de Planmed, `POST /api/forms/valuation` responde `503` con `reason: not_configured` **antes** de leer el cuerpo y de consumir el límite de intentos, y no sale ninguna petición al CRM. El formulario no debe habilitarse en producción hasta que el responsable del CRM confirme los valores (también `forma_pago=contado`, que el código marca como no confirmado).
+**Valoración y CRM.** Por cada envío el servidor abre el formulario público `…/crm-public/forms/{id_user}/{id_line}` (cookies y `_token`) y hace un único `POST` a `NUXT_CRM_FORM_URL`. Solo hay éxito si el CRM responde con su mensaje de confirmación; el correo sale después y es complementario. Sin la configuración completa, `POST /api/forms/valuation` responde `503` (`not_configured`) y no envía CRM ni correo. Las variables `NUXT_CRM_VALUATION_*` ya no se leen: retirarlas. Detalle en `docs/integrations/crm-clientes.md`.
 
 **Variables de Planmed que ya no se usan** (retirarlas del servidor): `NUXT_PLANMED_ADMIN_ROLE_IDS`, `NUXT_PLANMED_CONTENT_EDITOR_ROLE_IDS`, `NUXT_PLANMED_CONTENT_DIR`, `NUXT_PLANMED_RATE_EDITOR_ROLE_IDS`. No hay alias: si el servidor conserva `NUXT_PLANMED_CONTENT_DIR`, el contenido parecerá haberse perdido porque ahora se lee de `NUXT_CONTENT_DIR`.
 
@@ -37,7 +35,7 @@ Plantilla sin secretos: `.env.production.example`. Nitro lee estas variables del
 1. Que `NUXT_CONTENT_DIR` apunte a la carpeta persistente prevista y que el usuario del proceso pueda escribir en ella.
 2. Que los dos slugs coincidan con los de la empresa y la línea en el Hub de producción.
 3. Que `NUXT_SESSION_PASSWORD` sea nuevo y tenga al menos 32 caracteres.
-4. Que `NUXT_CRM_VALUATION_URL` sea el CRM propio y que los cinco `NUXT_CRM_VALUATION_*` estén confirmados por el responsable del CRM, o aceptar que el formulario de valoración permanezca bloqueado (503).
+4. Que `NUXT_CRM_FORM_URL`, `NUXT_CRM_FORM_USER_ID` y `NUXT_CRM_FORM_ADVISOR_ID` estén configuradas y confirmadas por el responsable del CRM; sin ellas el formulario de valoración responde 503.
 5. Que no queden variables `NUXT_PLANMED_*`.
 6. Que `.env.example` y esta plantilla no contengan secretos.
 
@@ -68,9 +66,8 @@ No se debe escribir `financing-rate.json` a mano en el servidor: así se omitir�
 
 - URL oficial de Messenger (el Footer no muestra el icono hasta tenerla).
 - Documento de términos y condiciones (ver `docs/legal/terminos-y-condiciones-adaptacion.md`).
-- Destino del CRM propio de Crediestética para la valoración.
 - Configurar y verificar la tasa real.
-- Ids, estado y origen del CRM para la valoración (`NUXT_CRM_VALUATION_USER_ID`, `_LINE_ID`, `_ADVISOR_ID`, `_STATE`, `_ORIGIN`) y valor de `forma_pago` para «Contado».
+- Confirmación del administrador del CRM para `id_user = 73` e `id_user_asesora = 73` en la línea `30`, y una prueba real autorizada.
 - Topología de red (ver la sección 5): número real de proxies, usuario de ejecución, puerto, ruta de contenido y política de copias.
 
 ## 4. Node, npm, build y arranque
@@ -85,8 +82,11 @@ Crediestética es una aplicación **Nuxt/Nitro con servidor**, no un sitio está
 ```bash
 npm ci
 npm run build              # genera .output/ (servidor Nitro); no genera sitio estático
-node .output/server/index.mjs
+npm run check:deploy       # falla si faltan las variables del CRM
+npm run start:production   # vuelve a comprobarlas y arranca .output/
 ```
+
+El arranque protegido necesita `.output/` y la carpeta `scripts/` (`check-crm-env.mjs` y `start-production.mjs`): si se despliega un artefacto compilado, incluir ambas.
 
 Las variables de entorno se leen al arrancar el proceso (el build no las incorpora): cambiarlas exige reiniciar. El build necesita las dependencias de desarrollo (`npm ci` las instala): si se compila en el servidor, ese entorno debe ser de confianza. Compilar en una máquina de build y desplegar `.output/` es preferible, pero **esa decisión es de infraestructura**.
 
@@ -115,7 +115,7 @@ module.exports = {
   apps: [{
     name: '<NOMBRE_PROCESO_PM2>',
     cwd: '<RUTA_APP>',
-    script: '.output/server/index.mjs',
+    script: 'scripts/start-production.mjs', // no arranca si faltan las variables del CRM
     exec_mode: 'fork',          // NO cluster
     instances: 1,               // NO más de una
     autorestart: true,
@@ -248,7 +248,7 @@ El login depende hoy del límite del propio Hub (responde 429); la aplicación n
 - Salida de la aplicación: stdout/stderr de PM2 (`pm2 logs`). Rotación con `pm2-logrotate` o `logrotate` sobre los archivos de PM2 (tamaño máximo y retención: por definir).
 - Nginx: `access.log` y `error.log` con su `logrotate`.
 - La aplicación **no registra** tokens, contraseñas ni datos de las valoraciones (solo resultados y errores; ver `server/utils/valuation.ts`). Aun así, los logs no deben ser legibles por usuarios ajenos.
-- Mensajes que indican configuración pendiente y conviene buscar tras el arranque: `NUXT_SESSION_PASSWORD no está configurada`, `NUXT_WELLEZY_API_BASE_URL no está configurada`, `[valuation] destino del CRM bloqueado`, `[valuation] configuración del CRM incompleta`.
+- Mensajes que indican configuración pendiente y conviene buscar tras el arranque: `NUXT_SESSION_PASSWORD no está configurada`, `NUXT_WELLEZY_API_BASE_URL no está configurada`, `[valuation] registro en el CRM no configurado`, `[valuation] CRM:`.
 
 ### 5.11 Despliegue, reinicio controlado y rollback
 Con una sola instancia hay un corte breve al reiniciar. Secuencia sugerida:
@@ -256,8 +256,9 @@ Con una sola instancia hay un corte breve al reiniciar. Secuencia sugerida:
 1. Copia de seguridad de `<RUTA_CONTENIDO>` (5.9).
 2. Obtener la versión a desplegar en un directorio nuevo (por ejemplo `<RUTA_APP>_<versión>`), no sobre la que está en servicio; `npm ci` y `npm run build` con Node 24.12.0.
 3. Conservar el directorio de la versión anterior con su `package-lock.json`.
-4. Apuntar PM2 (`cwd`) a la versión nueva y reiniciar: `pm2 restart <NOMBRE_PROCESO_PM2> --update-env` (el entorno solo se recarga si cambió).
-5. Ejecutar las validaciones de 5.12.
+4. Con las variables que usará el proceso, ejecutar en el directorio nuevo `npm run check:deploy` (o `node --env-file=<ARCHIVO> scripts/check-crm-env.mjs`). **Si falla, detener el despliegue**: la versión en servicio no se toca. Si PM2 ejecutaba `.output/server/index.mjs`, cambiar su `script` a `scripts/start-production.mjs` (un `restart` no cambia el script).
+5. Apuntar PM2 (`cwd`) a la versión nueva y reiniciar: `pm2 restart <NOMBRE_PROCESO_PM2> --update-env` (el entorno solo se recarga si cambió).
+6. Ejecutar las validaciones de 5.12.
 
 **Rollback**: volver el `cwd` (o el enlace) a la versión anterior y `pm2 restart <NOMBRE_PROCESO_PM2>`. Los datos de `<RUTA_CONTENIDO>` no se revierten con el código: si la versión nueva escribió datos con un formato distinto, restaurar la copia del paso 1. Probar el procedimiento de rollback antes del lanzamiento.
 
@@ -270,7 +271,7 @@ Las ejecuta el responsable (sin credenciales de producción reales en terminales
 4. Rutas con mayúsculas: `curl -sI https://<DOMINIO>/NOTICIAS` → 301 a `/noticias`; `curl -sI 'https://<DOMINIO>/SIMULADOR?x=1'` → 301 a `/financiacion?x=1`; `/Admin/login` responde con `X-Robots-Tag: noindex, nofollow`.
 5. `/admin/noticias` sin sesión redirige a `/admin/login`; `GET /api/admin/news` y `GET /api/auth/me` sin sesión → 401; `POST /api/auth/login` sin cabecera `Origin` → 403.
 6. Lecturas públicas del Hub: `/noticias` y `/procedimientos` cargan contenido (un 503 con `reason` indica Hub no configurado o inaccesible; ver `server/utils/publicErrors.ts`).
-7. Valoración **bloqueada** mientras falte configuración: `POST https://<DOMINIO>/api/forms/valuation` con `Origin` correcto → 503 `not_configured`.
+7. Valoración configurada: `POST https://<DOMINIO>/api/forms/valuation` con `Origin` correcto y cuerpo vacío (`{}`) → 422 (no llega al CRM). Después, una solicitud de prueba autorizada y su verificación en Clientes del CRM (línea 30, asesora 73).
 8. `GET /api/public/financing-rate` → 503 `rate_not_configured` hasta configurar la tasa (sección 2), y 200 después.
 9. `https://<DOMINIO>/robots.txt` y `/sitemap.xml` responden con el dominio correcto.
 10. Guardar contenido de prueba en el panel y comprobar que aparece en `<RUTA_CONTENIDO>` con el usuario del proceso.

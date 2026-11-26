@@ -1,17 +1,9 @@
-// Protección de los destinos de CRM (valoración y PRP). Módulo PURO (sin imports): lo usan el servidor Nitro, el navegador y las pruebas.
+// Protección del destino de CRM que usa el navegador (PRP). Módulo PURO (sin imports): lo usan el servidor Nitro, el navegador y las pruebas.
 //
-// Esta web se clonó de Planmed y hereda las URLs de SU CRM compartido. Hasta que se defina y verifique el CRM propio de Crediestética,
-// ningún envío de VALORACIÓN puede salir hacia ese endpoint heredado ni hacia un destino ausente o inválido. No se inventa ninguna URL alternativa.
-//
-// PRP: el endpoint `forms-px-prp` del CRM es COMPARTIDO entre Planmed y Crediestética (confirmado por el negocio: la URL es la misma),
-// por lo que ya no se considera heredado y no se bloquea. Sigue bloqueado si está ausente o es inválido.
+// El CRM es compartido entre las marcas: ningún endpoint se bloquea por su dirección, solo se rechaza un destino ausente o inválido. No se inventa
+// ninguna URL alternativa. La VALORACIÓN valida su propio destino en el servidor (server/utils/crmClient.ts).
 
-/** Endpoints del CRM de Planmed heredados en el clon (host + ruta, en minúsculas y sin barra final). */
-export const LEGACY_CRM_ENDPOINTS: readonly string[] = [
-  'pdtclientsolutions.com/crm-public/api/clients/forms'
-]
-
-export type CrmDestinationProblem = 'not_configured' | 'invalid' | 'legacy'
+export type CrmDestinationProblem = 'not_configured' | 'invalid'
 
 export const MSG_CRM_UNAVAILABLE = 'Este servicio no está disponible temporalmente. Inténtalo de nuevo más tarde.'
 
@@ -24,8 +16,5 @@ export function crmDestinationProblem(input: unknown): CrmDestinationProblem | n
   const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]' || url.hostname.endsWith('.localhost') || url.hostname.endsWith('.test')
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) return 'invalid'
   if (url.username || url.password) return 'invalid'
-  const key = `${url.hostname}${url.pathname.replace(/\/+$/, '')}`.toLowerCase()
-  const host = url.hostname.toLowerCase().replace(/^www\./, '')
-  const legacy = LEGACY_CRM_ENDPOINTS.some(e => key === e || `${host}${url.pathname.replace(/\/+$/, '')}`.toLowerCase() === e)
-  return legacy ? 'legacy' : null
+  return null
 }

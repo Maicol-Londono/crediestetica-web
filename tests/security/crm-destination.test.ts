@@ -1,5 +1,5 @@
 // @ts-nocheck -- pruebas ejecutadas con Node (node:test); fuera del alcance del typecheck de Nuxt.
-// Bloqueo de destinos de CRM heredados de Planmed (valoración y PRP) y guardia de tenant vacío hacia Hub.
+// Destinos de CRM ausentes o inválidos (valoración y PRP) y guardia de tenant vacío hacia Hub.
 // Se ejecuta el código REAL del servidor (copiado a un directorio temporal solo para resolver los alias `#shared/`).
 import { test, describe, before, beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
@@ -10,8 +10,8 @@ import { pathToFileURL } from 'node:url'
 import { ROOT } from '../recommendations/harness.ts'
 
 const fileUrl = rel => pathToFileURL(join(ROOT, rel)).href
-const LEGACY_VALUATION = 'https://pdtclientsolutions.com/crm-public/api/clients/forms'
-const LEGACY_PRP = 'https://pdtclientsolutions.com/crm-public/api/forms-px-prp'
+const SHARED_VALUATION = 'https://pdtclientsolutions.com/crm-public/api/clients/forms'
+const SHARED_PRP = 'https://pdtclientsolutions.com/crm-public/api/forms-px-prp'
 const OWN_CRM = 'https://crm.crediestetica.example/api/forms' // destino hipotético válido SOLO para las pruebas
 
 const state = { cfg: {}, fetchCalls: [], hubCalls: [], rawCalls: [] }
@@ -20,8 +20,9 @@ let dir, D, handleValuation, prpGet, W
 // Copia el archivo del servidor reescribiendo `#shared/utils/<x>` a la ruta real del módulo compartido (Node no conoce los alias de Nuxt).
 const copyServer = (rel, name) => {
   const base = fileUrl('shared/utils')
-  const fix = src => src.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'")
+  const fix = src => src.replace(/'#shared\/utils\/([A-Za-z]+)'/g, (_, m) => `'${base}/${m}.ts'`).replace("'./formMail'", "'./formMail.ts'").replace("'./crmClient'", "'./crmClient.ts'")
   writeFileSync(join(dir, 'formMail.ts'), fix(readFileSync(join(ROOT, 'server/utils/formMail.ts'), 'utf8'))) // el módulo de valoración ahora importa el núcleo de correo
+  writeFileSync(join(dir, 'crmClient.ts'), fix(readFileSync(join(ROOT, 'server/utils/crmClient.ts'), 'utf8')))
   writeFileSync(join(dir, name), fix(readFileSync(join(ROOT, rel), 'utf8')))
   return import(pathToFileURL(join(dir, name)).href)
 }
@@ -55,10 +56,8 @@ describe('crmDestinationProblem', () => {
     for (const v of [undefined, null, '', '   ']) assert.equal(D.crmDestinationProblem(v), 'not_configured', String(v))
     for (const v of ['no es url', 'ftp://crm.example/x', 'http://crm.example/x', 'https://user:pw@crm.example/x', 'javascript:alert(1)']) assert.equal(D.crmDestinationProblem(v), 'invalid', v)
   })
-  test('bloquea los endpoints heredados de Planmed en cualquier variante equivalente', () => {
-    for (const v of [LEGACY_VALUATION, LEGACY_VALUATION + '/', 'HTTPS://PDTCLIENTSOLUTIONS.COM/CRM-PUBLIC/API/CLIENTS/FORMS', 'https://www.pdtclientsolutions.com/crm-public/api/clients/forms', 'https://pdtclientsolutions.com:443/crm-public/api/clients/forms', ' ' + LEGACY_VALUATION + ' ']) {
-      assert.equal(D.crmDestinationProblem(v), 'legacy', v)
-    }
+  test('el CRM compartido es un destino válido: no se bloquea ningún endpoint por su dirección', () => {
+    for (const v of [SHARED_VALUATION, SHARED_PRP]) assert.equal(D.crmDestinationProblem(v), null, v)
   })
   test('un destino propio válido (https, o http local) no se bloquea', () => {
     assert.equal(D.crmDestinationProblem(OWN_CRM), null)
@@ -67,32 +66,14 @@ describe('crmDestinationProblem', () => {
 })
 
 describe('POST /api/forms/valuation (handleValuation)', () => {
-  const body = { identificacion: '123' }
-  test('destino heredado de Planmed => 503 controlado y NO se hace ninguna petición saliente', async () => {
-    state.cfg = { crmValuationUrl: LEGACY_VALUATION }
-    const r = await run(handleValuation, { method: 'POST', body, headers: {} })
-    assert.equal(r.error.statusCode, 503)
-    assert.equal(r.error.data.message, D.MSG_CRM_UNAVAILABLE)
-    assert.equal(state.fetchCalls.length, 0, 'no sale ninguna petición al CRM')
-  })
-  test('sin destino, vacío o inválido => 503 y ninguna petición', async () => {
-    for (const crmValuationUrl of [undefined, '', '  ', 'x', 'http://crm.example/x']) {
-      state.cfg = { crmValuationUrl }
-      const r = await run(handleValuation, { method: 'POST', body, headers: {} })
-      assert.equal(r.error?.statusCode, 503, String(crmValuationUrl))
+  test('sin destino, vacío o inválido => 503 y ninguna petición al CRM', async () => {
+    const body = { nombres: 'Ana', apellidos: 'Prueba', identificacion: '12345678', fecha_nacimiento: '1990-05-10', direccion: 'Bogotá', telefono: '3001234567', email: 'ana@example.com', name_surgery: 'Rinoplastia', forma_pago: 'Contado', accept: true }
+    for (const [i, crmFormUrl] of [undefined, '', '  ', 'x', 'http://crm.example/crm-public/api/clients/forms', SHARED_PRP].entries()) {
+      state.cfg = { crmFormUrl, crmFormUserId: '9101', crmFormLineId: '30', crmFormAdvisorId: '9103' }
+      const r = await run(handleValuation, { method: 'POST', body: { ...body, identificacion: '1000000' + i }, headers: {} })
+      assert.equal(r.error?.statusCode, 503, String(crmFormUrl))
+      assert.equal(r.error.data.reason, 'not_configured')
     }
-    assert.equal(state.fetchCalls.length, 0)
-  })
-  test('el bloqueo se evalúa en el servidor ANTES de validar el cuerpo', async () => {
-    state.cfg = { crmValuationUrl: LEGACY_VALUATION }
-    for (const b of [undefined, null, {}, body, 'x']) assert.equal((await run(handleValuation, { method: 'POST', body: b, headers: {} })).error.statusCode, 503)
-    assert.equal(state.fetchCalls.length, 0)
-  })
-  test('con un destino propio válido NO se bloquea (el cuerpo vacío llega a la validación: 422) y tampoco sale petición', async () => {
-    // Con la configuración del CRM completa (ids ficticios de prueba): sin ella la valoración responde 503 not_configured (ver valuation.test.ts).
-    state.cfg = { crmValuationUrl: OWN_CRM, crmValuationUserId: '9101', crmValuationLineId: '9102', crmValuationAdvisorId: '9103', crmValuationState: 'Estado de prueba', crmValuationOrigin: 'Origen de prueba' }
-    const r = await run(handleValuation, { method: 'POST', body: {}, headers: {} })
-    assert.equal(r.error.statusCode, 422)
     assert.equal(state.fetchCalls.length, 0)
   })
 })
@@ -100,11 +81,11 @@ describe('POST /api/forms/valuation (handleValuation)', () => {
 describe('GET /api/public/prp/[slug]', () => {
   const e = { params: { slug: 'demo' }, headers: {} }
   test('el endpoint de PRP del CRM es compartido con Planmed: ya no se considera heredado', () => {
-    for (const v of [LEGACY_PRP, LEGACY_PRP + '/', 'HTTPS://PDTCLIENTSOLUTIONS.COM/CRM-PUBLIC/API/FORMS-PX-PRP']) assert.equal(D.crmDestinationProblem(v), null, v)
+    for (const v of [SHARED_PRP, SHARED_PRP + '/', 'HTTPS://PDTCLIENTSOLUTIONS.COM/CRM-PUBLIC/API/FORMS-PX-PRP']) assert.equal(D.crmDestinationProblem(v), null, v)
   })
   // La inscripción se procesa en Wellezy Hub: el micrositio ya NO depende del destino del CRM (crmPrpFormUrl), valga lo que valga.
   test('el micrositio consulta a Hub con cualquier valor de crmPrpFormUrl (ausente, inválido, heredado o propio): ya no lo desactiva', async () => {
-    for (const crmPrpFormUrl of [LEGACY_PRP, '', undefined, 'x', OWN_CRM]) {
+    for (const crmPrpFormUrl of [SHARED_PRP, '', undefined, 'x', OWN_CRM]) {
       state.hubCalls = []
       state.cfg = { public: { crmPrpFormUrl } }
       await run(prpGet, e)

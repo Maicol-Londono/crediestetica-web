@@ -30,10 +30,10 @@ describe('PRP: interruptores', () => {
     assert.ok(guard < src.indexOf('crmPrpFormUrl || '), 'la guardia va antes de leer la URL')
     assert.ok(guard < src.indexOf('await fetch(') || guard < src.indexOf('fetch(url'), 'la guardia va antes del fetch')
   })
-  test('el CRM de valoración no tiene destino por defecto (el de Planmed se retiró) y el de PRP no cambió', () => {
+  test('el CRM de valoración no tiene destino por defecto y el de PRP no cambió', () => {
     assert.match(read('nuxt.config.ts'), /crmPrpFormUrl: 'https:\/\/pdtclientsolutions\.com\/crm-public\/api\/forms-px-prp'/)
-    assert.match(read('nuxt.config.ts'), /^    crmValuationUrl: '',$/m)
-    assert.doesNotMatch(read('nuxt.config.ts'), /crmValuationUrl: '[^']/)
+    assert.match(read('nuxt.config.ts'), /^    crmFormUrl: '',\r?$/m)
+    assert.doesNotMatch(read('nuxt.config.ts'), /crmFormUrl: '[^']|crmValuation/)
   })
 })
 
